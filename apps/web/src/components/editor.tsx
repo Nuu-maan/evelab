@@ -1,6 +1,6 @@
 "use client";
 
-import Editor, { type BeforeMount, type OnMount } from "@monaco-editor/react";
+import Editor, { DiffEditor, type BeforeMount, type OnMount } from "@monaco-editor/react";
 import { useEffect, useState } from "react";
 
 export function languageFor(path: string): string {
@@ -79,6 +79,44 @@ const prepare: BeforeMount = (monaco) => {
   monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions(diagnostics);
   monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions(diagnostics);
 };
+
+/** Read-only side-by-side diff: the last synced version on the left, the file on disk on the right. */
+export function CodeDiffEditor({
+  original,
+  modified,
+  language,
+}: {
+  original: string;
+  modified: string;
+  language: string;
+}) {
+  const dark = usePrefersDark();
+
+  return (
+    <DiffEditor
+      original={original}
+      modified={modified}
+      language={language}
+      theme={dark ? "evelab-dark" : "evelab-light"}
+      beforeMount={prepare}
+      loading={<span className="palette-hint">Loading diff</span>}
+      options={{
+        readOnly: true,
+        originalEditable: false,
+        renderSideBySide: true,
+        minimap: { enabled: false },
+        fontSize: 13,
+        lineHeight: 20,
+        fontFamily: "var(--font-geist-mono), ui-monospace, monospace",
+        scrollBeyondLastLine: false,
+        automaticLayout: true,
+        renderOverviewRuler: false,
+        padding: { top: 12, bottom: 12 },
+      }}
+      height="100%"
+    />
+  );
+}
 
 export function CodeEditor({
   value,

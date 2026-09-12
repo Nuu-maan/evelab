@@ -7,6 +7,7 @@ import {
   BookOpen,
   Bot,
   Files,
+  GitBranch,
   HardDrive,
   LayoutGrid,
   MessagesSquare,
@@ -50,6 +51,7 @@ export function Sidebar({
       { label: "Canvas", segment: "canvas", icon: Workflow },
       { label: "Agent", segment: "agent", icon: Bot },
       { label: "Files", segment: "files", icon: Files },
+      { label: "Source control", segment: "source", icon: GitBranch },
     ],
     [
       { label: "Tools", segment: "tools", icon: Wrench, count: counts.tools },
