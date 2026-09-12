@@ -1,33 +1,57 @@
 /*
  * EveLab design foundation.
  *
- * Geist typography, a monochrome Vercel-style palette, and tokens rather than
- * ad hoc values. Scales are tighter than a marketing surface: this is a tool
- * people keep open all day.
+ * Geist typography and Vercel's gray scale, expressed as tokens rather than ad
+ * hoc values. Scales are tighter than a marketing surface: this is a tool people
+ * keep open all day. No gradients anywhere; depth comes from hairlines and
+ * stacked shadows.
  */
 
 :root {
   color-scheme: light dark;
 
-  --background: #ffffff;
-  --surface: #fafafa;
+  /* Page and sidebar sit on --background; panels and cards on --surface. */
+  --background: #fafafa;
+  --surface: #ffffff;
   --surface-raised: #ffffff;
-  --surface-hover: #f5f5f5;
-  --border: #eaeaea;
-  --border-strong: #d9d9d9;
-  --foreground: #000000;
+  --surface-hover: #f2f2f2;
+  --surface-active: #ebebeb;
+  --border: #ebebeb;
+  --border-strong: #d4d4d4;
+  --foreground: #171717;
   --foreground-secondary: #666666;
   --foreground-tertiary: #8f8f8f;
-  --accent: #000000;
+  --accent: #171717;
   --accent-foreground: #ffffff;
-  --accent-hover: #333333;
-  --success: #0f7b3d;
-  --warning: #a35200;
-  --danger: #c52222;
-  --focus: #0072f5;
-  --shadow-small: 0 1px 2px rgb(0 0 0 / 0.06);
-  --shadow: 0 4px 12px rgb(0 0 0 / 0.08);
-  --shadow-large: 0 12px 40px rgb(0 0 0 / 0.14);
+  --accent-hover: #383838;
+  --success: #107d32;
+  --warning: #aa4d00;
+  --danger: #cb2a2f;
+  --focus: #0070f3;
+
+  /* Category colours. Used only where colour says what something is. */
+  --blue: #0068d6;
+  --purple: #7d3ac1;
+  --amber: #b25c00;
+  --teal: #067a6e;
+  --kind-agent: var(--foreground);
+  --kind-subagent: var(--purple);
+  --kind-tool: var(--blue);
+  --kind-skill: var(--amber);
+
+  /* Stacked shadows, never one heavy drop. */
+  --shadow-small: 0 1px 1px rgb(0 0 0 / 0.02), 0 2px 2px rgb(0 0 0 / 0.04);
+  --shadow: 0 2px 2px rgb(0 0 0 / 0.04), 0 8px 16px -4px rgb(0 0 0 / 0.05);
+  --shadow-large: 0 1px 1px rgb(0 0 0 / 0.02), 0 8px 16px -4px rgb(0 0 0 / 0.05),
+    0 24px 32px -8px rgb(0 0 0 / 0.07);
+
+  /* Motion. Strong curves; the built-in keywords are too weak. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --duration-hover: 150ms;
+  --duration-press: 160ms;
+  --duration-panel: 240ms;
 
   --space-1: 4px;
   --space-2: 8px;
@@ -42,11 +66,12 @@
 
   --radius-small: 4px;
   --radius: 6px;
-  --radius-large: 10px;
+  --radius-large: 8px;
+  --radius-xl: 12px;
   --radius-pill: 999px;
 
   --text-display: 32px;
-  --text-title: 22px;
+  --text-title: 24px;
   --text-section: 16px;
   --text-body: 14px;
   --text-compact: 13px;
@@ -56,9 +81,8 @@
   --weight-medium: 500;
   --weight-semibold: 600;
 
-  --sidebar-width: 232px;
-  --topbar-height: 52px;
-  --content-width: 1040px;
+  --header-height: 48px;
+  --content-width: 1080px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -67,21 +91,29 @@
     --surface: #0a0a0a;
     --surface-raised: #111111;
     --surface-hover: #1a1a1a;
-    --border: #262626;
-    --border-strong: #3a3a3a;
+    --surface-active: #242424;
+    --border: #242424;
+    --border-strong: #383838;
     --foreground: #ededed;
     --foreground-secondary: #a1a1a1;
-    --foreground-tertiary: #757575;
+    --foreground-tertiary: #7c7c7c;
     --accent: #ededed;
-    --accent-foreground: #000000;
+    --accent-foreground: #0a0a0a;
     --accent-hover: #cccccc;
-    --success: #4ade80;
+    --success: #62c073;
     --warning: #f5a623;
     --danger: #ff6166;
-    --focus: #3291ff;
-    --shadow-small: 0 1px 2px rgb(0 0 0 / 0.4);
-    --shadow: 0 4px 16px rgb(0 0 0 / 0.5);
-    --shadow-large: 0 16px 48px rgb(0 0 0 / 0.6);
+    --focus: #52a8ff;
+
+    --blue: #52a8ff;
+    --purple: #bf7af0;
+    --amber: #ffb224;
+    --teal: #0ac7b4;
+
+    --shadow-small: 0 1px 1px rgb(0 0 0 / 0.3), 0 2px 2px rgb(0 0 0 / 0.3);
+    --shadow: 0 2px 2px rgb(0 0 0 / 0.35), 0 8px 16px -4px rgb(0 0 0 / 0.45);
+    --shadow-large: 0 1px 1px rgb(0 0 0 / 0.3), 0 8px 16px -4px rgb(0 0 0 / 0.45),
+      0 24px 32px -8px rgb(0 0 0 / 0.6);
   }
 }
 
@@ -103,9 +135,9 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   font-size: var(--text-body);
-  line-height: 1.55;
-  letter-spacing: -0.006em;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 code,
@@ -145,6 +177,20 @@ textarea {
   color: inherit;
 }
 
+svg {
+  flex: none;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .skip-link {
   position: absolute;
   left: 50%;
@@ -155,11 +201,17 @@ textarea {
   background: var(--surface-raised);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
-  transition: top 140ms ease;
+  transition: top 140ms var(--ease-out);
 }
 
 .skip-link:focus {
   top: var(--space-3);
+}
+
+/* While a pane is being resized the whole document behaves like the handle. */
+body[data-resizing] {
+  cursor: col-resize;
+  user-select: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -182,7 +234,7 @@ textarea {
 @keyframes reveal {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
@@ -191,21 +243,21 @@ textarea {
 }
 
 .reveal {
-  animation: reveal 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: reveal 280ms var(--ease-out) both;
   animation-delay: var(--reveal-delay, 0ms);
 }
 
 .stagger > * {
-  animation: reveal 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: reveal 280ms var(--ease-out) both;
 }
 
-.stagger > *:nth-child(1) { animation-delay: 20ms; }
-.stagger > *:nth-child(2) { animation-delay: 55ms; }
-.stagger > *:nth-child(3) { animation-delay: 90ms; }
-.stagger > *:nth-child(4) { animation-delay: 125ms; }
+.stagger > *:nth-child(1) { animation-delay: 0ms; }
+.stagger > *:nth-child(2) { animation-delay: 40ms; }
+.stagger > *:nth-child(3) { animation-delay: 80ms; }
+.stagger > *:nth-child(4) { animation-delay: 120ms; }
 .stagger > *:nth-child(5) { animation-delay: 160ms; }
-.stagger > *:nth-child(6) { animation-delay: 195ms; }
-.stagger > *:nth-child(n + 7) { animation-delay: 230ms; }
+.stagger > *:nth-child(6) { animation-delay: 200ms; }
+.stagger > *:nth-child(n + 7) { animation-delay: 240ms; }
 
 @media (prefers-reduced-motion: reduce) {
   .reveal,

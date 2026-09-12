@@ -1,75 +1,193 @@
 import Link from "next/link";
-import { Reveal, Stagger, StaggerItem } from "@/components/motion";
+import { ArrowUpRight, Circle, CircleCheck, CircleDashed, Workflow } from "lucide-react";
+import { getCanvasGraph } from "@evelab/eve-project";
+import { GraphPreview } from "@/components/graph-preview";
+import { KINDS, KindTile } from "@/components/kinds";
+import { Reveal } from "@/components/motion";
+import { Avatar } from "@/components/project-switcher";
+import { readLayout } from "@/lib/layout";
 import { readProject, validateProject } from "@/lib/workspace";
+import "@/app/overview.css";
 
 export const dynamic = "force-dynamic";
 
+const PREVIEW_LIMIT = 5;
+
 export default async function OverviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const project = await readProject(id);
+  const [project, layout] = await Promise.all([readProject(id), readLayout(id)]);
   const issues = validateProject(project);
+  const errors = issues.filter((issue) => issue.level === "error");
+  const graph = getCanvasGraph(project);
+  const base = `/projects/${id}`;
+  const fileHref = (path: string) => `${base}/files?path=${encodeURIComponent(path)}`;
+  const instructionLines = project.agent.instructions.split("\n").filter((line) => line.trim()).length;
 
-  const stats = [
-    { label: "Model", value: project.agent.model.id || "Not set", mono: true },
-    { label: "Tools", value: String(project.tools.length) },
-    { label: "Skills", value: String(project.skills.length) },
-    { label: "Subagents", value: String(project.subagents.length) },
-    { label: "Files", value: String(project.files.length) },
-    { label: "Latest run", value: "None yet" },
+  const details = [
+    {
+      label: "Model",
+      value: <span className="mono">{project.agent.model.id || "Not set"}</span>,
+      href: `${base}/agent/model`,
+    },
+    {
+      label: "Instructions",
+      value: (
+        <>
+          <span className="mono">{project.agent.instructionsPath}</span>
+          <span className="overview-detail-hint">
+            {instructionLines} {instructionLines === 1 ? "line" : "lines"}
+          </span>
+        </>
+      ),
+      href: `${base}/agent/instructions`,
+    },
+    {
+      label: "Configuration",
+      value: (
+        <span className="status" data-tone={errors.length > 0 ? "error" : "ready"}>
+          {errors.length > 0
+            ? `${errors.length} ${errors.length === 1 ? "error" : "errors"}`
+            : "Valid"}
+        </span>
+      ),
+      href: issues.length > 0 ? "#issues" : undefined,
+    },
+    {
+      label: "Files",
+      value: <span>{project.files.length} on disk</span>,
+      href: `${base}/files`,
+    },
+    { label: "Latest run", value: <span>None yet</span>, href: `${base}/runs` },
   ];
 
-  const actions = [
-    { label: "Open canvas", href: `/projects/${id}/canvas`, detail: "Drag, connect, inspect" },
+  const columns = [
+    {
+      kind: "tool" as const,
+      href: `${base}/tools`,
+      empty: "No tools yet. Add one to let the agent act.",
+      items: project.tools.map((tool) => ({
+        id: tool.id,
+        name: tool.name,
+        detail: tool.description || tool.origin,
+        path: `tools/${tool.id}.ts`,
+      })),
+    },
+    {
+      kind: "skill" as const,
+      href: `${base}/skills`,
+      empty: "No skills yet. Import one from GitHub.",
+      items: project.skills.map((skill) => ({
+        id: skill.id,
+        name: skill.name,
+        detail: skill.description || `skills/${skill.id}`,
+        path: `skills/${skill.id}/SKILL.md`,
+      })),
+    },
+    {
+      kind: "subagent" as const,
+      href: `${base}/subagents`,
+      empty: "No subagents yet. Create one for specialised work.",
+      items: project.subagents.map((subagent) => ({
+        id: subagent.id,
+        name: subagent.name,
+        detail: subagent.description || subagent.model?.id || "Inherits model",
+        path: `subagents/${subagent.id}.md`,
+      })),
+    },
+  ];
+
+  const steps: { label: string; detail: string; href?: string; state: "done" | "todo" | "unavailable" }[] = [
+    {
+      label: "Choose a model",
+      detail: "agent.ts",
+      href: `${base}/agent/model`,
+      state: project.agent.model.id ? "done" : "todo",
+    },
     {
       label: "Write instructions",
-      href: `/projects/${id}/agent/instructions`,
-      detail: "instructions.md",
+      detail: project.agent.instructionsPath,
+      href: `${base}/agent/instructions`,
+      state: instructionLines > 0 ? "done" : "todo",
     },
-    { label: "Add a tool", href: `/projects/${id}/tools`, detail: "tools/" },
-    { label: "Import a skill", href: `/projects/${id}/skills`, detail: "skills/" },
-    { label: "Create a subagent", href: `/projects/${id}/subagents`, detail: "subagents/" },
-    { label: "Open generated files", href: `/projects/${id}/files`, detail: "agent.ts and friends" },
+    {
+      label: "Add a tool",
+      detail: "tools/",
+      href: `${base}/tools`,
+      state: project.tools.length > 0 ? "done" : "todo",
+    },
+    {
+      label: "Import a skill",
+      detail: "skills/",
+      href: `${base}/skills`,
+      state: project.skills.length > 0 ? "done" : "todo",
+    },
+    {
+      label: "Create a subagent",
+      detail: "subagents/",
+      href: `${base}/subagents`,
+      state: project.subagents.length > 0 ? "done" : "todo",
+    },
+    { label: "Connect GitHub", detail: "Not built yet", state: "unavailable" },
+    { label: "Run the agent", detail: "Not built yet", state: "unavailable" },
+    { label: "Deploy", detail: "Not built yet", state: "unavailable" },
   ];
+  const done = steps.filter((step) => step.state === "done").length;
 
   return (
     <div className="page">
       <Reveal>
-        <header className="page-header page-header-centered">
-          <p className="page-eyebrow">Project</p>
-          <h1 className="page-display">{project.agent.name}</h1>
-          <p className="page-description">
-            {project.agent.description ?? "No description yet. Add one on the Agent tab."}
-          </p>
-          <div className="row row-center">
-            <Link className="button" data-variant="primary" href={`/projects/${id}/canvas`}>
-              Open canvas
-            </Link>
-            <Link className="button" href={`/projects/${id}/agent`}>
-              Edit agent
-            </Link>
-            <Link className="button" data-variant="ghost" href={`/projects/${id}/files?path=agent.ts`}>
+        <header className="page-header">
+          <div className="row" style={{ gap: "var(--space-4)", minWidth: 0 }}>
+            <Avatar name={project.agent.name} size="large" />
+            <div className="page-heading">
+              <h1 className="page-title">{project.agent.name}</h1>
+              <p className="page-description">
+                {project.agent.description ?? "No description yet. Add one on the Agent page."}
+              </p>
+            </div>
+          </div>
+          <div className="page-actions">
+            <Link className="button" href={fileHref("agent.ts")}>
               View agent.ts
+            </Link>
+            <Link className="button" data-variant="primary" href={`${base}/canvas`}>
+              Open canvas
             </Link>
           </div>
         </header>
       </Reveal>
 
-      <Reveal delay={0.06}>
-        <section className="panel">
-          <div className="stat-grid">
-            {stats.map((stat) => (
-              <div className="stat" key={stat.label}>
-                <span className="stat-label">{stat.label}</span>
-                <span className={stat.mono ? "stat-value mono" : "stat-value"}>{stat.value}</span>
+      <Reveal delay={0.04}>
+        <section className="panel overview-hero" aria-label="Project summary">
+          <Link className="overview-preview" href={`${base}/canvas`} aria-label="Open canvas">
+            <GraphPreview graph={graph} positions={layout.positions} />
+            <span className="overview-preview-cta" aria-hidden="true">
+              <Workflow strokeWidth={1.5} />
+              Open canvas
+            </span>
+          </Link>
+          <dl className="overview-details">
+            {details.map((detail) => (
+              <div className="overview-detail" key={detail.label}>
+                <dt>{detail.label}</dt>
+                <dd>
+                  {detail.href ? (
+                    <Link className="overview-detail-link" href={detail.href}>
+                      {detail.value}
+                    </Link>
+                  ) : (
+                    detail.value
+                  )}
+                </dd>
               </div>
             ))}
-          </div>
+          </dl>
         </section>
       </Reveal>
 
       {issues.length > 0 && (
-        <Reveal delay={0.1}>
-          <section className="section">
+        <Reveal delay={0.08}>
+          <section className="section" id="issues">
             <h2 className="section-title">Needs attention</h2>
             <ul className="panel list">
               {issues.map((issue, index) => (
@@ -83,19 +201,90 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
         </Reveal>
       )}
 
-      <section className="section">
-        <h2 className="section-title">Next steps</h2>
-        <Stagger className="grid-3">
-          {actions.map((action) => (
-            <StaggerItem key={action.href}>
-              <Link className="card" href={action.href}>
-                <span className="card-title">{action.label}</span>
-                <span className="card-detail">{action.detail}</span>
-              </Link>
-            </StaggerItem>
-          ))}
-        </Stagger>
-      </section>
+      <Reveal delay={0.08}>
+        <section className="section">
+          <h2 className="section-title">Capabilities</h2>
+          <div className="grid-3">
+            {columns.map((column) => (
+              <div className="panel overview-column" key={column.kind}>
+                <div className="overview-column-head">
+                  <KindTile kind={column.kind} />
+                  <Link className="overview-column-title" href={column.href}>
+                    {KINDS[column.kind].plural}
+                  </Link>
+                  <span className="badge">{column.items.length}</span>
+                  <Link
+                    className="button"
+                    data-variant="ghost"
+                    data-size="icon-small"
+                    href={column.href}
+                    aria-label={`Manage ${KINDS[column.kind].plural.toLowerCase()}`}
+                  >
+                    <ArrowUpRight aria-hidden="true" strokeWidth={1.5} />
+                  </Link>
+                </div>
+                {column.items.length === 0 ? (
+                  <p className="overview-empty">{column.empty}</p>
+                ) : (
+                  <ul className="list">
+                    {column.items.slice(0, PREVIEW_LIMIT).map((item) => (
+                      <li key={item.id}>
+                        <Link className="overview-item" href={fileHref(item.path)}>
+                          <span className="overview-item-name">{item.name}</span>
+                          <span className="overview-item-detail">{item.detail}</span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {column.items.length > PREVIEW_LIMIT && (
+                  <Link className="overview-more" href={column.href}>
+                    View all {column.items.length}
+                  </Link>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      </Reveal>
+
+      <Reveal delay={0.12}>
+        <section className="section">
+          <div className="section-header">
+            <h2 className="section-title">Launch checklist</h2>
+            <span className="palette-hint">
+              {done} of {steps.length} done
+            </span>
+          </div>
+          <ol className="panel list overview-steps">
+            {steps.map((step) => {
+              const Icon =
+                step.state === "done" ? CircleCheck : step.state === "todo" ? Circle : CircleDashed;
+              const body = (
+                <>
+                  <Icon className="overview-step-icon" aria-hidden="true" strokeWidth={1.5} />
+                  <span className="overview-step-label">{step.label}</span>
+                  <span className="overview-step-detail">{step.detail}</span>
+                  <span className="visually-hidden">
+                    {step.state === "done" ? "Done" : step.state === "todo" ? "To do" : "Not available"}
+                  </span>
+                </>
+              );
+              return (
+                <li key={step.label} data-state={step.state}>
+                  {step.href ? (
+                    <Link className="overview-step" href={step.href}>
+                      {body}
+                    </Link>
+                  ) : (
+                    <div className="overview-step">{body}</div>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+        </section>
+      </Reveal>
     </div>
   );
 }

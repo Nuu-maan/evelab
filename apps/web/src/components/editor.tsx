@@ -1,6 +1,6 @@
 "use client";
 
-import Editor, { type OnMount } from "@monaco-editor/react";
+import Editor, { type BeforeMount, type OnMount } from "@monaco-editor/react";
 import { useEffect, useState } from "react";
 
 export function languageFor(path: string): string {
@@ -9,6 +9,8 @@ export function languageFor(path: string): string {
   if (path.endsWith(".json")) return "json";
   if (path.endsWith(".md")) return "markdown";
   if (path.endsWith(".yaml") || path.endsWith(".yml")) return "yaml";
+  if (path.endsWith(".css")) return "css";
+  if (path.endsWith(".sh")) return "shell";
   return "plaintext";
 }
 
@@ -23,6 +25,60 @@ function usePrefersDark(): boolean {
   }, []);
   return dark;
 }
+
+/** Themes that sit on the app's own surfaces instead of Visual Studio's grays. */
+const prepare: BeforeMount = (monaco) => {
+  monaco.editor.defineTheme("evelab-dark", {
+    base: "vs-dark",
+    inherit: true,
+    rules: [],
+    colors: {
+      "editor.background": "#0a0a0a",
+      "editorGutter.background": "#0a0a0a",
+      "editorLineNumber.foreground": "#4a4a4a",
+      "editorLineNumber.activeForeground": "#a1a1a1",
+      "editor.lineHighlightBackground": "#141414",
+      "editor.lineHighlightBorder": "#00000000",
+      "editorIndentGuide.background1": "#1f1f1f",
+      "editorIndentGuide.activeBackground1": "#383838",
+      "editorWidget.background": "#111111",
+      "editorWidget.border": "#242424",
+      "editorSuggestWidget.background": "#111111",
+      "editorSuggestWidget.border": "#242424",
+      "scrollbarSlider.background": "#ffffff14",
+      "scrollbarSlider.hoverBackground": "#ffffff24",
+      "scrollbarSlider.activeBackground": "#ffffff30",
+      focusBorder: "#00000000",
+    },
+  });
+  monaco.editor.defineTheme("evelab-light", {
+    base: "vs",
+    inherit: true,
+    rules: [],
+    colors: {
+      "editor.background": "#ffffff",
+      "editorGutter.background": "#ffffff",
+      "editorLineNumber.foreground": "#b3b3b3",
+      "editorLineNumber.activeForeground": "#666666",
+      "editor.lineHighlightBackground": "#fafafa",
+      "editor.lineHighlightBorder": "#00000000",
+      "editorIndentGuide.background1": "#ebebeb",
+      "editorIndentGuide.activeBackground1": "#d4d4d4",
+      "editorWidget.background": "#ffffff",
+      "editorWidget.border": "#ebebeb",
+      "scrollbarSlider.background": "#0000001a",
+      "scrollbarSlider.hoverBackground": "#0000002a",
+      "scrollbarSlider.activeBackground": "#00000036",
+      focusBorder: "#00000000",
+    },
+  });
+
+  // Project sources import packages that do not exist in the browser, so type
+  // checking here only paints every import red. Syntax errors still show.
+  const diagnostics = { noSemanticValidation: true, noSyntaxValidation: false };
+  monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions(diagnostics);
+  monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions(diagnostics);
+};
 
 export function CodeEditor({
   value,
@@ -47,20 +103,27 @@ export function CodeEditor({
     <Editor
       value={value}
       language={language}
-      theme={dark ? "vs-dark" : "vs"}
+      theme={dark ? "evelab-dark" : "evelab-light"}
+      beforeMount={prepare}
       onMount={onMount}
       onChange={(next) => onChange?.(next ?? "")}
+      loading={<span className="palette-hint">Loading editor</span>}
       options={{
         readOnly,
         minimap: { enabled: false },
         fontSize: 13,
+        lineHeight: 20,
         fontFamily: "var(--font-geist-mono), ui-monospace, monospace",
         lineNumbers: "on",
-        renderLineHighlight: "none",
+        renderLineHighlight: "line",
         scrollBeyondLastLine: false,
         wordWrap: language === "markdown" ? "on" : "off",
         automaticLayout: true,
-        padding: { top: 12 },
+        padding: { top: 12, bottom: 12 },
+        guides: { indentation: true },
+        scrollbar: { verticalScrollbarSize: 10, horizontalScrollbarSize: 10 },
+        overviewRulerBorder: false,
+        hideCursorInOverviewRuler: true,
       }}
       height="100%"
     />

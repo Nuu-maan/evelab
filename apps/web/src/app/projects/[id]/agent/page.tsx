@@ -8,7 +8,7 @@ export default async function AgentGeneralPage({ params }: { params: Promise<{ i
   const project = await readProject(id);
 
   return (
-    <form action={updateAgentAction} className="panel" style={{ maxWidth: 560, marginInline: "auto" }}>
+    <form action={updateAgentAction} className="panel" style={{ maxWidth: 600 }}>
       <div className="modal-body">
       <input type="hidden" name="id" value={id} />
 

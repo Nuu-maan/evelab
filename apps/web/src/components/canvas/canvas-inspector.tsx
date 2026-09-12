@@ -4,11 +4,22 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "motion/react";
+import { X } from "lucide-react";
 import type { CanvasNode } from "@evelab/eve-project";
 import { CodeEditor, languageFor } from "@/components/editor";
+import { DRAWER, EXIT } from "@/components/interaction";
+import { KINDS, KindTile } from "@/components/kinds";
+import { ResizeHandle } from "@/components/resize-handle";
 import { SaveIndicator, type SaveState } from "@/components/save-state";
-import { EASE_OUT } from "@/components/interaction";
+import { Shortcut } from "@/components/shortcut";
 import { deleteSkillAction, deleteToolAction, deleteSubagentAction, saveFileAction } from "@/lib/actions";
+
+/** Panels slide in from the edge they live on, and leave the same way, faster. */
+export const PANEL_MOTION = {
+  initial: { opacity: 0, transform: "translateX(24px)" },
+  animate: { opacity: 1, transform: "translateX(0px)", transition: DRAWER },
+  exit: { opacity: 0, transform: "translateX(16px)", transition: EXIT },
+};
 
 /**
  * The right-hand panel. Selecting a node opens the file that defines it, so
@@ -73,22 +84,27 @@ export function CanvasInspector({
           : undefined;
 
   return (
-    <motion.aside
-      className="inspector"
-      aria-label={`${node.name} inspector`}
-      initial={{ x: 24, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      exit={{ x: 24, opacity: 0 }}
-      transition={EASE_OUT}
-    >
+    <motion.aside className="inspector" aria-label={`${node.name} inspector`} {...PANEL_MOTION}>
+      <ResizeHandle pane="inspector" edge="start" label="Resize inspector" />
+
       <div className="inspector-head">
-        <div>
-          <p className="node-kind">{node.kind}</p>
+        <KindTile kind={node.kind} size="large" />
+        <div className="inspector-title">
+          <p className="node-kind" data-kind={node.kind}>
+            {KINDS[node.kind].label}
+          </p>
           <h2 className="section-title">{node.name}</h2>
           <p className="list-item-detail">{node.detail}</p>
         </div>
-        <button className="button" data-variant="ghost" type="button" onClick={onClose}>
-          Close
+        <button
+          className="button"
+          data-variant="ghost"
+          data-size="icon"
+          type="button"
+          aria-label="Close"
+          onClick={onClose}
+        >
+          <X aria-hidden="true" strokeWidth={1.5} />
         </button>
       </div>
 
@@ -122,7 +138,7 @@ export function CanvasInspector({
           >
             Save
           </button>
-          <span className="kbd">⌘S</span>
+          <Shortcut keys="S" />
           <Link
             className="button"
             data-variant="ghost"

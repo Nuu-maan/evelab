@@ -1,4 +1,4 @@
-# EveLab — implementation plan
+# EveLab: implementation plan
 
 This document is the handoff for continuing EveLab. It records the current state
 of the repository in enough detail to work without re-deriving it, then plans
@@ -69,13 +69,13 @@ Repo: `github.com/anishfn/evelab` (private). Node 26, pnpm 11, Turborepo.
 ```text
 apps/web                 Next.js 15 app router, React 19
 packages/eve-project     Project model, parser, generator, validator, graph
-packages/db              Drizzle schema (metadata only) — not wired up
-packages/auth            Better Auth GitHub config — not wired up
+packages/db              Drizzle schema (metadata only): not wired up
+packages/auth            Better Auth GitHub config: not wired up
 ```
 
 ### 3.1 `packages/eve-project`
 
-The most important package. 21 unit tests. Everything is exported from
+The most important package. 27 unit tests. Everything is exported from
 `src/index.ts`.
 
 | File | Contains |
@@ -83,10 +83,11 @@ The most important package. 21 unit tests. Everything is exported from
 | `types.ts` | Zod schemas and types: `EveProject`, `AgentConfig`, `ModelConfig`, `Tool`, `Skill`, `Subagent`, `ProjectFile`, plus `isGeneratedPath` |
 | `parse.ts` | `parseProject(files) => { project, warnings }` |
 | `generate.ts` | `generateProject(project) => ProjectFile[]`, `renderAgentTemplate` |
-| `agent-source.ts` | `readAgentSource`, `patchAgentSource`, `readModelValue`, `renderModelValue` — the TypeScript AST layer |
+| `agent-source.ts` | `readAgentSource`, `patchAgentSource`, `readModelValue`, `renderModelValue`: the TypeScript AST layer |
 | `validate.ts` | `validateProject(project) => ValidationIssue[]` |
 | `graph.ts` | `getProjectGraph` (agent + subagents), `getCanvasGraph` (all capabilities, with ownership edges and a `filePath` per node) |
 | `frontmatter.ts` | Flat YAML frontmatter read/write for markdown files |
+| `ownership.ts` | `applyOwnershipChange`, `OwnershipError`: moves a tool or skill between the agent and its subagents, which is what dragging a canvas edge does |
 
 Fixtures live in `test/fixtures/{basic-agent,subagent-agent}`. Round-trip tests
 assert `generateProject(parseProject(files)) === files`, byte for byte. **A new
@@ -118,7 +119,7 @@ Routes, all under `src/app`:
 /projects/[id]/settings              path on disk, delete project
 ```
 
-Every project route needs `export const dynamic = "force-dynamic"` — the
+Every project route needs `export const dynamic = "force-dynamic"`: the
 project state is on disk, and a statically prerendered page will also swallow
 server action POSTs.
 
@@ -129,31 +130,49 @@ Server-side libraries (`src/lib`):
 | `workspace.ts` | `workspaceRoot`, `resolveInProject`, `listProjects`, `projectExists`, `readProject`, `readProjectFiles`, `readProjectFile`, `writeProject`, `writeProjectFile`, `deleteProjectFile`, `createProject`, `deleteProject`, `slugify` |
 | `actions.ts` | All server actions (see below) |
 | `layout.ts` | `readLayout`, `writeLayout` for canvas positions |
-| `models.ts` | `listModels` — AI Gateway discovery with a fallback catalogue |
+| `models.ts` | `listModels`: AI Gateway discovery with a fallback catalogue |
 | `skill-import.ts` | `fetchSkillCandidate`, `parseGitHubUrl`, `isSafeRelativePath`, `slugifySkillId` |
 | `skill-types.ts` | `SkillCandidate` types, shared with client components |
+| `panes.ts` | `paneStyle`: resizable pane widths from cookies, clamped, as CSS custom properties |
+| `pane-config.ts` | `PANES` bounds and cookie names, shared by the server and the drag handle |
 
 Server actions in `actions.ts`: `createProjectAction`, `deleteProjectAction`,
 `updateAgentAction`, `updateModelAction`, `saveInstructionsAction`,
 `readFileAction`, `saveFileAction`, `createToolAction`, `createSubagentAction`,
 `deleteSubagentAction`, `deleteToolAction`, `deleteSkillAction`,
-`saveLayoutAction`, `previewSkillAction`, `installSkillAction`.
+`saveLayoutAction`, `changeOwnershipAction`, `previewSkillAction`,
+`installSkillAction`.
 
 Components worth knowing:
 
-- `components/canvas/canvas-view.tsx` — React Flow canvas, palette drag and
-  drop, tidy-tree fallback layout, debounced position persistence.
-- `components/canvas/canvas-inspector.tsx` — right-hand panel: opens the file
+- `components/sidebar.tsx`, `project-switcher.tsx`, `project-header.tsx`: the
+  project shell. The sidebar is resizable; the header shows the breadcrumb,
+  config status, Run and Deploy.
+- `components/resize-handle.tsx`: drag or arrow-key handle on a pane edge.
+  Writes a CSS custom property on the nearest `[data-panes]` element and a
+  cookie, so dragging never re-renders React.
+- `components/canvas/canvas-view.tsx`: React Flow canvas, palette drag and
+  drop, reconnectable ownership edges, custom zoom controls, debounced position
+  persistence. Nodes live in `useNodesState` so React Flow keeps their measured
+  size; rebuilding them from props on every change is what made them blink.
+- `components/canvas/layout.ts`: tidy-tree fallback layout, shared with the
+  overview's `components/graph-preview.tsx` (a server-rendered SVG).
+- `components/kinds.tsx`: icon, label and colour per capability kind.
+- `components/files/`: `tree.ts` (pure tree model with compacted folders),
+  `file-tree.tsx` (keyboard tree), `file-icon.tsx`.
+- `components/canvas/canvas-inspector.tsx`: right-hand panel: opens the file
   behind the selected node in Monaco, saves with the button or `⌘S`.
-- `components/canvas/canvas-create-panel.tsx` — the form a palette drop opens.
-- `components/skill-import-dialog.tsx` — two-step import: read source, then
+- `components/canvas/canvas-create-panel.tsx`: the form a palette drop opens.
+- `components/skill-import-dialog.tsx`: two-step import: read source, then
   install.
-- `components/editor.tsx` — Monaco wrapper plus `languageFor(path)`.
-- `components/motion.tsx` — `Reveal`, `Stagger`, `StaggerItem`. **Server
+- `components/editor.tsx`: Monaco wrapper plus `languageFor(path)`, with
+  themes matched to the app surfaces and semantic diagnostics off.
+- `components/motion.tsx`: `Reveal`, `Stagger`, `StaggerItem`. **Server
   components using CSS animation.** Do not turn these back into client
   components.
-- `components/interaction.ts` — `EASE_OUT`, `SPRING` for `motion/react`.
-- `components/plain-shell.tsx` — top bar for pages outside a project.
+- `components/interaction.ts`: `EASE_OUT`, `EXIT`, `DRAWER`, `SPRING` for
+  `motion/react`.
+- `components/plain-shell.tsx`: top bar for pages outside a project.
 
 Storage today: projects are directories under `.evelab/workspace/<slug>/`,
 overridable with `EVELAB_WORKSPACE`. Canvas layouts sit in
@@ -164,14 +183,18 @@ overridable with `EVELAB_WORKSPACE`. Canvas layouts sit in
 - Create a project; real Eve files are written.
 - Edit agent name, description, model, temperature, max output tokens.
 - Edit `instructions.md` in Monaco with autosave and `⌘S`.
-- Canvas: agent, subagents, tools and skills as nodes; click a node to edit the
-  file behind it; drag a palette chip to create a tool or subagent; drag nodes
-  and keep their positions.
+- Canvas: agent, subagents, tools and skills as nodes coloured by kind; click a
+  node to edit the file behind it; drag a palette chip to create a tool or
+  subagent; drag nodes and keep their positions; drag an edge to move a tool or
+  skill between the agent and a subagent.
+- Overview: canvas preview, agent summary, capabilities, launch checklist.
 - Create and delete tools, subagents and skills.
 - Import a skill from a GitHub directory, including subdirectories, behind a
   review step that flags files which can run code.
-- Files workbench over every project file, including files added by hand.
-- `⌘K` command palette, live config validation in the top bar, light and dark.
+- Files workbench over every project file, including files added by hand, with
+  an explorer tree, file icons and keyboard navigation.
+- Sidebar with project switcher, `⌘K` command palette, resizable panes that
+  persist, live config validation in the header, light and dark.
 
 ### 3.4 What does not exist
 
@@ -183,7 +206,7 @@ overridable with `EVELAB_WORKSPACE`. Canvas layouts sit in
 - **GitHub sync.** No repo connection, commit, push, pull, or import.
 - **Runs.** Blocked on Decision 2.
 - **Deployment.** Follows GitHub.
-- **Importing an existing Eve repository** — §47 of the spec requires it. The
+- **Importing an existing Eve repository**: §47 of the spec requires it. The
   parser already handles hand-written projects; the missing piece is Git.
 
 ### 3.5 Known TODOs where Eve's API is assumed
@@ -192,11 +215,11 @@ Three places guess at Eve names and are marked `TODO` in code. They only affect
 files EveLab creates from scratch; everything else works off the user's source.
 **Verify each against current Eve docs before relying on it.**
 
-1. `renderAgentTemplate` in `packages/eve-project/src/generate.ts` — the
+1. `renderAgentTemplate` in `packages/eve-project/src/generate.ts`: the
    `new Agent({ ... })` shape and `import { Agent } from "eve"`.
-2. `toolTemplate` in `apps/web/src/lib/actions.ts` — the `tool({ ... })` factory
+2. `toolTemplate` in `apps/web/src/lib/actions.ts`: the `tool({ ... })` factory
    and its option names.
-3. Subagent frontmatter keys in `packages/eve-project/src/parse.ts` — `name`,
+3. Subagent frontmatter keys in `packages/eve-project/src/parse.ts`: `name`,
    `description`, `model`, `tools`, `skills`.
 
 ---
@@ -227,10 +250,16 @@ Environment (all optional; with none set EveLab runs as a local single-user tool
 - Prose in the UI is plain and specific. State what a control writes to disk.
   Stub pages say what is missing and why, rather than showing placeholder data.
 - No `any`. `strict` is on everywhere.
-- CSS lives in `src/app/globals.css` (tokens, entrance animation) and
-  `src/app/ui.css` (layout and components). No Tailwind, no CSS-in-JS. Use the
+- CSS lives in `src/app`: `globals.css` (tokens, entrance animation), `ui.css`
+  (shared components), and one file per surface (`shell.css`, `canvas.css`,
+  `explorer.css`, `overview.css`) imported by the component that owns it. No
+  Tailwind, no CSS-in-JS. Use the
   existing custom properties; do not introduce new raw colours or sizes.
-- Monochrome first. Colour only where it carries meaning (status, destructive).
+- Monochrome first, after Vercel's design language. Colour only where it carries
+  meaning: status, destructive, and capability kind (`--kind-*`).
+- No gradients, and no em dashes in UI copy, docs or commit messages.
+- Motion follows frequency: keyboard-summoned UI does not animate; panels and
+  dialogs use `--ease-out` with faster exits; only `transform` and `opacity`.
 - Destructive actions confirm.
 
 ### Gotchas
@@ -252,7 +281,7 @@ Environment (all optional; with none set EveLab runs as a local single-user tool
 
 ## 5. Open decisions that gate work
 
-### Decision 2 — Where does the Eve runtime execute during development?
+### Decision 2: Where does the Eve runtime execute during development?
 
 **Gates Phase 8 (Runs) and the run half of the launch demo.** Options:
 
@@ -269,13 +298,13 @@ flag for local self-hosting**. Confirm against Eve's actual runtime and
 deployment model before building either. EveLab drives Eve; it does not
 re-implement it.
 
-### Decision 6 — How does Eve represent MCP servers?
+### Decision 6: How does Eve represent MCP servers?
 
 **Gates the MCP importer.** Find out whether MCP servers are Eve-native
 configuration files, entries inside `agent.ts`, or something else, and preserve
 that representation exactly. Do not design an EveLab format.
 
-### Decision 11 — Secrets
+### Decision 11: Secrets
 
 Prefer delegated credentials (Vercel Connect, environment secrets). If a phase
 seems to need EveLab to hold a provider secret, re-read the requirement first.
@@ -286,7 +315,7 @@ seems to need EveLab to hold a provider secret, re-read the requirement first.
 
 Ordered by recommended execution. Phase numbers match the original spec.
 
-### Phase 7 — GitHub (do this next)
+### Phase 7: GitHub (do this next)
 
 **Why first:** unblocked, completes the "your project is yours" promise, and
 unlocks Phase 9. Importing an existing Eve repository is a §47 requirement and
@@ -327,15 +356,15 @@ the remote has moved.
 
 **Files to touch**
 
-- `packages/github/*` — new.
-- `packages/db/src/schema.ts` — `gitRepositories` already exists; use it.
-- `apps/web/src/lib/git.ts` — server-side bridge between the workspace and the
+- `packages/github/*`: new.
+- `packages/db/src/schema.ts`: `gitRepositories` already exists; use it.
+- `apps/web/src/lib/git.ts`: server-side bridge between the workspace and the
   GitHub package.
-- `apps/web/src/lib/actions.ts` — `connectRepositoryAction`,
+- `apps/web/src/lib/actions.ts`: `connectRepositoryAction`,
   `importRepositoryAction`, `commitAction`, `pushAction`, `pullAction`.
-- `apps/web/src/app/projects/[id]/settings/page.tsx` — repository connection UI.
-- `apps/web/src/app/projects/new/page.tsx` — add "Import from GitHub".
-- `apps/web/src/app/projects/[id]/layout.tsx` — Git status in the top bar
+- `apps/web/src/app/projects/[id]/settings/page.tsx`: repository connection UI.
+- `apps/web/src/app/projects/new/page.tsx`: add "Import from GitHub".
+- `apps/web/src/app/projects/[id]/layout.tsx`: Git status in the header
   (`● Synced`, `● Modified`, `↑ 2 to push`, `↓ 1 remote change`).
 - A diff view: reuse Monaco's diff editor in `components/editor.tsx`.
 
@@ -366,7 +395,7 @@ the remote has moved.
 
 ---
 
-### Phase 0.5 — Wire sign-in and the database
+### Phase 0.5: Wire sign-in and the database
 
 **Why:** ownership, and a prerequisite for GitHub App installations and anything
 hosted. `packages/auth` and `packages/db` are configured but inert.
@@ -384,11 +413,11 @@ hosted. `packages/auth` and `packages/db` are configured but inert.
 
 **Files to touch**
 
-- `apps/web/src/app/api/auth/[...all]/route.ts` — new, Better Auth handler.
-- `apps/web/src/lib/session.ts` — `getSession`, `requireProjectAccess`.
-- `apps/web/src/lib/actions.ts` — authorise every mutation.
-- `apps/web/src/app/projects/*` — sign-in state in the shell, sign-in page.
-- `packages/db` — generate and commit the first migration.
+- `apps/web/src/app/api/auth/[...all]/route.ts`: new, Better Auth handler.
+- `apps/web/src/lib/session.ts`: `getSession`, `requireProjectAccess`.
+- `apps/web/src/lib/actions.ts`: authorise every mutation.
+- `apps/web/src/app/projects/*`: sign-in state in the shell, sign-in page.
+- `packages/db`: generate and commit the first migration.
 
 **Acceptance**
 
@@ -405,7 +434,7 @@ hosted. `packages/auth` and `packages/db` are configured but inert.
 
 ---
 
-### Phase 3b — MCP import
+### Phase 3b: MCP import
 
 **Blocked on Decision 6.** Do the research before writing code.
 
@@ -429,7 +458,7 @@ hosted. `packages/auth` and `packages/db` are configured but inert.
 
 ---
 
-### Phase 6 — Connections and channels
+### Phase 6: Connections and channels
 
 **Goal:** connecting an external service feels native, without EveLab becoming
 an OAuth platform.
@@ -447,11 +476,11 @@ an OAuth platform.
 
 **Files to touch**
 
-- `packages/eve-project/src/types.ts` — add `channels` to the model, plus a
+- `packages/eve-project/src/types.ts`: add `channels` to the model, plus a
   fixture and round-trip test, before any UI.
 - `apps/web/src/app/projects/[id]/connections/page.tsx`,
-  `channels/page.tsx` — replace the stubs.
-- `apps/web/src/lib/connect.ts` — server-side Vercel Connect calls.
+  `channels/page.tsx`: replace the stubs.
+- `apps/web/src/lib/connect.ts`: server-side Vercel Connect calls.
 
 **Acceptance**
 
@@ -461,7 +490,7 @@ an OAuth platform.
 
 ---
 
-### Phase 8 — Runs
+### Phase 8: Runs
 
 **Blocked on Decision 2.** Answer it first.
 
@@ -483,13 +512,13 @@ that built it.
 
 **Files to touch**
 
-- `packages/eve-runtime/*` — new; the adapter to whichever target Decision 2
+- `packages/eve-runtime/*`: new; the adapter to whichever target Decision 2
   picks. Keep it thin and swappable.
-- `apps/web/src/app/projects/[id]/runs/page.tsx` — list.
-- `apps/web/src/app/projects/[id]/runs/[runId]/page.tsx` — timeline, event
+- `apps/web/src/app/projects/[id]/runs/page.tsx`: list.
+- `apps/web/src/app/projects/[id]/runs/[runId]/page.tsx`: timeline, event
   inspector.
-- `apps/web/src/lib/actions.ts` — `startRunAction`, `cancelRunAction`.
-- `packages/db/src/schema.ts` — `runs` exists; add `run_events` if the timeline
+- `apps/web/src/lib/actions.ts`: `startRunAction`, `cancelRunAction`.
+- `packages/db/src/schema.ts`: `runs` exists; add `run_events` if the timeline
   needs persisting.
 - Top bar `Run` button and `⌘Enter`.
 
@@ -514,7 +543,7 @@ that built it.
 
 ---
 
-### Phase 9 — Deployment
+### Phase 9: Deployment
 
 **Depends on Phase 7**, since deploying means deploying a commit.
 
@@ -529,7 +558,7 @@ that built it.
 
 - `apps/web/src/app/projects/[id]/deployments/page.tsx`.
 - `apps/web/src/lib/deploy.ts`.
-- `packages/db/src/schema.ts` — `deployments` exists.
+- `packages/db/src/schema.ts`: `deployments` exists.
 
 **Acceptance**
 
@@ -539,7 +568,7 @@ that built it.
 
 ---
 
-### Phase 4b — skills.sh import
+### Phase 4b: skills.sh import
 
 Small, once their source format is known. Reuse the existing review step; only
 the fetch layer differs. Keep `parseGitHubUrl` and `fetchSkillCandidate` as the
@@ -548,7 +577,7 @@ writing.
 
 ---
 
-### Phase 10 — Polish for the public demo
+### Phase 10: Polish for the public demo
 
 The launch sequence from the spec, end to end, on one agent:
 
@@ -589,7 +618,7 @@ Work needed beyond the phases above:
 | 15 | Deploy | Phase 9 |
 | 16 | Verify the deployed agent works | Phase 9 |
 
-Plus: **import an existing Eve repository** — Phase 7.
+Plus: **import an existing Eve repository**, in Phase 7.
 
 ---
 

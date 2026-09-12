@@ -17,11 +17,8 @@ export function PlainShell({ children }: { children: React.ReactNode }) {
           EveLab
         </Link>
         <div className="topbar-actions">
-          <Link className="button" data-variant="ghost" href="/projects">
+          <Link className="button" data-variant="ghost" data-size="small" href="/projects">
             Projects
-          </Link>
-          <Link className="button" data-variant="primary" href="/projects/new">
-            New project
           </Link>
         </div>
       </header>

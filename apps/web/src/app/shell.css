@@ -1,0 +1,339 @@
+/* Project shell: sidebar, header, resizable panes. */
+
+.shell {
+  display: grid;
+  grid-template-columns: var(--pane-sidebar, 240px) minmax(0, 1fr);
+  height: 100vh;
+  background: var(--background);
+}
+
+.workspace {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.workspace > .main {
+  flex: 1;
+  min-height: 0;
+}
+
+/* ---------- Resize handle ---------- */
+
+.resize-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 25;
+  width: 9px;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.resize-handle[data-edge="end"] {
+  right: -5px;
+}
+
+.resize-handle[data-edge="start"] {
+  left: -5px;
+}
+
+.resize-handle::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 4px;
+  width: 1px;
+  background: transparent;
+  transition: background-color var(--duration-hover) ease, transform var(--duration-hover) ease;
+}
+
+/* The delay keeps the line from flashing when the pointer only passes over. */
+.resize-handle:hover::after {
+  background: var(--focus);
+  transform: scaleX(2);
+  transition-delay: 150ms;
+}
+
+.resize-handle[data-dragging]::after,
+.resize-handle:focus-visible::after {
+  background: var(--focus);
+  transform: scaleX(2);
+  transition-delay: 0ms;
+}
+
+.resize-handle:focus-visible {
+  outline: none;
+}
+
+/* ---------- Sidebar ---------- */
+
+.sidebar {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  border-right: 1px solid var(--border);
+  background: var(--background);
+}
+
+.sidebar-top {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-3) var(--space-2);
+}
+
+.sidebar-nav {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-1) var(--space-3) var(--space-3);
+}
+
+.sidebar-separator {
+  height: 1px;
+  margin: var(--space-2) var(--space-1);
+  border: none;
+  background: var(--border);
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 34px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius);
+  color: var(--foreground-secondary);
+  font-size: var(--text-body);
+  white-space: nowrap;
+  transition: background-color var(--duration-hover) ease, color var(--duration-hover) ease;
+}
+
+.sidebar-link svg {
+  width: 16px;
+  height: 16px;
+}
+
+.sidebar-link:hover {
+  background: var(--surface-hover);
+  color: var(--foreground);
+}
+
+.sidebar-link[aria-current="page"] {
+  background: var(--surface-active);
+  color: var(--foreground);
+  font-weight: var(--weight-medium);
+}
+
+.sidebar-link-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-find {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  height: 36px;
+  padding: 0 6px 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-large);
+  background: var(--surface);
+  color: var(--foreground-tertiary);
+  font-size: var(--text-body);
+  cursor: pointer;
+  transition: border-color var(--duration-hover) ease, color var(--duration-hover) ease;
+}
+
+.sidebar-find svg {
+  width: 16px;
+  height: 16px;
+}
+
+.sidebar-find:hover {
+  border-color: var(--border-strong);
+  color: var(--foreground-secondary);
+}
+
+.sidebar-find-label {
+  flex: 1;
+  text-align: left;
+}
+
+.sidebar-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 52px;
+  padding: 0 var(--space-5);
+  color: var(--foreground-secondary);
+  font-size: var(--text-compact);
+}
+
+.sidebar-foot svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ---------- Project switcher ---------- */
+
+.switcher {
+  position: relative;
+}
+
+.switcher-trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 40px;
+  padding: 0 var(--space-2);
+  border: none;
+  border-radius: var(--radius-large);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--duration-hover) ease;
+}
+
+.switcher-trigger:hover,
+.switcher-trigger[aria-expanded="true"] {
+  background: var(--surface-hover);
+}
+
+.switcher-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: var(--weight-medium);
+  letter-spacing: -0.01em;
+}
+
+.switcher-chevron {
+  width: 16px;
+  height: 16px;
+  color: var(--foreground-tertiary);
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 30;
+  width: max(100%, 240px);
+  padding: var(--space-1);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-large);
+  transform-origin: top left;
+}
+
+.menu-label {
+  padding: 6px var(--space-2) var(--space-1);
+  color: var(--foreground-tertiary);
+  font-size: var(--text-label);
+}
+
+/* Menu radius 12, padding 4: items take 8 so the corners stay concentric. */
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 36px;
+  padding: 0 var(--space-2);
+  border: none;
+  border-radius: var(--radius-large);
+  background: none;
+  color: var(--foreground-secondary);
+  font-size: var(--text-body);
+  text-align: left;
+  cursor: pointer;
+}
+
+.menu-item svg {
+  width: 16px;
+  height: 16px;
+}
+
+.menu-item:hover,
+.menu-item:focus-visible {
+  outline: none;
+  background: var(--surface-hover);
+  color: var(--foreground);
+}
+
+.menu-item-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menu-separator {
+  height: 1px;
+  margin: var(--space-1) calc(-1 * var(--space-1));
+  border: none;
+  background: var(--border);
+}
+
+/* ---------- Header ---------- */
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex: none;
+  height: var(--header-height);
+  padding: 0 var(--space-4) 0 var(--space-6);
+  border-bottom: 1px solid var(--border);
+}
+
+.crumbs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  color: var(--foreground-secondary);
+  font-size: var(--text-body);
+  white-space: nowrap;
+}
+
+.crumbs a {
+  transition: color var(--duration-hover) ease;
+}
+
+.crumbs a:hover {
+  color: var(--foreground);
+}
+
+.crumb-separator {
+  color: var(--border-strong);
+}
+
+.crumb-current {
+  color: var(--foreground);
+  font-weight: var(--weight-medium);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+}

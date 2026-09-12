@@ -14,13 +14,15 @@ export default async function NewProjectPage() {
       <main className="main" id="main">
       <div className="page page-narrow">
         <Reveal>
-          <header className="page-header page-header-centered">
-            <h1 className="page-title">Create Eve project</h1>
-            <p className="page-description">
-              EveLab writes <code className="mono">agent.ts</code> and{" "}
-              <code className="mono">instructions.md</code> now, and the rest of the directories as
-              you fill them in.
-            </p>
+          <header className="page-header">
+            <div className="page-heading">
+              <h1 className="page-title">Create Eve project</h1>
+              <p className="page-description">
+                EveLab writes <code className="mono">agent.ts</code> and{" "}
+                <code className="mono">instructions.md</code> now, and the rest of the directories
+                as you fill them in.
+              </p>
+            </div>
           </header>
         </Reveal>
 

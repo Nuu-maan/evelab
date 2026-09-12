@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { saveInstructionsAction } from "@/lib/actions";
 import { CodeEditor } from "@/components/editor";
 import { SaveIndicator, type SaveState } from "@/components/save-state";
+import { Shortcut } from "@/components/shortcut";
 
 /** instructions.md editing: Monaco, ⌘S, and a debounced autosave. */
 export function InstructionsEditor({
@@ -54,9 +55,10 @@ export function InstructionsEditor({
         <code className="mono">instructions.md</code>
         <div className="row">
           <SaveIndicator state={state} />
-          <span className="kbd">⌘S</span>
+          <Shortcut keys="S" />
           <button
             className="button"
+            data-size="small"
             type="button"
             onClick={() => void save(content)}
             disabled={state === "saved" || state === "saving"}

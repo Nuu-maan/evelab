@@ -1,11 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { ChevronRight } from "lucide-react";
 import type { ProjectFile } from "@evelab/eve-project";
 import { CodeEditor, languageFor } from "@/components/editor";
+import { FileIcon } from "@/components/files/file-icon";
+import { FileTree } from "@/components/files/file-tree";
+import { ResizeHandle } from "@/components/resize-handle";
 import { SaveIndicator, type SaveState } from "@/components/save-state";
+import { Shortcut } from "@/components/shortcut";
 import { saveFileAction } from "@/lib/actions";
+import "@/app/explorer.css";
 
 /**
  * The "never get locked into the GUI" surface: every project file, editable,
@@ -24,7 +30,7 @@ export function FileWorkbench({
 
   const initialPath = useMemo(() => {
     if (requested && files.some((file) => file.path === requested)) return requested;
-    return files[0]?.path ?? "";
+    return files.find((file) => file.path === "agent.ts")?.path ?? files[0]?.path ?? "";
   }, [files, requested]);
 
   const [path, setPath] = useState(initialPath);
@@ -33,6 +39,7 @@ export function FileWorkbench({
   );
   const [state, setState] = useState<SaveState>("saved");
   const savedRef = useRef(content);
+  const paths = useMemo(() => files.map((file) => file.path), [files]);
 
   useEffect(() => {
     setPath(initialPath);
@@ -44,6 +51,7 @@ export function FileWorkbench({
 
   const open = useCallback(
     (nextPath: string) => {
+      if (nextPath === path) return;
       if (savedRef.current !== content && !confirm("Discard unsaved changes?")) return;
       const next = files.find((file) => file.path === nextPath)?.content ?? "";
       setPath(nextPath);
@@ -52,7 +60,7 @@ export function FileWorkbench({
       setState("saved");
       router.replace(`/projects/${projectId}/files?path=${encodeURIComponent(nextPath)}`);
     },
-    [content, files, projectId, router],
+    [content, files, path, projectId, router],
   );
 
   const save = useCallback(async () => {
@@ -89,29 +97,49 @@ export function FileWorkbench({
     );
   }
 
+  const segments = path.split("/");
+
   return (
-    <div className="editor-layout">
-      <nav className="file-tree" aria-label="Files">
-        {files.map((file) => (
-          <button
-            key={file.path}
-            type="button"
-            className="file-tree-item"
-            aria-current={file.path === path}
-            onClick={() => open(file.path)}
-          >
-            {file.path}
-          </button>
-        ))}
-      </nav>
+    <div className="explorer-layout">
+      <aside className="explorer-pane" aria-label="Explorer">
+        <FileTree
+          rootName={projectId}
+          paths={paths}
+          current={path}
+          dirty={state === "dirty"}
+          onOpen={open}
+        />
+        <ResizeHandle pane="explorer" label="Resize file explorer" />
+      </aside>
 
       <div className="editor-pane">
         <div className="editor-bar">
-          <code className="mono">{path}</code>
+          <nav className="editor-crumbs" aria-label="File path">
+            {segments.map((segment, index) => {
+              const last = index === segments.length - 1;
+              return (
+                <Fragment key={`${segment}-${index}`}>
+                  {last ? (
+                    <span className="editor-crumb-current" aria-current="page">
+                      <FileIcon name={segment} />
+                      {segment}
+                    </span>
+                  ) : (
+                    <>
+                      <span>{segment}</span>
+                      <ChevronRight className="editor-crumb-separator" aria-hidden="true" strokeWidth={1.5} />
+                    </>
+                  )}
+                </Fragment>
+              );
+            })}
+          </nav>
           <div className="row">
             <SaveIndicator state={state} />
+            <Shortcut keys="S" />
             <button
               className="button"
+              data-size="small"
               type="button"
               onClick={() => void save()}
               disabled={state === "saved" || state === "saving"}

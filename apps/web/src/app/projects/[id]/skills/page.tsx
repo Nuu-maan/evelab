@@ -17,14 +17,18 @@ export default async function SkillsPage({ params }: { params: Promise<{ id: str
   return (
     <div className="page">
       <Reveal>
-        <header className="page-header page-header-centered">
-          <p className="page-eyebrow">Skills</p>
-          <h1 className="page-title">What your agent knows how to do</h1>
-          <p className="page-description">
-            Each skill is a directory under <code className="mono">skills/</code> with a SKILL.md.
-            Import shows you the source and every file before anything is written.
-          </p>
-          <SkillImportButton projectId={id} />
+        <header className="page-header">
+          <div className="page-heading">
+            <h1 className="page-title">Skills</h1>
+            <p className="page-description">
+              What your agent knows how to do. Each skill is a directory under{" "}
+              <code className="mono">skills/</code> with a SKILL.md, and import shows you every file
+              before anything is written.
+            </p>
+          </div>
+          <div className="page-actions">
+            <SkillImportButton projectId={id} />
+          </div>
         </header>
       </Reveal>
 

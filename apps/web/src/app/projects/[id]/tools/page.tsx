@@ -12,16 +12,19 @@ export default async function ToolsPage({ params }: { params: Promise<{ id: stri
   return (
     <div className="page">
       <Reveal>
-        <header className="page-header page-header-centered">
-          <p className="page-eyebrow">Tools</p>
-          <h1 className="page-title">What your agent can do</h1>
-          <p className="page-description">
-            One file per tool under <code className="mono">tools/</code>. EveLab scaffolds it, then
-            the source is yours.
-          </p>
-          <Link className="button" data-variant="ghost" href={`/projects/${id}/canvas`}>
-            Add on the canvas instead
-          </Link>
+        <header className="page-header">
+          <div className="page-heading">
+            <h1 className="page-title">Tools</h1>
+            <p className="page-description">
+              What your agent can do. One file per tool under <code className="mono">tools/</code>:
+              EveLab scaffolds it, then the source is yours.
+            </p>
+          </div>
+          <div className="page-actions">
+            <Link className="button" href={`/projects/${id}/canvas`}>
+              Add on the canvas
+            </Link>
+          </div>
         </header>
       </Reveal>
 

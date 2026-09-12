@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import type { SkillCandidate } from "@/lib/skill-types";
 import { installSkillAction, previewSkillAction } from "@/lib/actions";
-import { EASE_OUT } from "@/components/interaction";
+import { X } from "lucide-react";
+import { EASE_OUT, EXIT } from "@/components/interaction";
 
 /**
  * Import is two steps on purpose: read the source, then install.
@@ -83,9 +84,8 @@ export function SkillImportDialog({
           className="overlay overlay-centered"
           role="presentation"
           initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.16 }}
+          animate={{ opacity: 1, transition: EASE_OUT }}
+          exit={{ opacity: 0, transition: EXIT }}
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) onClose();
           }}
@@ -95,10 +95,10 @@ export function SkillImportDialog({
             role="dialog"
             aria-modal="true"
             aria-label="Import skill"
-            initial={{ opacity: 0, scale: 0.97, y: 8 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.98, y: 4 }}
-            transition={EASE_OUT}
+            // A modal is not anchored to a trigger, so it scales from its own centre.
+            initial={{ opacity: 0, transform: "scale(0.96)" }}
+            animate={{ opacity: 1, transform: "scale(1)", transition: { duration: 0.25, ease: [0.23, 1, 0.32, 1] } }}
+            exit={{ opacity: 0, transform: "scale(0.96)", transition: EXIT }}
           >
             <div className="modal-head">
               <div>
@@ -107,8 +107,15 @@ export function SkillImportDialog({
                   Paste a GitHub link to a directory containing SKILL.md.
                 </p>
               </div>
-              <button className="button" data-variant="ghost" type="button" onClick={onClose}>
-                Close
+              <button
+                className="button"
+                data-variant="ghost"
+                data-size="icon"
+                type="button"
+                aria-label="Close"
+                onClick={onClose}
+              >
+                <X aria-hidden="true" strokeWidth={1.5} />
               </button>
             </div>
 
@@ -171,7 +178,6 @@ export function SkillImportDialog({
                           className="file-chip"
                           data-flagged={file.executable}
                           type="button"
-                          style={{ width: "100%", cursor: "pointer", background: "none" }}
                           onClick={() =>
                             setOpenFile(openFile === file.path ? undefined : file.path)
                           }

@@ -3,9 +3,11 @@ export const dynamic = "force-dynamic";
 export default function ChannelsPage() {
   return (
     <div className="page">
-      <header className="page-header page-header-centered">
-        <h1 className="page-title">Channels</h1>
-        <p className="page-description">How people reach the agent.</p>
+      <header className="page-header">
+        <div className="page-heading">
+          <h1 className="page-title">Channels</h1>
+          <p className="page-description">How people reach the agent.</p>
+        </div>
       </header>
       <div className="empty">
         <p className="empty-title">No channels configured.</p>
