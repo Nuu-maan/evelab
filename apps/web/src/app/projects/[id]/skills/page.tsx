@@ -6,6 +6,10 @@ import { readProject } from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
 
+function plural(count: number, word: string): string {
+  return `${count} ${word}${count === 1 ? "" : "s"}`;
+}
+
 export default async function SkillsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const project = await readProject(id);
@@ -63,7 +67,7 @@ export default async function SkillsPage({ params }: { params: Promise<{ id: str
                   </div>
                 </div>
                 <div className="row">
-                  <span className="badge">{skill.files.length + 1} files</span>
+                  <span className="badge">{plural(skill.files.length + 1, "file")}</span>
                   {skill.source && (
                     <a
                       className="palette-hint mono"
