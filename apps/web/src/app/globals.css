@@ -1,9 +1,9 @@
 /*
  * EveLab design foundation.
  *
- * Monochrome first, Geist for everything, tokens rather than ad hoc values.
- * The scale is tighter than a marketing surface because this is a developer
- * tool that people keep open all day.
+ * Geist typography, a monochrome Vercel-style palette, and tokens rather than
+ * ad hoc values. Scales are tighter than a marketing surface: this is a tool
+ * people keep open all day.
  */
 
 :root {
@@ -12,17 +12,22 @@
   --background: #ffffff;
   --surface: #fafafa;
   --surface-raised: #ffffff;
-  --border: #ebebeb;
-  --border-strong: #d4d4d4;
-  --foreground: #0a0a0a;
+  --surface-hover: #f5f5f5;
+  --border: #eaeaea;
+  --border-strong: #d9d9d9;
+  --foreground: #000000;
   --foreground-secondary: #666666;
   --foreground-tertiary: #8f8f8f;
-  --accent: #0a0a0a;
+  --accent: #000000;
   --accent-foreground: #ffffff;
+  --accent-hover: #333333;
   --success: #0f7b3d;
-  --warning: #92610b;
-  --danger: #b3261e;
-  --focus: #0a0a0a;
+  --warning: #a35200;
+  --danger: #c52222;
+  --focus: #0072f5;
+  --shadow-small: 0 1px 2px rgb(0 0 0 / 0.06);
+  --shadow: 0 4px 12px rgb(0 0 0 / 0.08);
+  --shadow-large: 0 12px 40px rgb(0 0 0 / 0.14);
 
   --space-1: 4px;
   --space-2: 8px;
@@ -33,13 +38,15 @@
   --space-8: 32px;
   --space-10: 40px;
   --space-12: 48px;
+  --space-16: 64px;
 
   --radius-small: 4px;
   --radius: 6px;
   --radius-large: 10px;
+  --radius-pill: 999px;
 
-  --text-display: 28px;
-  --text-title: 20px;
+  --text-display: 32px;
+  --text-title: 22px;
   --text-section: 16px;
   --text-body: 14px;
   --text-compact: 13px;
@@ -49,26 +56,32 @@
   --weight-medium: 500;
   --weight-semibold: 600;
 
-  --sidebar-width: 224px;
-  --topbar-height: 48px;
+  --sidebar-width: 232px;
+  --topbar-height: 52px;
+  --content-width: 1040px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --surface: #0f0f0f;
-    --surface-raised: #161616;
-    --border: #1f1f1f;
-    --border-strong: #2e2e2e;
+    --background: #000000;
+    --surface: #0a0a0a;
+    --surface-raised: #111111;
+    --surface-hover: #1a1a1a;
+    --border: #262626;
+    --border-strong: #3a3a3a;
     --foreground: #ededed;
     --foreground-secondary: #a1a1a1;
-    --foreground-tertiary: #7a7a7a;
+    --foreground-tertiary: #757575;
     --accent: #ededed;
-    --accent-foreground: #0a0a0a;
-    --success: #3ecf7f;
-    --warning: #f5b544;
-    --danger: #ff6369;
-    --focus: #ededed;
+    --accent-foreground: #000000;
+    --accent-hover: #cccccc;
+    --success: #4ade80;
+    --warning: #f5a623;
+    --danger: #ff6166;
+    --focus: #3291ff;
+    --shadow-small: 0 1px 2px rgb(0 0 0 / 0.4);
+    --shadow: 0 4px 16px rgb(0 0 0 / 0.5);
+    --shadow-large: 0 16px 48px rgb(0 0 0 / 0.6);
   }
 }
 
@@ -90,7 +103,8 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   font-size: var(--text-body);
-  line-height: 1.5;
+  line-height: 1.55;
+  letter-spacing: -0.006em;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -99,7 +113,8 @@ kbd,
 pre,
 .mono {
   font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
-  font-size: var(--text-compact);
+  font-size: 0.92em;
+  letter-spacing: 0;
 }
 
 a {
@@ -132,18 +147,19 @@ textarea {
 
 .skip-link {
   position: absolute;
-  left: var(--space-4);
-  top: -48px;
-  z-index: 50;
+  left: 50%;
+  top: -60px;
+  transform: translateX(-50%);
+  z-index: 60;
   padding: var(--space-2) var(--space-3);
   background: var(--surface-raised);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
-  transition: top 120ms ease;
+  transition: top 140ms ease;
 }
 
 .skip-link:focus {
-  top: var(--space-4);
+  top: var(--space-3);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -152,5 +168,48 @@ textarea {
   *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/*
+ * Entrance animation.
+ *
+ * Deliberately CSS rather than JavaScript: content must never depend on
+ * hydration to become visible. Reduced motion removes the movement and leaves
+ * the element in its natural, visible state.
+ */
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.reveal {
+  animation: reveal 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+
+.stagger > * {
+  animation: reveal 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.stagger > *:nth-child(1) { animation-delay: 20ms; }
+.stagger > *:nth-child(2) { animation-delay: 55ms; }
+.stagger > *:nth-child(3) { animation-delay: 90ms; }
+.stagger > *:nth-child(4) { animation-delay: 125ms; }
+.stagger > *:nth-child(5) { animation-delay: 160ms; }
+.stagger > *:nth-child(6) { animation-delay: 195ms; }
+.stagger > *:nth-child(n + 7) { animation-delay: 230ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .stagger > * {
+    animation: none;
   }
 }

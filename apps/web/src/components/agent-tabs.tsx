@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion } from "motion/react";
+import { SPRING } from "@/components/interaction";
 
 const TABS = [
   { label: "General", segment: "" },
@@ -20,8 +22,20 @@ export function AgentTabs({ projectId }: { projectId: string }) {
         const href = tab.segment ? `${base}/${tab.segment}` : base;
         const current = pathname === href;
         return (
-          <Link className="tab" key={tab.label} href={href} aria-current={current ? "page" : undefined}>
+          <Link
+            className="tab"
+            key={tab.label}
+            href={href}
+            aria-current={current ? "page" : undefined}
+          >
             {tab.label}
+            {current && (
+              <motion.span
+                className="tab-underline"
+                layoutId="tab-underline"
+                transition={SPRING}
+              />
+            )}
           </Link>
         );
       })}

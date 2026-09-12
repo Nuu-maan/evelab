@@ -9,7 +9,7 @@ export default async function RuntimePage({ params }: { params: Promise<{ id: st
   const entries = Object.entries(project.agent.raw);
 
   return (
-    <div className="section" style={{ maxWidth: 620 }}>
+    <div className="section" style={{ maxWidth: 620, marginInline: "auto", width: "100%" }}>
       <p className="notice">
         Runtime options have no GUI controls yet: EveLab only exposes settings once their Eve
         representation is confirmed, so that a GUI edit cannot silently rewrite semantics. Until

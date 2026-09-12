@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 export default function DeploymentsPage() {
   return (
     <div className="page">
-      <header>
+      <header className="page-header page-header-centered">
         <h1 className="page-title">Deployments</h1>
         <p className="page-description">Production and preview state.</p>
       </header>

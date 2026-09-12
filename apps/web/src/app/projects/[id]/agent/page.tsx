@@ -8,7 +8,8 @@ export default async function AgentGeneralPage({ params }: { params: Promise<{ i
   const project = await readProject(id);
 
   return (
-    <form action={updateAgentAction} className="section" style={{ maxWidth: 560 }}>
+    <form action={updateAgentAction} className="panel" style={{ maxWidth: 560, marginInline: "auto" }}>
+      <div className="modal-body">
       <input type="hidden" name="id" value={id} />
 
       <div className="field">
@@ -38,7 +39,8 @@ export default async function AgentGeneralPage({ params }: { params: Promise<{ i
         />
       </div>
 
-      <div className="row">
+      </div>
+      <div className="modal-foot">
         <button className="button" data-variant="primary" type="submit">
           Save
         </button>

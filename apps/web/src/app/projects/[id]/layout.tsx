@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CommandPalette } from "@/components/command-palette";
 import { Sidebar } from "@/components/sidebar";
+import { Mark } from "@/components/mark";
 import { projectExists, readProject, validateProject } from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
@@ -27,15 +28,24 @@ export default async function ProjectLayout({
 
       <header className="topbar">
         <Link className="topbar-brand" href="/projects">
+          <Mark />
           EveLab
         </Link>
         <span className="topbar-separator">/</span>
-        <Link href={`/projects/${id}`}>{project.agent.name}</Link>
+        <Link className="topbar-project" href={`/projects/${id}`}>
+          {project.agent.name}
+        </Link>
         <span className="status" data-tone={errors.length > 0 ? "error" : "ready"}>
-          {errors.length > 0 ? `${errors.length} config errors` : "Valid"}
+          {errors.length > 0
+            ? `${errors.length} config ${errors.length === 1 ? "error" : "errors"}`
+            : "Valid"}
         </span>
+
         <div className="topbar-actions">
-          <span className="palette-hint">⌘K</span>
+          <span className="kbd">⌘K</span>
+          <Link className="button" data-variant="ghost" href={`/projects/${id}/canvas`}>
+            Canvas
+          </Link>
           <Link className="button" href={`/projects/${id}/runs`}>
             Run
           </Link>
@@ -52,6 +62,7 @@ export default async function ProjectLayout({
             label: "Build",
             items: [
               { label: "Overview", segment: "" },
+              { label: "Canvas", segment: "canvas" },
               { label: "Agent", segment: "agent" },
               { label: "Tools", segment: "tools", count: project.tools.length },
               { label: "Skills", segment: "skills", count: project.skills.length },
