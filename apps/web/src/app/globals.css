@@ -1,0 +1,156 @@
+/*
+ * EveLab design foundation.
+ *
+ * Monochrome first, Geist for everything, tokens rather than ad hoc values.
+ * The scale is tighter than a marketing surface because this is a developer
+ * tool that people keep open all day.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  --background: #ffffff;
+  --surface: #fafafa;
+  --surface-raised: #ffffff;
+  --border: #ebebeb;
+  --border-strong: #d4d4d4;
+  --foreground: #0a0a0a;
+  --foreground-secondary: #666666;
+  --foreground-tertiary: #8f8f8f;
+  --accent: #0a0a0a;
+  --accent-foreground: #ffffff;
+  --success: #0f7b3d;
+  --warning: #92610b;
+  --danger: #b3261e;
+  --focus: #0a0a0a;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  --radius-small: 4px;
+  --radius: 6px;
+  --radius-large: 10px;
+
+  --text-display: 28px;
+  --text-title: 20px;
+  --text-section: 16px;
+  --text-body: 14px;
+  --text-compact: 13px;
+  --text-label: 12px;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+
+  --sidebar-width: 224px;
+  --topbar-height: 48px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --surface: #0f0f0f;
+    --surface-raised: #161616;
+    --border: #1f1f1f;
+    --border-strong: #2e2e2e;
+    --foreground: #ededed;
+    --foreground-secondary: #a1a1a1;
+    --foreground-tertiary: #7a7a7a;
+    --accent: #ededed;
+    --accent-foreground: #0a0a0a;
+    --success: #3ecf7f;
+    --warning: #f5b544;
+    --danger: #ff6369;
+    --focus: #ededed;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--text-body);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+code,
+kbd,
+pre,
+.mono {
+  font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+  font-size: var(--text-compact);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-small);
+}
+
+h1,
+h2,
+h3,
+p,
+ul,
+ol {
+  margin: 0;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+.skip-link {
+  position: absolute;
+  left: var(--space-4);
+  top: -48px;
+  z-index: 50;
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  transition: top 120ms ease;
+}
+
+.skip-link:focus {
+  top: var(--space-4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
