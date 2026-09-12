@@ -1,0 +1,327 @@
+/* Source control and repository import. */
+
+.page-wide {
+  max-width: 1400px;
+}
+
+.checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-body);
+  cursor: pointer;
+}
+
+.checkbox input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--foreground);
+}
+
+.source {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.source-connect {
+  align-items: start;
+}
+
+.source-repo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
+.source-repo-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-large);
+  background: var(--surface-active);
+}
+
+.source-repo-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.source-repo-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.source-repo-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.01em;
+}
+
+.source-repo-name svg {
+  width: 14px;
+  height: 14px;
+  color: var(--foreground-tertiary);
+}
+
+.source-repo-name:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.source-repo-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  color: var(--foreground-secondary);
+  font-size: var(--text-compact);
+}
+
+.source-repo-remote {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-left: auto;
+}
+
+.source-notice {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-large);
+  background: var(--surface);
+  font-size: var(--text-compact);
+}
+
+.source-notice[data-tone="ready"] {
+  border-color: color-mix(in srgb, var(--success) 35%, var(--border));
+}
+
+.source-notice[data-tone="error"] {
+  border-color: color-mix(in srgb, var(--danger) 35%, var(--border));
+  color: var(--foreground);
+}
+
+.source-notice ul {
+  margin: var(--space-2) 0 0;
+  padding-left: var(--space-5);
+  color: var(--foreground-secondary);
+}
+
+.source-workbench {
+  display: grid;
+  grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+  min-height: 560px;
+}
+
+.source-side {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-right: 1px solid var(--border);
+  background: var(--background);
+}
+
+.source-commit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.source-commit .textarea {
+  min-height: 76px;
+  resize: vertical;
+}
+
+.source-changes-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-3) var(--space-1);
+  color: var(--foreground-tertiary);
+  font-size: var(--text-label);
+  font-weight: var(--weight-medium);
+}
+
+.source-empty {
+  padding: var(--space-3);
+  color: var(--foreground-secondary);
+  font-size: var(--text-compact);
+}
+
+.source-list {
+  margin: 0;
+  padding: 0 6px var(--space-3);
+  list-style: none;
+  overflow-y: auto;
+}
+
+.source-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 30px;
+  padding-right: var(--space-2);
+  border-radius: var(--radius);
+  transition: background-color 100ms ease;
+}
+
+.source-row:hover {
+  background: var(--surface-hover);
+}
+
+.source-row[aria-current] {
+  background: var(--surface-active);
+}
+
+.source-row-main {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0 var(--space-1);
+  border: none;
+  background: none;
+  text-align: left;
+  font-size: var(--text-compact);
+  cursor: pointer;
+}
+
+.source-row-name {
+  flex: none;
+  max-width: 60%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.source-row-name[data-change="deleted"] {
+  text-decoration: line-through;
+  color: var(--foreground-secondary);
+}
+
+.source-row-directory {
+  min-width: 0;
+  margin-left: var(--space-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--foreground-tertiary);
+  font-size: var(--text-label);
+}
+
+/* The discard button stays out of the way until the row is in use. */
+.source-row-discard {
+  opacity: 0;
+  transition: opacity var(--duration-hover) ease;
+}
+
+.source-row:hover .source-row-discard,
+.source-row[aria-current] .source-row-discard,
+.source-row-discard:focus-visible {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .source-row-discard {
+    opacity: 1;
+  }
+}
+
+.source-letter {
+  flex: none;
+  min-width: 14px;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: var(--text-label);
+  font-weight: var(--weight-semibold);
+  text-align: center;
+  text-transform: capitalize;
+}
+
+.source-letter[data-change="added"] {
+  color: var(--success);
+}
+
+.source-letter[data-change="modified"] {
+  color: var(--warning);
+}
+
+.source-letter[data-change="deleted"] {
+  color: var(--danger);
+}
+
+.source-diff {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--surface);
+}
+
+.source-diff-path {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--text-compact);
+}
+
+.source-diff-empty {
+  margin: auto;
+  color: var(--foreground-tertiary);
+  font-size: var(--text-compact);
+}
+
+.import-review {
+  display: flex;
+  flex-direction: column;
+}
+
+.import-files {
+  max-height: 320px;
+  margin: 0;
+  padding: var(--space-2) 6px;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.import-file {
+  display: flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 var(--space-2);
+  font-size: var(--text-compact);
+}
+
+.import-file-size {
+  margin-left: auto;
+  color: var(--foreground-tertiary);
+  font-size: var(--text-label);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 900px) {
+  .source-workbench {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .source-side {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .source-diff {
+    min-height: 420px;
+  }
+}

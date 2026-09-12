@@ -24,7 +24,8 @@ control once its Eve representation is confirmed, not because it exists.
 **GitHub is optional.** A project exists first and can gain a repository later.
 Project identity is not a repository.
 
-**Explicit commits.** Local edits autosave; Git commits will be deliberate.
+**Explicit commits.** Local edits autosave; Git commits are deliberate and need a
+message.
 
 **The canvas edits files, not a model of files.** Selecting a node opens the
 file that defines it. There is no canvas-only representation of a skill or a
@@ -66,6 +67,31 @@ motion/react.
 **Styles live next to the surface that owns them.** `globals.css` holds tokens
 and `ui.css` shared components; `shell.css`, `canvas.css`, `explorer.css` and
 `overview.css` are imported by the component or page they style.
+
+**Commits are created on GitHub, so committing is pushing.** EveLab has no local
+object store. It builds each commit with GitHub's Git database API on top of the
+last synced commit and fast-forwards the branch, refusing when GitHub has moved.
+There is no separate push step and no local commit that could go stale.
+
+**The sync record lives outside the project.** `<workspace>/../git/<id>.json`
+holds the repository, branch, last synced commit and the text of the files in
+it. Status is a comparison of blob ids against it, the diff view reads it, and a
+pull merges against it. It moves to `git_repositories` once the database is
+wired; only the installation id is ever stored, never a token.
+
+**Pulls merge per file, all or nothing.** A file GitHub changed is taken when
+the local copy is untouched; a file changed on both sides is a conflict, and any
+conflict means nothing is written. There is no line-level merge to get wrong.
+
+**What never crosses.** `.env` files are never imported or committed, whatever
+`.gitignore` says. Symlinks, submodules, binaries and oversized files are not
+imported, and commits leave them untouched on GitHub. Repository paths go
+through the same traversal checks as every other write.
+
+**A personal access token is the local interim.** With no sign-in, `GITHUB_TOKEN`
+authenticates source control. The GitHub App path (`getInstallationClient`) is in
+`packages/github` and takes precedence when configured, but installing the App
+per user waits for sign-in.
 
 **Single user.** One user, many projects. `project_members` exists in the schema
 so sharing can be added without rewriting ownership.

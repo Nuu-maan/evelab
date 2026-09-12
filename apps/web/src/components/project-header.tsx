@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Play, Rocket } from "lucide-react";
+import { ArrowDown, Play, Rocket } from "lucide-react";
 
 const PAGES: Record<string, string> = {
   "": "Overview",
   canvas: "Canvas",
   agent: "Agent",
   files: "Files",
+  source: "Source control",
   tools: "Tools",
   skills: "Skills",
   subagents: "Subagents",
@@ -19,14 +20,22 @@ const PAGES: Record<string, string> = {
   settings: "Settings",
 };
 
+export interface HeaderGit {
+  changes: number;
+  /** Undefined when EveLab has no recent answer from GitHub. */
+  remoteMoved?: boolean;
+}
+
 export function ProjectHeader({
   projectId,
   projectName,
   errors,
+  git,
 }: {
   projectId: string;
   projectName: string;
   errors: number;
+  git?: HeaderGit;
 }) {
   const pathname = usePathname();
   const base = `/projects/${projectId}`;
@@ -51,6 +60,24 @@ export function ProjectHeader({
       <Link className="status" data-tone={errors > 0 ? "error" : "ready"} href={`${base}#issues`}>
         {errors > 0 ? `${errors} config ${errors === 1 ? "error" : "errors"}` : "Valid"}
       </Link>
+
+      {git && (
+        <>
+          <Link
+            className="status"
+            data-tone={git.changes > 0 ? "modified" : "ready"}
+            href={`${base}/source`}
+          >
+            {git.changes > 0 ? `${git.changes} ${git.changes === 1 ? "change" : "changes"}` : "Synced"}
+          </Link>
+          {git.remoteMoved && (
+            <Link className="header-remote" href={`${base}/source`}>
+              <ArrowDown aria-hidden="true" strokeWidth={1.5} />
+              Remote changes
+            </Link>
+          )}
+        </>
+      )}
 
       <div className="header-actions">
         <Link className="button" data-size="small" href={`${base}/runs`}>

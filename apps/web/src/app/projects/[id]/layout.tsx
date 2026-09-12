@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { CommandPalette } from "@/components/command-palette";
 import { ProjectHeader } from "@/components/project-header";
 import { Sidebar } from "@/components/sidebar";
+import { getSourceSummary } from "@/lib/git";
 import { paneStyle } from "@/lib/panes";
 import { listProjects, projectExists, readProject, validateProject } from "@/lib/workspace";
 
@@ -17,10 +18,12 @@ export default async function ProjectLayout({
   const { id } = await params;
   if (!(await projectExists(id))) notFound();
 
-  const [project, projects, style] = await Promise.all([
+  const [project, projects, style, source] = await Promise.all([
     readProject(id),
     listProjects(),
     paneStyle(),
+    // Local status only, plus GitHub's answer if one is cached: navigation never waits on GitHub.
+    getSourceSummary(id),
   ]);
   const errors = validateProject(project).filter((issue) => issue.level === "error");
 
@@ -41,7 +44,12 @@ export default async function ProjectLayout({
       />
 
       <div className="workspace">
-        <ProjectHeader projectId={id} projectName={project.agent.name} errors={errors.length} />
+        <ProjectHeader
+          projectId={id}
+          projectName={project.agent.name}
+          errors={errors.length}
+          git={source && { changes: source.changes.length, remoteMoved: source.remoteMoved }}
+        />
         <main className="main" id="main">
           {children}
         </main>

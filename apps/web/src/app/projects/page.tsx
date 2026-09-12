@@ -24,6 +24,9 @@ export default async function ProjectsPage() {
                 </p>
               </div>
               <div className="page-actions">
+                <Link className="button" href="/projects/import">
+                  Import from GitHub
+                </Link>
                 <Link className="button" data-variant="primary" href="/projects/new">
                   <Plus aria-hidden="true" strokeWidth={1.5} />
                   New project

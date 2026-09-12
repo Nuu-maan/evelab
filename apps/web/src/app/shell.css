@@ -331,6 +331,19 @@
   font-weight: var(--weight-medium);
 }
 
+.header-remote {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--warning);
+  font-size: var(--text-compact);
+}
+
+.header-remote svg {
+  width: 14px;
+  height: 14px;
+}
+
 .header-actions {
   display: flex;
   align-items: center;

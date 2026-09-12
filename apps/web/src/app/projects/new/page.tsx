@@ -23,6 +23,11 @@ export default async function NewProjectPage() {
                 as you fill them in.
               </p>
             </div>
+            <div className="page-actions">
+              <Link className="button" data-variant="ghost" href="/projects/import">
+                Import from GitHub
+              </Link>
+            </div>
           </header>
         </Reveal>
 

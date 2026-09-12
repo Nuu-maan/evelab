@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@evelab/eve-project": "workspace:*",
+    "@evelab/github": "workspace:*",
     "@monaco-editor/react": "^4.6.0",
     "@xyflow/react": "^12.3.6",
     "lucide-react": "^1.45.0",

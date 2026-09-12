@@ -145,6 +145,41 @@ export async function deleteProjectFile(id: string, path: string): Promise<void>
   await rm(resolveInProject(id, path), { force: true });
 }
 
+/** True for paths EveLab never reads into a project: dependencies, build output, Git internals. */
+export function isIgnoredPath(path: string): boolean {
+  return path.split("/").some((segment) => IGNORED.has(segment));
+}
+
+/**
+ * Creates a project from files that were already read and shown to the user,
+ * such as an imported repository. A failed write leaves nothing behind.
+ */
+export async function createProjectFromFiles(nameHint: string, files: ProjectFile[]): Promise<string> {
+  let id = slugify(nameHint);
+  let suffix = 2;
+  while (isTaken(id)) id = `${slugify(nameHint)}-${suffix++}`;
+
+  await mkdir(projectRoot(id), { recursive: true });
+  try {
+    for (const file of files) {
+      const absolute = resolveInProject(id, file.path);
+      await mkdir(dirname(absolute), { recursive: true });
+      await writeFile(absolute, file.content, "utf8");
+    }
+  } catch (error) {
+    await rm(projectRoot(id), { recursive: true, force: true });
+    throw error;
+  }
+  return id;
+}
+
+// Project ids are URL segments, so they must not shadow the routes beside them.
+const RESERVED_IDS = new Set(["new", "import"]);
+
+function isTaken(id: string): boolean {
+  return RESERVED_IDS.has(id) || existsSync(projectRoot(id));
+}
+
 export function slugify(input: string): string {
   const slug = input
     .toLowerCase()
@@ -163,7 +198,7 @@ export interface CreateProjectInput {
 export async function createProject(input: CreateProjectInput): Promise<string> {
   let id = slugify(input.name);
   let suffix = 2;
-  while (existsSync(projectRoot(id))) id = `${slugify(input.name)}-${suffix++}`;
+  while (isTaken(id)) id = `${slugify(input.name)}-${suffix++}`;
 
   const instructions = `# ${input.name}\n\nDescribe what this agent should do, what it must never do, and how it should\nreply.\n`;
   const project: EveProject = {

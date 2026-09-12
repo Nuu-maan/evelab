@@ -4,6 +4,18 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { applyOwnershipChange, OwnershipError } from "@evelab/eve-project";
+import { isSafeRepoPath, newRepositoryNameSchema, repositoryNameSchema } from "@evelab/github";
+import {
+  commitProject,
+  connectRepository,
+  disconnectRepository,
+  discardChange,
+  importRepository,
+  previewImport,
+  publishToNewRepository,
+  pullProject,
+  sourceControlMessage,
+} from "@/lib/git";
 import { writeLayout } from "@/lib/layout";
 import {
   fetchSkillCandidate,
@@ -48,6 +60,7 @@ export async function createProjectAction(formData: FormData) {
 export async function deleteProjectAction(formData: FormData) {
   const id = idSchema.parse(formData.get("id"));
   await deleteProject(id);
+  await disconnectRepository(id);
   revalidatePath("/projects");
   redirect("/projects");
 }
@@ -344,4 +357,109 @@ export async function installSkillAction(input: z.input<typeof installSkillSchem
 
   await writeProject(projectId, project);
   revalidatePath(`/projects/${projectId}`, "layout");
+}
+
+/*
+ * Source control. These return a result instead of throwing, so a GitHub
+ * failure reaches the user as a sentence rather than an error page.
+ */
+
+type Failure = { ok: false; message: string };
+
+async function sourceControl<T extends object>(run: () => Promise<T>): Promise<({ ok: true } & T) | Failure> {
+  try {
+    return { ok: true as const, ...(await run()) };
+  } catch (error) {
+    const message = sourceControlMessage(error);
+    if (message) return { ok: false, message };
+    throw error;
+  }
+}
+
+const branchInput = z.string().trim().max(200).optional();
+
+export async function previewImportAction(input: { repository: string; branch?: string }) {
+  return sourceControl(async () => {
+    const parsed = z.object({ repository: repositoryNameSchema, branch: branchInput }).parse(input);
+    return { preview: await previewImport(parsed.repository, parsed.branch) };
+  });
+}
+
+export async function importRepositoryAction(input: { repository: string; branch: string; commit: string }) {
+  return sourceControl(async () => {
+    const parsed = z
+      .object({ repository: repositoryNameSchema, branch: z.string().trim().min(1).max(200), commit: z.string().regex(/^[0-9a-f]{40}$/) })
+      .parse(input);
+    const projectId = await importRepository(parsed.repository, parsed.branch, parsed.commit);
+    revalidatePath("/projects");
+    return { projectId };
+  });
+}
+
+export async function connectRepositoryAction(input: { projectId: string; repository: string; branch?: string }) {
+  return sourceControl(async () => {
+    const parsed = z.object({ projectId: idSchema, repository: repositoryNameSchema, branch: branchInput }).parse(input);
+    const result = await connectRepository(parsed.projectId, parsed.repository, parsed.branch);
+    revalidatePath(`/projects/${parsed.projectId}`, "layout");
+    return result;
+  });
+}
+
+export async function createRepositoryAction(input: {
+  projectId: string;
+  name: string;
+  isPrivate: boolean;
+  message: string;
+}) {
+  return sourceControl(async () => {
+    const parsed = z
+      .object({
+        projectId: idSchema,
+        name: newRepositoryNameSchema,
+        isPrivate: z.boolean(),
+        message: z.string().trim().min(1, "Write a commit message").max(5000),
+      })
+      .parse(input);
+    const result = await publishToNewRepository(parsed.projectId, parsed.name, parsed.isPrivate, parsed.message);
+    revalidatePath(`/projects/${parsed.projectId}`, "layout");
+    return result;
+  });
+}
+
+/** Commits every local change. The commit is created on GitHub, so this is also the push. */
+export async function commitAction(input: { projectId: string; message: string }) {
+  return sourceControl(async () => {
+    const parsed = z
+      .object({ projectId: idSchema, message: z.string().trim().min(1, "Write a commit message").max(5000) })
+      .parse(input);
+    const result = await commitProject(parsed.projectId, parsed.message);
+    revalidatePath(`/projects/${parsed.projectId}`, "layout");
+    return result;
+  });
+}
+
+export async function pullAction(input: { projectId: string }) {
+  return sourceControl(async () => {
+    const { projectId } = z.object({ projectId: idSchema }).parse(input);
+    const result = await pullProject(projectId);
+    revalidatePath(`/projects/${projectId}`, "layout");
+    return { result };
+  });
+}
+
+export async function discardChangeAction(input: { projectId: string; path: string }) {
+  return sourceControl(async () => {
+    const parsed = z
+      .object({ projectId: idSchema, path: z.string().refine(isSafeRepoPath, { message: "Unsafe path" }) })
+      .parse(input);
+    await discardChange(parsed.projectId, parsed.path);
+    revalidatePath(`/projects/${parsed.projectId}`, "layout");
+    return {};
+  });
+}
+
+export async function disconnectRepositoryAction(formData: FormData) {
+  const id = idSchema.parse(formData.get("projectId"));
+  await disconnectRepository(id);
+  revalidatePath(`/projects/${id}`, "layout");
 }
