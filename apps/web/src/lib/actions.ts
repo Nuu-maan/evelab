@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { applyOwnershipChange, OwnershipError } from "@evelab/eve-project";
 import { writeLayout } from "@/lib/layout";
 import {
   fetchSkillCandidate,
@@ -252,6 +253,34 @@ export async function saveLayoutAction(
     .record(z.object({ x: z.number().finite(), y: z.number().finite() }))
     .parse(positions);
   await writeLayout(id, { positions: parsed });
+}
+
+const linkSchema = z.object({
+  owner: z.union([z.literal("agent"), z.string().regex(/^subagent:[a-z0-9][a-z0-9-]*$/)]),
+  capability: z.string().regex(/^(tool|skill):[a-z0-9][a-z0-9-]*$/),
+});
+
+const ownershipSchema = z
+  .object({ projectId: idSchema, remove: linkSchema.optional(), add: linkSchema.optional() })
+  .refine((input) => input.remove || input.add, { message: "Nothing to change" });
+
+/**
+ * Moves a tool or skill between the agent and its subagents: an edge dragged on
+ * the canvas. Writes subagent frontmatter and nothing else.
+ */
+export async function changeOwnershipAction(
+  input: z.input<typeof ownershipSchema>,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const { projectId, remove, add } = ownershipSchema.parse(input);
+  const project = await readProject(projectId);
+  try {
+    await writeProject(projectId, applyOwnershipChange(project, { remove, add }));
+  } catch (error) {
+    if (error instanceof OwnershipError) return { ok: false, message: error.message };
+    throw error;
+  }
+  revalidatePath(`/projects/${projectId}`, "layout");
+  return { ok: true };
 }
 
 /**
