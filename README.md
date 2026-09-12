@@ -64,10 +64,14 @@ readable.
 
 ## What is not built yet
 
-MCP import, skill import, connections, channels, runs, GitHub sync, deployment,
-and sign-in wiring. The pages exist and say so rather than showing placeholder
-data. See [docs/decisions.md](docs/decisions.md) for the decisions that block
-some of them.
+MCP import, skills.sh import, connections, channels, runs, GitHub sync,
+deployment, and sign-in wiring. The pages exist and say so rather than showing
+placeholder data.
+
+[plan.md](plan.md) is the detailed plan for the remaining phases, including the
+current architecture and the invariants to work within.
+[docs/decisions.md](docs/decisions.md) records what is settled and what is
+blocked.
 
 ## Tests
 
