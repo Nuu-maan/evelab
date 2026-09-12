@@ -12,7 +12,7 @@ export default async function ModelPage({ params }: { params: Promise<{ id: stri
   const known = models.some((candidate) => candidate.id === model.id);
 
   return (
-    <div className="section" style={{ maxWidth: 560, marginInline: "auto", width: "100%" }}>
+    <div className="section" style={{ maxWidth: 600, width: "100%" }}>
       <form action={updateModelAction} className="section">
         <input type="hidden" name="id" value={id} />
 

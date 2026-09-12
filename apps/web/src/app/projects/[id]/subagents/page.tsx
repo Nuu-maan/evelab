@@ -16,16 +16,19 @@ export default async function SubagentsPage({ params }: { params: Promise<{ id: 
   return (
     <div className="page">
       <Reveal>
-        <header className="page-header page-header-centered">
-          <p className="page-eyebrow">Subagents</p>
-          <h1 className="page-title">Who your agent can delegate to</h1>
-          <p className="page-description">
-            One markdown file per subagent under <code className="mono">subagents/</code>. The canvas
-            shows the same thing as a graph you can rearrange.
-          </p>
-          <Link className="button" data-variant="primary" href={`/projects/${id}/canvas`}>
-            Open canvas
-          </Link>
+        <header className="page-header">
+          <div className="page-heading">
+            <h1 className="page-title">Subagents</h1>
+            <p className="page-description">
+              Who your agent can delegate to. One markdown file per subagent under{" "}
+              <code className="mono">subagents/</code>; the canvas shows the same thing as a graph.
+            </p>
+          </div>
+          <div className="page-actions">
+            <Link className="button" href={`/projects/${id}/canvas`}>
+              Open canvas
+            </Link>
+          </div>
         </header>
       </Reveal>
 
