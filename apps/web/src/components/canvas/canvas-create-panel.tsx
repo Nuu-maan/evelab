@@ -1,7 +1,10 @@
 "use client";
 
 import { motion } from "motion/react";
-import { EASE_OUT } from "@/components/interaction";
+import { X } from "lucide-react";
+import { PANEL_MOTION } from "@/components/canvas/canvas-inspector";
+import { KindTile } from "@/components/kinds";
+import { ResizeHandle } from "@/components/resize-handle";
 import { createSubagentAction, createToolAction } from "@/lib/actions";
 
 export type DraftKind = "tool" | "subagent";
@@ -29,14 +32,16 @@ export function CanvasCreatePanel({
     <motion.aside
       className="inspector"
       aria-label={isTool ? "New tool" : "New subagent"}
-      initial={{ x: 24, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      exit={{ x: 24, opacity: 0 }}
-      transition={EASE_OUT}
+      {...PANEL_MOTION}
     >
+      <ResizeHandle pane="inspector" edge="start" label="Resize panel" />
+
       <div className="inspector-head">
-        <div>
-          <p className="node-kind">New {kind}</p>
+        <KindTile kind={kind} size="large" />
+        <div className="inspector-title">
+          <p className="node-kind" data-kind={kind}>
+            New {kind}
+          </p>
           <h2 className="section-title">{isTool ? "TypeScript tool" : "Subagent"}</h2>
           <p className="list-item-detail">
             {isTool
@@ -44,8 +49,15 @@ export function CanvasCreatePanel({
               : "Writes one markdown file under subagents/."}
           </p>
         </div>
-        <button className="button" data-variant="ghost" type="button" onClick={onClose}>
-          Close
+        <button
+          className="button"
+          data-variant="ghost"
+          data-size="icon"
+          type="button"
+          aria-label="Close"
+          onClick={onClose}
+        >
+          <X aria-hidden="true" strokeWidth={1.5} />
         </button>
       </div>
 
