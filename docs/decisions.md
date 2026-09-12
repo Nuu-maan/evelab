@@ -45,6 +45,28 @@ animations that degrade to a visible element. motion/react is used only where
 motion responds to interaction: the inspector, dialogs, and indicators that move
 between items. All of it respects reduced-motion.
 
+**Canvas edges are ownership, and the agent's ownership is implicit.** A tool
+or skill that no subagent lists in its frontmatter belongs to the main agent.
+Dragging an edge onto a subagent adds the id to that subagent's `tools` or
+`skills`; dropping it on empty canvas removes it; moving it to the agent clears
+every subagent's claim. Nothing in `agent.ts` is touched. The rule lives in
+`applyOwnershipChange` in `packages/eve-project`, next to the parser that
+defines those keys, and is covered by round-trip tests.
+
+**Pane widths are presentation state in cookies.** The server reads them so the
+layout renders at the user's width without a jump, and clamps them because the
+client writes them. They never enter the project or the database.
+
+**Motion follows frequency.** Things summoned from the keyboard many times a
+day, like the command palette, open instantly. Panels, dialogs and menus use
+short ease-out transitions with faster exits. Only `transform` and `opacity`
+animate, and `MotionConfig` honours reduced motion for everything in
+motion/react.
+
+**Styles live next to the surface that owns them.** `globals.css` holds tokens
+and `ui.css` shared components; `shell.css`, `canvas.css`, `explorer.css` and
+`overview.css` are imported by the component or page they style.
+
 **Single user.** One user, many projects. `project_members` exists in the schema
 so sharing can be added without rewriting ownership.
 
