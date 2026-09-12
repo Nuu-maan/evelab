@@ -5,6 +5,10 @@ import { readProject } from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
 
+function plural(count: number, word: string): string {
+  return `${count} ${word}${count === 1 ? "" : "s"}`;
+}
+
 export default async function SubagentsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const project = await readProject(id);
@@ -61,8 +65,8 @@ export default async function SubagentsPage({ params }: { params: Promise<{ id: 
                 </div>
                 <div className="row">
                   <span className="badge mono">{subagent.model?.id ?? "inherits model"}</span>
-                  <span className="badge">{subagent.tools.length} tools</span>
-                  <span className="badge">{subagent.skills.length} skills</span>
+                  <span className="badge">{plural(subagent.tools.length, "tool")}</span>
+                  <span className="badge">{plural(subagent.skills.length, "skill")}</span>
                 </div>
               </div>
             </StaggerItem>

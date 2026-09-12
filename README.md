@@ -87,6 +87,7 @@ positions survive a reload.
 `pnpm e2e` reuses a server you already have running. Point `CHROMIUM_PATH` at a
 local Chromium, or run `pnpm exec playwright install chromium` instead.
 
-One operational note: stop `pnpm start` before running `pnpm build`. A running
-production server holds `.next` open and the build fails with a confusing
-`PageNotFoundError`.
+One operational note: stop `pnpm start` or `pnpm dev` before running
+`pnpm build`. A running server holds `.next` open, and the build then fails with
+a confusing `PageNotFoundError` or a missing `.next/types/app/layout.ts`. If you
+hit either, `rm -rf apps/web/.next apps/web/*.tsbuildinfo` and build again.
