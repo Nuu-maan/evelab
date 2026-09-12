@@ -30,6 +30,9 @@ export default defineConfig({
     timeout: 120_000,
     env: {
       EVELAB_WORKSPACE: process.env.E2E_WORKSPACE ?? "/tmp/evelab-e2e/workspace",
+      // GitHub is an in-memory mock started by e2e/github.spec.ts.
+      GITHUB_API_URL: `http://127.0.0.1:${process.env.E2E_GITHUB_PORT ?? 3399}`,
+      GITHUB_TOKEN: "e2e-token",
     },
   },
 });
