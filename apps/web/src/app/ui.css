@@ -630,6 +630,42 @@ a.card:hover,
   color: var(--kind);
 }
 
+/* File type icons, shared by the explorer, source control and import review. */
+.file-icon {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin: 0 6px 0 2px;
+  color: var(--foreground-tertiary);
+}
+
+.file-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.file-icon[data-tone="blue"] {
+  color: var(--blue);
+}
+
+.file-icon[data-tone="amber"] {
+  color: var(--amber);
+}
+
+.file-icon[data-tone="purple"] {
+  color: var(--purple);
+}
+
+.file-icon[data-tone="teal"] {
+  color: var(--teal);
+}
+
+.file-icon[data-kind] {
+  color: var(--kind);
+}
+
 /* ---------- Editor chrome ---------- */
 
 .editor-pane {
