@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { getProjectGraph, parseProject, validateProject } from "../src/index.js";
+import {
+  getCanvasGraph,
+  getProjectGraph,
+  parseProject,
+  validateProject,
+} from "../src/index.js";
 import { loadFixture } from "./fixtures.js";
 
 describe("parseProject", () => {
@@ -52,5 +57,30 @@ describe("parseProject", () => {
     const { project } = parseProject(loadFixture("basic-agent"));
     project.files.push({ path: "../outside.ts", content: "" });
     expect(validateProject(project).some((issue) => issue.level === "error")).toBe(true);
+  });
+});
+
+describe("getCanvasGraph", () => {
+  it("hangs a capability off the subagent that owns it", () => {
+    const { project } = parseProject(loadFixture("subagent-agent"));
+    const graph = getCanvasGraph(project);
+
+    expect(graph.nodes.map((node) => node.id)).toEqual([
+      "agent",
+      "subagent:researcher",
+      "subagent:reviewer",
+      "tool:browse",
+      "skill:web-research",
+    ]);
+    expect(graph.edges).toContainEqual({ source: "subagent:researcher", target: "tool:browse" });
+    expect(graph.edges).not.toContainEqual({ source: "agent", target: "tool:browse" });
+  });
+
+  it("points every node at the file that defines it", () => {
+    const { project } = parseProject(loadFixture("subagent-agent"));
+    const paths = new Set(project.files.map((file) => file.path));
+    for (const node of getCanvasGraph(project).nodes) {
+      expect(paths.has(node.filePath)).toBe(true);
+    }
   });
 });

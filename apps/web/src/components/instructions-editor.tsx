@@ -49,11 +49,12 @@ export function InstructionsEditor({
   }, [content]);
 
   return (
-    <div className="editor-pane" style={{ height: "60vh", border: "1px solid var(--border)", borderRadius: "var(--radius)" }}>
+    <div className="editor-pane editor-frame" style={{ height: "62vh" }}>
       <div className="editor-bar">
         <code className="mono">instructions.md</code>
         <div className="row">
           <SaveIndicator state={state} />
+          <span className="kbd">⌘S</span>
           <button
             className="button"
             type="button"

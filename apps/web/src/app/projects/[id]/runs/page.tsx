@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 export default function RunsPage() {
   return (
     <div className="page">
-      <header>
+      <header className="page-header page-header-centered">
         <h1 className="page-title">Runs</h1>
         <p className="page-description">Execution history and timelines.</p>
       </header>

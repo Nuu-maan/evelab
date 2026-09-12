@@ -9,11 +9,12 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
 
   return (
     <div className="page">
-      <header>
-        <h1 className="page-title">Settings</h1>
+      <header className="page-header page-header-centered">
+        <p className="page-eyebrow">Settings</p>
+        <h1 className="page-title">Where this project lives</h1>
       </header>
 
-      <section className="section" style={{ maxWidth: 620 }}>
+      <section className="section" style={{ maxWidth: 620, marginInline: "auto", width: "100%" }}>
         <h2 className="section-title">On disk</h2>
         <p className="page-description">
           The project is a normal directory. Open it in your editor, run Eve against it, or put it
@@ -25,7 +26,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
         </p>
       </section>
 
-      <section className="section" style={{ maxWidth: 620 }}>
+      <section className="section" style={{ maxWidth: 620, marginInline: "auto", width: "100%" }}>
         <h2 className="section-title">Delete project</h2>
         <p className="page-description">
           Deletes the directory and everything in it. There is no undo and no copy elsewhere.
