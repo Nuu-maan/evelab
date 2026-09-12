@@ -1,14 +1,12 @@
 import Link from "next/link";
-import { Mark } from "@/components/mark";
+import { Plus } from "lucide-react";
+import { KindCount } from "@/components/kinds";
 import { PlainShell } from "@/components/plain-shell";
-import { Reveal, Stagger, StaggerItem } from "@/components/motion";
+import { Avatar } from "@/components/project-switcher";
+import { Reveal, Stagger } from "@/components/motion";
 import { listProjects } from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
-
-function plural(count: number, word: string): string {
-  return `${count} ${word}${count === 1 ? "" : "s"}`;
-}
 
 export default async function ProjectsPage() {
   const projects = await listProjects();
@@ -18,19 +16,19 @@ export default async function ProjectsPage() {
       <main className="main" id="main">
         <div className="page">
           <Reveal>
-            <header className="page-header page-header-centered">
-              <p className="page-eyebrow row">
-                <Mark />
-                EveLab
-              </p>
-              <h1 className="page-display">The visual IDE for Eve agents</h1>
-              <p className="page-description">
-                Build visually, own the code. Every project here is a real Eve project on disk that
-                runs with or without EveLab.
-              </p>
-              <Link className="button" data-variant="primary" data-size="large" href="/projects/new">
-                New project
-              </Link>
+            <header className="page-header">
+              <div className="page-heading">
+                <h1 className="page-title">Projects</h1>
+                <p className="page-description">
+                  Every project is a real Eve project on disk that runs with or without EveLab.
+                </p>
+              </div>
+              <div className="page-actions">
+                <Link className="button" data-variant="primary" href="/projects/new">
+                  <Plus aria-hidden="true" strokeWidth={1.5} />
+                  New project
+                </Link>
+              </div>
             </header>
           </Reveal>
 
@@ -47,27 +45,27 @@ export default async function ProjectsPage() {
               </div>
             </Reveal>
           ) : (
-            <section className="section">
-              <div className="section-header">
-                <h2 className="section-title">Projects</h2>
-                <span className="palette-hint">{plural(projects.length, "project")} on disk</span>
-              </div>
-              <Stagger className="grid-fluid">
-                {projects.map((project) => (
-                  <StaggerItem key={project.id}>
-                    <Link className="card" href={`/projects/${project.id}`}>
+            <Stagger className="grid-fluid">
+              {projects.map((project) => (
+                <Link className="card" href={`/projects/${project.id}`} key={project.id}>
+                  <div className="row" style={{ gap: "var(--space-3)" }}>
+                    <Avatar name={project.name} size="large" />
+                    <div className="page-heading">
                       <span className="card-title">{project.name}</span>
                       <span className="card-detail mono">{project.model || "No model set"}</span>
-                      <span className="row" style={{ marginTop: "var(--space-2)" }}>
-                        <span className="badge">{plural(project.toolCount, "tool")}</span>
-                        <span className="badge">{plural(project.skillCount, "skill")}</span>
-                        <span className="badge">{plural(project.subagentCount, "subagent")}</span>
-                      </span>
-                    </Link>
-                  </StaggerItem>
-                ))}
-              </Stagger>
-            </section>
+                    </div>
+                  </div>
+                  <div className="row" style={{ gap: "var(--space-4)", marginTop: "var(--space-3)" }}>
+                    <KindCount kind="tool" count={project.toolCount} />
+                    <KindCount kind="skill" count={project.skillCount} />
+                    <KindCount kind="subagent" count={project.subagentCount} />
+                    <span className="palette-hint mono" style={{ marginLeft: "auto" }}>
+                      {project.id}
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </Stagger>
           )}
         </div>
       </main>

@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CommandPalette } from "@/components/command-palette";
+import { ProjectHeader } from "@/components/project-header";
 import { Sidebar } from "@/components/sidebar";
-import { Mark } from "@/components/mark";
-import { projectExists, readProject, validateProject } from "@/lib/workspace";
+import { paneStyle } from "@/lib/panes";
+import { listProjects, projectExists, readProject, validateProject } from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
 
@@ -17,70 +17,35 @@ export default async function ProjectLayout({
   const { id } = await params;
   if (!(await projectExists(id))) notFound();
 
-  const project = await readProject(id);
+  const [project, projects, style] = await Promise.all([
+    readProject(id),
+    listProjects(),
+    paneStyle(),
+  ]);
   const errors = validateProject(project).filter((issue) => issue.level === "error");
 
   return (
-    <div className="shell">
+    <div className="shell" data-panes="" style={style}>
       <a className="skip-link" href="#main">
         Skip to content
       </a>
 
-      <header className="topbar">
-        <Link className="topbar-brand" href="/projects">
-          <Mark />
-          EveLab
-        </Link>
-        <span className="topbar-separator">/</span>
-        <Link className="topbar-project" href={`/projects/${id}`}>
-          {project.agent.name}
-        </Link>
-        <span className="status" data-tone={errors.length > 0 ? "error" : "ready"}>
-          {errors.length > 0
-            ? `${errors.length} config ${errors.length === 1 ? "error" : "errors"}`
-            : "Valid"}
-        </span>
-
-        <div className="topbar-actions">
-          <span className="kbd">⌘K</span>
-          <Link className="button" data-variant="ghost" href={`/projects/${id}/canvas`}>
-            Canvas
-          </Link>
-          <Link className="button" href={`/projects/${id}/runs`}>
-            Run
-          </Link>
-          <Link className="button" data-variant="primary" href={`/projects/${id}/deployments`}>
-            Deploy
-          </Link>
-        </div>
-      </header>
-
       <Sidebar
-        projectId={id}
-        groups={[
-          {
-            label: "Build",
-            items: [
-              { label: "Overview", segment: "" },
-              { label: "Canvas", segment: "canvas" },
-              { label: "Agent", segment: "agent" },
-              { label: "Tools", segment: "tools", count: project.tools.length },
-              { label: "Skills", segment: "skills", count: project.skills.length },
-              { label: "Subagents", segment: "subagents", count: project.subagents.length },
-              { label: "Connections", segment: "connections" },
-              { label: "Channels", segment: "channels" },
-            ],
-          },
-          { label: "Develop", items: [{ label: "Files", segment: "files" }] },
-          { label: "Observe", items: [{ label: "Runs", segment: "runs" }] },
-          { label: "Deploy", items: [{ label: "Deployments", segment: "deployments" }] },
-          { label: "", items: [{ label: "Settings", segment: "settings" }] },
-        ]}
+        project={{ id, name: project.agent.name }}
+        projects={projects.map((summary) => ({ id: summary.id, name: summary.name }))}
+        counts={{
+          tools: project.tools.length,
+          skills: project.skills.length,
+          subagents: project.subagents.length,
+        }}
       />
 
-      <main className="main" id="main">
-        {children}
-      </main>
+      <div className="workspace">
+        <ProjectHeader projectId={id} projectName={project.agent.name} errors={errors.length} />
+        <main className="main" id="main">
+          {children}
+        </main>
+      </div>
 
       <CommandPalette projectId={id} />
     </div>
