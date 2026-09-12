@@ -71,6 +71,7 @@ apps/web                 Next.js 15 app router, React 19
 packages/eve-project     Project model, parser, generator, validator, graph
 packages/db              Drizzle schema (metadata only): not wired up
 packages/auth            Better Auth GitHub config: not wired up
+packages/github          GitHub client, status, pull planning, commits
 ```
 
 ### 3.1 `packages/eve-project`
@@ -97,6 +98,21 @@ Model shapes handled today: `model: "openai/gpt-5.6"` and
 `model: { id, temperature, maxOutputTokens, ...raw }`, including shorthand
 properties (`{ gateway }` stays shorthand).
 
+### 3.1b `packages/github`
+
+Server-side GitHub access. Everything is exported from `src/index.ts`; 25 unit
+tests against a fake client, no network.
+
+| File | Contains |
+| --- | --- |
+| `names.ts` | Repository name, branch name and repository path validation, `encodePath` |
+| `blob.ts` | `gitBlobSha`: Git's id for file content |
+| `tracked.ts` | `trackedFiles` (root `.gitignore` plus secrets), `isSecretPath` |
+| `status.ts` | `SyncBase`, `computeChanges`, `computeStatus`, `advanceBase` |
+| `merge.ts` | `planPull`: per-file three-way merge that reports conflicts |
+| `client.ts` | `createGitHubClient` (token or App), `getInstallationClient`, `GitHubError`, `RemoteMovedError` |
+| `repository.ts` | `listRepositories`, `getRepository`, `createRepository`, `getBranchHead`, `readRepositoryTree`, `commitFiles` |
+
 ### 3.2 `apps/web`
 
 Routes, all under `src/app`:
@@ -105,6 +121,7 @@ Routes, all under `src/app`:
 /                                    redirect to /projects
 /projects                            dashboard (PlainShell)
 /projects/new                        creation flow
+/projects/import                     import an Eve project from GitHub
 /projects/[id]                       overview
 /projects/[id]/canvas                visual editor + inspector
 /projects/[id]/agent                 General | Instructions | Model | Runtime
@@ -112,6 +129,7 @@ Routes, all under `src/app`:
 /projects/[id]/skills                list + GitHub import
 /projects/[id]/subagents             list + create
 /projects/[id]/files                 file tree + Monaco workbench
+/projects/[id]/source                source control: changes, diff, commit, pull
 /projects/[id]/connections           stub
 /projects/[id]/channels              stub
 /projects/[id]/runs                  stub
@@ -135,13 +153,18 @@ Server-side libraries (`src/lib`):
 | `skill-types.ts` | `SkillCandidate` types, shared with client components |
 | `panes.ts` | `paneStyle`: resizable pane widths from cookies, clamped, as CSS custom properties |
 | `pane-config.ts` | `PANES` bounds and cookie names, shared by the server and the drag handle |
+| `git.ts` | Source control bridge: sync record, `previewImport`, `importRepository`, `connectRepository`, `publishToNewRepository`, `commitProject`, `pullProject`, `discardChange`, `getSourceSummary` |
+| `source-types.ts` | Source control types shared with client components |
 
 Server actions in `actions.ts`: `createProjectAction`, `deleteProjectAction`,
 `updateAgentAction`, `updateModelAction`, `saveInstructionsAction`,
 `readFileAction`, `saveFileAction`, `createToolAction`, `createSubagentAction`,
 `deleteSubagentAction`, `deleteToolAction`, `deleteSkillAction`,
 `saveLayoutAction`, `changeOwnershipAction`, `previewSkillAction`,
-`installSkillAction`.
+`installSkillAction`, and for source control `previewImportAction`,
+`importRepositoryAction`, `connectRepositoryAction`, `createRepositoryAction`,
+`commitAction`, `pullAction`, `discardChangeAction`,
+`disconnectRepositoryAction`.
 
 Components worth knowing:
 
@@ -195,6 +218,9 @@ overridable with `EVELAB_WORKSPACE`. Canvas layouts sit in
   an explorer tree, file icons and keyboard navigation.
 - Sidebar with project switcher, `⌘K` command palette, resizable panes that
   persist, live config validation in the header, light and dark.
+- Import an Eve project from GitHub after reviewing it; connect or create a
+  repository; see changes with a diff; commit (which pushes); pull with
+  conflict detection; sync status in the header. Token mode.
 
 ### 3.4 What does not exist
 
@@ -203,11 +229,10 @@ overridable with `EVELAB_WORKSPACE`. Canvas layouts sit in
 - **MCP import.** Blocked on Decision 6.
 - **skills.sh import.** Blocked on not knowing their source format.
 - **Connections and channels.** Stub pages.
-- **GitHub sync.** No repo connection, commit, push, pull, or import.
 - **Runs.** Blocked on Decision 2.
 - **Deployment.** Follows GitHub.
-- **Importing an existing Eve repository**: §47 of the spec requires it. The
-  parser already handles hand-written projects; the missing piece is Git.
+- **GitHub App installation flow.** The App client exists, but installing the
+  App per user needs sign-in (Phase 0.5). Token mode covers local use.
 
 ### 3.5 Known TODOs where Eve's API is assumed
 
@@ -240,7 +265,9 @@ Environment (all optional; with none set EveLab runs as a local single-user tool
 | --- | --- |
 | `EVELAB_WORKSPACE` | Where projects are stored |
 | `AI_GATEWAY_API_KEY` | Live model discovery instead of the fallback list |
-| `GITHUB_TOKEN` | Raises the GitHub API rate limit for skill import |
+| `GITHUB_TOKEN` | Source control (import, commit, pull) and a higher rate limit for skill import |
+| `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_INSTALLATION_ID` | Source control through a GitHub App; takes precedence over the token |
+| `GITHUB_API_URL` | GitHub API base URL; the e2e suite points it at a mock |
 | `DATABASE_URL` | Enables `packages/db` |
 | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `BETTER_AUTH_URL`, `BETTER_AUTH_SECRET` | Enables sign-in |
 
@@ -315,7 +342,19 @@ seems to need EveLab to hold a provider secret, re-read the requirement first.
 
 Ordered by recommended execution. Phase numbers match the original spec.
 
-### Phase 7: GitHub (do this next)
+### Phase 7: GitHub (done in token mode)
+
+**Status.** Shipped: `packages/github`, import with review, connect, create and
+publish, status in the header, diff view, commit (created on GitHub, so it is
+also the push), pull with all-or-nothing conflict detection, discard, and
+disconnect. Unit tests cover status, names, tree mapping and commit bodies; the
+e2e suite runs the whole journey against a mock GitHub. Reads were also checked
+against real GitHub.
+
+Deferred: the per-user GitHub App installation flow (needs Phase 0.5), storing
+the sync record in `git_repositories` (needs the database), repository lists
+beyond the first 100, nested `.gitignore` files, projects in a repository
+subdirectory, and switching branches after connecting.
 
 **Why first:** unblocked, completes the "your project is yours" promise, and
 unlocks Phase 9. Importing an existing Eve repository is a §47 requirement and
@@ -395,7 +434,7 @@ the remote has moved.
 
 ---
 
-### Phase 0.5: Wire sign-in and the database
+### Phase 0.5: Wire sign-in and the database (do this next)
 
 **Why:** ownership, and a prerequisite for GitHub App installations and anything
 hosted. `packages/auth` and `packages/db` are configured but inert.
@@ -614,11 +653,11 @@ Work needed beyond the phases above:
 | 11 | Run the agent | Phase 8 |
 | 12 | Inspect the run timeline | Phase 8 |
 | 13 | Open the generated Eve files | Done |
-| 14 | Commit to GitHub | Phase 7 |
+| 14 | Commit to GitHub | Done (token mode) |
 | 15 | Deploy | Phase 9 |
 | 16 | Verify the deployed agent works | Phase 9 |
 
-Plus: **import an existing Eve repository**, in Phase 7.
+Plus: **import an existing Eve repository**: done.
 
 ---
 

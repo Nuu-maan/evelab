@@ -26,6 +26,8 @@ Optional environment:
 | `AI_GATEWAY_API_KEY` | Model list comes from the gateway instead of the built-in fallback |
 | `DATABASE_URL` | Enables the metadata database (`packages/db`) |
 | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | Enables GitHub sign-in (`packages/auth`) |
+| `GITHUB_TOKEN` | Enables source control: import, commit and pull, with a token that can read and write repository contents |
+| `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_INSTALLATION_ID` | Source control through a GitHub App instead of a token |
 
 With none of them set, EveLab runs as a local single-user tool.
 
@@ -34,6 +36,7 @@ With none of them set, EveLab runs as a local single-user tool.
 ```text
 apps/web              Next.js app: shell, canvas, agent editor, tools, skills, files
 packages/eve-project  Project model, parser, generator, validator, graph (Vitest)
+packages/github       GitHub client: tree reading, status, pull planning, commits (Vitest)
 packages/db           Drizzle schema for metadata only: users, projects, repos, deployments, runs
 packages/auth         Better Auth GitHub configuration
 ```
@@ -68,6 +71,15 @@ written into the existing `agent.ts` by patching only the values that changed.
 is readable and editable in the Files workbench: a tree with file-type icons,
 compacted folders and full keyboard support, next to Monaco.
 
+**Source control.** Import an existing Eve project from GitHub: EveLab reads the
+branch, shows every file it found and everything it skipped (symlinks,
+submodules, binaries, `.env` files), and writes exactly the commit you reviewed.
+Any project can connect to a repository or create one. Edits show up as changes
+with a side-by-side diff; committing is explicit, needs a message, and creates the
+commit on GitHub directly. Pull brings in commits made elsewhere, file by file,
+and refuses to write anything if a file changed on both sides. The project's
+`.gitignore` is honoured, and `.env` files never leave the machine.
+
 **Everything else.** A sidebar with a project switcher, `⌘K` command palette,
 `⌘S` save, panes you can resize by dragging (and that keep their width), live
 config validation in the header, light and dark, and no page that depends on
@@ -75,8 +87,8 @@ JavaScript to become readable.
 
 ## What is not built yet
 
-MCP import, skills.sh import, connections, channels, runs, GitHub sync,
-deployment, and sign-in wiring. The pages exist and say so rather than showing
+MCP import, skills.sh import, connections, channels, runs, deployment, sign-in
+wiring, and the GitHub App installation flow. The pages exist and say so rather than showing
 placeholder data.
 
 [plan.md](plan.md) is the detailed plan for the remaining phases, including the
@@ -98,7 +110,9 @@ is the one bug that would make EveLab untrustworthy. The browser suite covers
 the canvas and the shell: selecting a node opens the right file, saving writes it
 to disk without disturbing the rest, dragging an edge rewrites exactly one
 subagent's frontmatter, creating a tool produces real source, node positions and
-pane widths survive a reload, and the explorer works from the keyboard.
+pane widths survive a reload, and the explorer works from the keyboard. The source
+control journey (import, commit, pull, conflicts, publishing a new repository)
+runs against an in-memory GitHub the web server reaches through `GITHUB_API_URL`.
 
 `pnpm e2e` reuses a server you already have running. Point `CHROMIUM_PATH` at a
 local Chromium, or run `pnpm exec playwright install chromium` instead.
