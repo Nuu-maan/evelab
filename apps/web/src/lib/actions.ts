@@ -3,10 +3,18 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { writeLayout } from "@/lib/layout";
+import {
+  fetchSkillCandidate,
+  isSafeRelativePath,
+  SkillImportError,
+  type SkillCandidate,
+} from "@/lib/skill-import";
 import {
   createProject,
   deleteProject,
   readProject,
+  readProjectFile,
   writeProject,
   writeProjectFile,
 } from "@/lib/workspace";
@@ -95,6 +103,11 @@ export async function saveInstructionsAction(projectId: string, content: string)
   revalidatePath(`/projects/${id}`, "layout");
 }
 
+export async function readFileAction(projectId: string, path: string): Promise<string> {
+  const id = idSchema.parse(projectId);
+  return readProjectFile(id, path);
+}
+
 export async function saveFileAction(projectId: string, path: string, content: string) {
   const id = idSchema.parse(projectId);
   await writeProjectFile(id, path, z.string().max(2_000_000).parse(content));
@@ -129,7 +142,10 @@ export async function createToolAction(formData: FormData) {
   });
   await writeProject(projectId, project);
   revalidatePath(`/projects/${projectId}`, "layout");
-  redirect(`/projects/${projectId}/files?path=tools/${input.id}.ts`);
+  // The canvas keeps the user in place; the Tools page sends them to the source.
+  if (formData.get("openSource") === "true") {
+    redirect(`/projects/${projectId}/files?path=tools/${input.id}.ts`);
+  }
 }
 
 /**
@@ -195,6 +211,108 @@ export async function deleteSubagentAction(formData: FormData) {
 
   const project = await readProject(projectId);
   project.subagents = project.subagents.filter((subagent) => subagent.id !== subagentId);
+  await writeProject(projectId, project);
+  revalidatePath(`/projects/${projectId}`, "layout");
+}
+
+export async function deleteToolAction(formData: FormData) {
+  const projectId = idSchema.parse(formData.get("projectId"));
+  const toolId = kebabSchema.parse(formData.get("toolId"));
+
+  const project = await readProject(projectId);
+  project.tools = project.tools.filter((tool) => tool.id !== toolId);
+  // A subagent must not keep pointing at a tool that no longer exists.
+  for (const subagent of project.subagents) {
+    subagent.tools = subagent.tools.filter((id) => id !== toolId);
+  }
+  await writeProject(projectId, project);
+  revalidatePath(`/projects/${projectId}`, "layout");
+}
+
+export async function deleteSkillAction(formData: FormData) {
+  const projectId = idSchema.parse(formData.get("projectId"));
+  const skillId = kebabSchema.parse(formData.get("skillId"));
+
+  const project = await readProject(projectId);
+  project.skills = project.skills.filter((skill) => skill.id !== skillId);
+  for (const subagent of project.subagents) {
+    subagent.skills = subagent.skills.filter((id) => id !== skillId);
+  }
+  await writeProject(projectId, project);
+  revalidatePath(`/projects/${projectId}`, "layout");
+}
+
+/** Canvas node positions. Presentation state, stored outside the project. */
+export async function saveLayoutAction(
+  projectId: string,
+  positions: Record<string, { x: number; y: number }>,
+) {
+  const id = idSchema.parse(projectId);
+  const parsed = z
+    .record(z.object({ x: z.number().finite(), y: z.number().finite() }))
+    .parse(positions);
+  await writeLayout(id, { positions: parsed });
+}
+
+/**
+ * Reads a candidate skill so the user can see the source and every file before
+ * anything is written. This does not install.
+ */
+export async function previewSkillAction(
+  url: string,
+): Promise<{ ok: true; candidate: SkillCandidate } | { ok: false; message: string }> {
+  try {
+    const candidate = await fetchSkillCandidate(z.string().url().parse(url));
+    return { ok: true, candidate };
+  } catch (error) {
+    if (error instanceof SkillImportError) return { ok: false, message: error.message };
+    if (error instanceof z.ZodError) return { ok: false, message: "That is not a valid URL." };
+    return { ok: false, message: "Could not read that skill." };
+  }
+}
+
+const installSkillSchema = z.object({
+  projectId: idSchema,
+  id: kebabSchema,
+  name: z.string().trim().min(1).max(80),
+  description: z.string().trim().max(500).default(""),
+  source: z.string().url(),
+  files: z
+    .array(
+      z.object({
+        // Nested paths are allowed (scripts/run.sh), traversal is not.
+        path: z.string().min(1).max(200).refine(isSafeRelativePath, {
+          message: "Unsafe skill file path",
+        }),
+        content: z.string().max(256 * 1024),
+      }),
+    )
+    .min(1)
+    .max(60),
+});
+
+/** Writes a reviewed skill into the project. Called only after confirmation. */
+export async function installSkillAction(input: z.input<typeof installSkillSchema>) {
+  const parsed = installSkillSchema.parse(input);
+  const projectId = parsed.projectId;
+
+  const markdown = parsed.files.find((file) => file.path === "SKILL.md");
+  if (!markdown) throw new Error("A skill needs a SKILL.md.");
+
+  const project = await readProject(projectId);
+  if (project.skills.some((skill) => skill.id === parsed.id)) {
+    throw new Error(`A skill named "${parsed.id}" is already installed.`);
+  }
+
+  project.skills.push({
+    id: parsed.id,
+    name: parsed.name,
+    description: parsed.description,
+    source: parsed.source,
+    markdown: markdown.content,
+    files: parsed.files.filter((file) => file.path !== "SKILL.md"),
+  });
+
   await writeProject(projectId, project);
   revalidatePath(`/projects/${projectId}`, "layout");
 }

@@ -127,6 +127,10 @@ export async function writeProject(id: string, project: EveProject): Promise<voi
   }
 }
 
+export async function readProjectFile(id: string, path: string): Promise<string> {
+  return readFile(resolveInProject(id, path), "utf8");
+}
+
 export async function writeProjectFile(
   id: string,
   path: string,
