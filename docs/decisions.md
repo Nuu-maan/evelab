@@ -26,6 +26,25 @@ Project identity is not a repository.
 
 **Explicit commits.** Local edits autosave; Git commits will be deliberate.
 
+**The canvas edits files, not a model of files.** Selecting a node opens the
+file that defines it. There is no canvas-only representation of a skill or a
+tool that could drift from its source. Node positions are EveLab presentation
+state and live outside the project directory, so losing them costs a re-layout
+and nothing else.
+
+**Imported skills are reviewed before they are installed.** Import reads the
+source, lists every file including subdirectories, flags files that can run
+code, and writes nothing until the user confirms. Only `github.com` over https
+is accepted; symlinks and submodules are refused; depth, file count and total
+size are bounded; and any path that is not a plain relative path is rejected
+rather than rewritten.
+
+**Entrance animation is CSS, interaction motion is JavaScript.** Content must
+never depend on hydration to become visible, so page entrances are CSS
+animations that degrade to a visible element. motion/react is used only where
+motion responds to interaction: the inspector, dialogs, and indicators that move
+between items. All of it respects reduced-motion.
+
 **Single user.** One user, many projects. `project_members` exists in the schema
 so sharing can be added without rewriting ownership.
 
@@ -49,6 +68,9 @@ against current Eve docs before they are relied on, each marked `TODO` in code:
 
 Everything else works off the user's own source and does not depend on these
 names being right.
+
+**skills.sh import.** Only GitHub is supported today. The skills.sh source
+format needs confirming before EveLab claims to read it.
 
 **MCP representation.** Whether MCP servers are Eve-native configuration files
 or another representation EveLab should preserve exactly. Import is not built
