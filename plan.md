@@ -274,6 +274,9 @@ Environment (all optional; with none set EveLab runs as a local single-user tool
 | `DATABASE_URL`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `BETTER_AUTH_SECRET` | All four enable sign-in and ownership; any missing means local mode |
 | `BETTER_AUTH_URL` | Public base URL for sign-in; the OAuth callback is `<url>/api/auth/callback/github` |
 | `E2E_DATABASE_URL` | Adds the sign-in e2e suite, run against a second server with auth on |
+| `EVELAB_EVE_BIN` | Path to the eve binary to run instead of the project's own; the e2e suite uses `e2e/fake-eve.mjs` |
+| `EVELAB_ALLOW_LOCAL_RUNTIME` | `1` lets a signed-in (multi-user) EveLab run `eve dev` on its own server |
+| `VERCEL_TOKEN` | Lets the Deployments page run `eve deploy` non-interactively |
 
 ### Conventions
 
@@ -318,9 +321,11 @@ Environment (all optional; with none set EveLab runs as a local single-user tool
 
 ## 5. Open decisions that gate work
 
-### Decision 2: Where does the Eve runtime execute during development?
+### Decision 2: Where does the Eve runtime execute during development? (answered)
 
-**Gates Phase 8 (Runs) and the run half of the launch demo.** Options:
+Locally, `eve dev --no-ui` per project, driven over Eve's HTTP session API; in
+production, Vercel via `eve deploy`. See `docs/decisions.md`. The original
+options, kept for context:
 
 - **A. In-process on the Next.js server.** Simplest; couples agent execution to
   the web server, and arbitrary project code would run inside EveLab's process.
@@ -560,9 +565,19 @@ an OAuth platform.
 
 ---
 
-### Phase 8: Runs
+### Phase 8: Runs (done for local runs)
 
-**Blocked on Decision 2.** Answer it first.
+**Status.** `lib/runtime.ts` starts and stops `eve dev --no-ui` (installing the
+project's dependencies first when eve is missing) with a scrubbed environment;
+`app/api/projects/[id]/sessions/*` proxy session start, follow-ups, input
+responses, cancel and the NDJSON stream; `lib/runs.ts` records events by
+`meta.id`; `lib/run-timeline.ts` turns them into the timeline, with unit tests.
+The Runs page has the dev server card, run history, a live timeline with tool
+calls, approvals, subagents, authorization links, errors and usage, and `⌘Enter`
+to send. Schedules can be fired once through eve dev's dispatch route. The e2e
+suite drives all of it through `e2e/fake-eve.mjs`, a stand-in eve binary.
+Deferred: attaching to subagent child streams, and runs against a deployed agent,
+which needs the deployment's channel auth to admit EveLab.
 
 **Goal:** run an agent and understand what happened, from the same interface
 that built it.

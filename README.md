@@ -41,6 +41,12 @@ Linear, GitHub, Teams, Telegram or MCP clients, and give it cron schedules. Each
 is one file under `agent/`, written the way Eve's docs and `eve add` write it;
 credentials stay with Vercel Connect or the deployment environment.
 
+**Runs.** Start `eve dev` from the Runs page and talk to the agent. The timeline
+streams from Eve's own session API: messages, tool calls with input, output and
+duration, approvals you can answer, subagent delegation, errors, and token usage
+and cost per turn. Runs are recorded, so they stay readable after the dev server
+stops, and a schedule can be fired once from the Schedules page.
+
 ## Layout
 
 ```text

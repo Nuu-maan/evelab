@@ -137,12 +137,17 @@ so sharing can be added without rewriting ownership.
 **Secrets stay delegated.** EveLab does not store provider credentials. GitHub
 App private keys and OAuth secrets are read server-side only.
 
-## Open
+**Runs drive `eve dev`, deployments drive `eve deploy`.** EveLab never runs an
+agent loop of its own. In local mode the Runs page starts `eve dev --no-ui` in the
+project directory and talks to Eve's HTTP session API, proxying the NDJSON stream
+to the browser and recording every event by `meta.id` beside the workspace. The
+child gets a scrubbed environment: EveLab's GitHub token, database URL and auth
+secret are never passed. A multi-user EveLab (sign-in on) refuses to run project
+code on its own server unless `EVELAB_ALLOW_LOCAL_RUNTIME=1`; there, agents run
+on Vercel, where Workflow, Sandbox and Cron isolate them. Deploying is
+`eve deploy --non-interactive --yes --project`, with the server's `VERCEL_TOKEN`.
 
-**Where the Eve runtime executes during development.** Same server, dedicated
-worker, remote development runtime, or a deployed environment. The Runs page is
-empty until this is answered, because EveLab drives Eve rather than
-re-implementing it. This blocks Runs, Traces and the run half of the demo.
+## Open
 
 **skills.sh import.** skills.sh lists skills that live in GitHub repositories,
 and `eve add @skills/<owner>/<repo>/<skill>` installs them from there, so the
