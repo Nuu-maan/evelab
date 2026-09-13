@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { IconArrowDown, IconCloudUpload, IconPlay } from "@/components/icons";
 import { Icon } from "@/components/icon";
+import { openAssistant } from "@/components/assistant/assistant-panel";
+import { Shortcut } from "@/components/shortcut";
 import { SidebarToggle } from "@/components/sidebar-toggle";
 import { Button } from "@/components/ui/button";
 import type { SidebarState } from "@/lib/sidebar-state";
@@ -88,6 +90,10 @@ export function ProjectHeader({
       )}
 
       <div className="header-actions">
+        <Button variant="ghost" size="sm" onClick={() => openAssistant()}>
+          Ask AI
+          <Shortcut keys="I" />
+        </Button>
         <Button asChild variant="outline" size="sm">
           <Link href={`${base}/runs`}>
             <Icon icon={IconPlay} size={14} />

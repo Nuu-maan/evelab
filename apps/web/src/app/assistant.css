@@ -1,0 +1,178 @@
+@layer components {
+  .assistant {
+    position: fixed;
+    top: var(--header-height);
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    width: min(420px, 100vw);
+    border-left: 1px solid var(--border);
+    background: var(--surface);
+    box-shadow: var(--shadow-large);
+  }
+
+  .assistant-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .assistant-scroll {
+    overflow-y: auto;
+    padding: var(--space-4);
+  }
+
+  .assistant-empty {
+    display: grid;
+    justify-items: start;
+    gap: var(--space-2);
+    padding-top: var(--space-4);
+  }
+
+  .assistant-empty-title {
+    font-size: var(--text-section);
+    font-weight: var(--weight-medium);
+    letter-spacing: -0.01em;
+  }
+
+  .assistant-suggestions {
+    display: grid;
+    gap: var(--space-2);
+    width: 100%;
+    margin-top: var(--space-2);
+  }
+
+  .assistant-suggestion {
+    width: 100%;
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-large);
+    background: var(--background);
+    color: var(--foreground-secondary);
+    font-size: var(--text-compact);
+    text-align: left;
+    transition: border-color var(--duration-hover) ease, color var(--duration-hover) ease,
+      transform var(--duration-press) var(--ease-out);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .assistant-suggestion:hover {
+      border-color: var(--border-strong);
+      color: var(--foreground);
+    }
+  }
+
+  .assistant-suggestion:active {
+    transform: scale(0.98);
+  }
+
+  .assistant-messages {
+    display: grid;
+    gap: var(--space-4);
+  }
+
+  .assistant-message {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .assistant-message[data-role="user"] {
+    justify-self: end;
+    max-width: 85%;
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-xl);
+    background: var(--surface-active);
+  }
+
+  .assistant-text {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font-size: var(--text-body);
+    line-height: 1.55;
+  }
+
+  .assistant-thinking {
+    color: var(--foreground-tertiary);
+    font-size: var(--text-compact);
+  }
+
+  .assistant-tool {
+    display: grid;
+    grid-template-columns: 16px minmax(0, 1fr);
+    column-gap: var(--space-2);
+    row-gap: 2px;
+    align-items: center;
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-large);
+    background: var(--background);
+    font-size: var(--text-compact);
+  }
+
+  .assistant-tool-icon {
+    display: grid;
+    place-items: center;
+    color: var(--foreground-tertiary);
+  }
+
+  .assistant-tool[data-state="done"] .assistant-tool-icon {
+    color: var(--success);
+  }
+
+  .assistant-tool[data-state="error"] .assistant-tool-icon,
+  .assistant-tool-error {
+    color: var(--danger);
+  }
+
+  .assistant-tool-link,
+  .assistant-tool-error {
+    grid-column: 2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--text-label);
+  }
+
+  .assistant-tool-link {
+    color: var(--foreground-tertiary);
+  }
+
+  .assistant-tool-link:hover {
+    color: var(--foreground);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .assistant-composer {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    border-top: 1px solid var(--border);
+  }
+
+  .assistant-input {
+    flex: 1;
+    min-height: 40px;
+    max-height: 200px;
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-large);
+    background: var(--background);
+    color: var(--foreground);
+    font: inherit;
+    font-size: var(--text-body);
+    resize: none;
+    field-sizing: content;
+  }
+
+  .assistant-input:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 0;
+  }
+}
