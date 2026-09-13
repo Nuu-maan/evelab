@@ -27,11 +27,13 @@ Optional environment:
 
 | Variable | Effect when set |
 | --- | --- |
-| `AI_GATEWAY_API_KEY` | Model list comes from the gateway instead of the built-in fallback |
 | `DATABASE_URL`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `BETTER_AUTH_SECRET` | Together, enable GitHub sign-in and private projects. Run `pnpm --filter @evelab/db db:migrate` first |
 | `BETTER_AUTH_URL` | Where EveLab is served; the GitHub OAuth app's callback is `<url>/api/auth/callback/github` |
 | `GITHUB_TOKEN` | Enables source control: import, commit and pull, with a token that can read and write repository contents |
 | `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_INSTALLATION_ID` | Source control through a GitHub App instead of a token |
+| `VERCEL_TOKEN` | Enables deploying from the Deployments page with `eve deploy` |
+| `AI_GATEWAY_API_KEY` | Passed to `eve dev` for runs when the project has no `.env.local` from `eve link` |
+| `EVELAB_ALLOW_LOCAL_RUNTIME` | `1` lets a signed-in EveLab run `eve dev` on its own server |
 
 With none of them set, EveLab runs as a local single-user tool.
 
@@ -46,6 +48,14 @@ streams from Eve's own session API: messages, tool calls with input, output and
 duration, approvals you can answer, subagent delegation, errors, and token usage
 and cost per turn. Runs are recorded, so they stay readable after the dev server
 stops, and a schedule can be fired once from the Schedules page.
+
+**Deploy.** The Deployments page runs `eve deploy` for a Vercel project of your
+choice, lists the environment variables your source reads so the deployment has
+them, and records each deploy with its URL, commit and log. On Vercel the agent
+runs on Workflow, Sandbox, Cron and AI Gateway without a provider key.
+
+**Skills from skills.sh.** Import `@skills/owner/repo/skill` or a skills.sh link
+as well as a GitHub directory, with the same review of every file first.
 
 ## Layout
 

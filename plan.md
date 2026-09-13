@@ -628,7 +628,16 @@ that built it.
 
 ---
 
-### Phase 9: Deployment
+### Phase 9: Deployment (done for production deploys)
+
+**Status.** `lib/deploy.ts` runs `eve deploy --non-interactive --yes --project`
+(with `--team` when set) in the project directory using the server's
+`VERCEL_TOKEN`, streams the log into a record beside the workspace, and keeps the
+production URL and the synced commit. The Deployments page sets the Vercel
+project, lists environment variables the source reads (`lib/env-scan.ts`), warns
+about `placeholderAuth()`, and shows each deployment with status, URL, commit,
+duration and log. Deferred: preview deployments, rollback, and reading status
+back from the Vercel API.
 
 **Depends on Phase 7**, since deploying means deploying a commit.
 
@@ -653,9 +662,12 @@ that built it.
 
 ---
 
-### Phase 4b: skills.sh import
+### Phase 4b: skills.sh import (done)
 
-Small, once their source format is known. Reuse the existing review step; only
+`@skills/owner/repo/skill` and skills.sh page links are read from
+`https://www.skills.sh/r/<owner>/<repo>/<skill>?agent=eve`, the registry item
+`eve add` installs, and go through the same review step as GitHub imports.
+Originally: small, once their source format is known. Reuse the existing review step; only
 the fetch layer differs. Keep `parseGitHubUrl` and `fetchSkillCandidate` as the
 model: validate the host, bound the fetch, flag executable files, confirm before
 writing.
@@ -674,7 +686,7 @@ create project → select model → write instructions → import skill → add 
 
 Work needed beyond the phases above:
 
-- Keyboard shortcuts audit: `⌘K`, `⌘S`, `⌘P` quick open, `⌘Enter` run.
+- Keyboard shortcuts audit: `⌘K`, `⌘S`, `⌘P` quick open (done), `⌘Enter` run (done, in the Runs composer).
 - Empty states for every new surface.
 - A Playwright journey covering the whole sequence.
 - Accessibility pass: landmarks, focus order, labels, contrast in both themes.
