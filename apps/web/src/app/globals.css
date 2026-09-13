@@ -47,6 +47,8 @@
   --kind-connection: var(--teal);
   /* Canvas grid: present enough to place things by, quiet enough to forget. */
   --canvas-dot: color-mix(in srgb, var(--foreground) 16%, transparent);
+  /* Single-series chart marks; validated against the chart surface in each mode. */
+  --chart-series: #0068d6;
 
   /* shadcn/ui roles, mapped onto the tokens above. */
   --card: var(--surface);
@@ -135,6 +137,7 @@
     --purple: #bf7af0;
     --amber: #ffb224;
     --teal: #0ac7b4;
+    --chart-series: #3291ff;
 
     --shadow-small: 0 1px 1px rgb(0 0 0 / 0.3), 0 2px 2px rgb(0 0 0 / 0.3);
     --shadow: 0 2px 2px rgb(0 0 0 / 0.35), 0 8px 16px -4px rgb(0 0 0 / 0.45);

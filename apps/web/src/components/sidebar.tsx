@@ -13,6 +13,7 @@ import {
   IconLink,
   IconMagnifyingGlass,
   IconMessage,
+  IconPlay,
   IconRoute,
   IconSettingsGear,
 } from "@/components/icons";
@@ -66,7 +67,8 @@ export function Sidebar({
       { label: "Schedules", segment: "schedules", icon: IconClock },
     ],
     [
-      { label: "Runs", segment: "runs", icon: IconChartActivity },
+      { label: "Runs", segment: "runs", icon: IconPlay },
+      { label: "Observability", segment: "observability", icon: IconChartActivity },
       { label: "Deployments", segment: "deployments", icon: IconCloudUpload },
     ],
     [{ label: "Settings", segment: "settings", icon: IconSettingsGear }],

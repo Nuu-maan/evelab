@@ -1,0 +1,177 @@
+@layer components {
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--surface);
+    overflow: hidden;
+  }
+
+  .stat-tile {
+    display: grid;
+    gap: 2px;
+    padding: var(--space-4);
+    box-shadow: inset -1px 0 0 var(--border);
+  }
+
+  .stat-tile-label {
+    color: var(--foreground-secondary);
+    font-size: var(--text-compact);
+  }
+
+  /* Proportional figures at display size; tabular only where columns align. */
+  .stat-tile-value {
+    font-size: var(--text-title);
+    font-weight: var(--weight-semibold);
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+  }
+
+  .stat-tile-detail {
+    color: var(--foreground-tertiary);
+    font-size: var(--text-label);
+  }
+
+  .bar-chart {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .bar-chart-plot {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--space-2);
+  }
+
+  .bar-chart-ticks {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 140px;
+    color: var(--foreground-tertiary);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    transform: translateY(-6px);
+  }
+
+  .bar-chart-area {
+    position: relative;
+    height: 140px;
+  }
+
+  .bar-chart-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .bar-chart-grid {
+    stroke: var(--border);
+    stroke-width: 1;
+  }
+
+  .bar-chart-bars {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: stretch;
+  }
+
+  /* The whole day's column is the hit target; the painted bar stays thin. */
+  .bar-chart-slot {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: default;
+  }
+
+  .bar-chart-slot:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: -2px;
+    border-radius: var(--radius-small);
+  }
+
+  /* Thin, capped at 24px, with a 2px surface gap to its neighbours; rounded at the data end only. */
+  .bar-chart-bar {
+    width: min(24px, calc(100% - 2px));
+    min-height: 2px;
+    border-radius: 4px 4px 0 0;
+    background: var(--chart-series);
+    transition: opacity var(--duration-hover) ease;
+  }
+
+  .bar-chart-bars:has(.bar-chart-slot[data-active]) .bar-chart-slot:not([data-active]) .bar-chart-bar {
+    opacity: 0.45;
+  }
+
+  .bar-chart-tooltip {
+    position: absolute;
+    top: 0;
+    z-index: 2;
+    display: grid;
+    padding: 6px var(--space-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-large);
+    background: var(--surface-raised);
+    box-shadow: var(--shadow);
+    transform: translate(-50%, calc(-100% - 6px));
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  .bar-chart-tooltip-value {
+    font-size: var(--text-compact);
+    font-weight: var(--weight-semibold);
+  }
+
+  .bar-chart-tooltip-label {
+    color: var(--foreground-secondary);
+    font-size: 11px;
+  }
+
+  .bar-chart-axis {
+    display: flex;
+    justify-content: space-between;
+    padding-left: 40px;
+    color: var(--foreground-tertiary);
+    font-size: 11px;
+  }
+
+  .bar-chart-table table,
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--text-compact);
+  }
+
+  .bar-chart-table th,
+  .bar-chart-table td,
+  .data-table th,
+  .data-table td {
+    padding: 6px var(--space-2);
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+  }
+
+  .data-table th,
+  .bar-chart-table th {
+    color: var(--foreground-tertiary);
+    font-weight: var(--weight-medium);
+  }
+
+  .data-table tr:last-child td {
+    border-bottom: 0;
+  }
+
+  .data-table td[data-tone="error"] {
+    color: var(--danger);
+  }
+}
