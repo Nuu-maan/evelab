@@ -1,56 +1,14 @@
-import type { EveProject } from "./types.js";
+import { skillFilePath } from "./generate.js";
+import type { Connection, EveProject, Skill, Subagent, Tool, ToolKind } from "./types.js";
 
-export interface ProjectGraphNode {
-  id: string;
-  kind: "agent" | "subagent";
-  name: string;
-  model?: string;
-  toolCount: number;
-  skillCount: number;
-}
-
-export interface ProjectGraphEdge {
-  source: string;
-  target: string;
-}
-
-export interface ProjectGraph {
-  nodes: ProjectGraphNode[];
-  edges: ProjectGraphEdge[];
-}
-
-/** Answers one question for the canvas: who can invoke whom? */
-export function getProjectGraph(project: EveProject): ProjectGraph {
-  const rootId = "agent";
-  const nodes: ProjectGraphNode[] = [
-    {
-      id: rootId,
-      kind: "agent",
-      name: project.agent.name,
-      model: project.agent.model.id || undefined,
-      toolCount: project.tools.length,
-      skillCount: project.skills.length,
-    },
-    ...project.subagents.map((subagent) => ({
-      id: subagent.id,
-      kind: "subagent" as const,
-      name: subagent.name,
-      model: subagent.model?.id,
-      toolCount: subagent.tools.length,
-      skillCount: subagent.skills.length,
-    })),
-  ];
-
-  return {
-    nodes,
-    edges: project.subagents.map((subagent) => ({ source: rootId, target: subagent.id })),
-  };
-}
-
-export type CanvasNodeKind = "agent" | "subagent" | "tool" | "skill";
+export type CanvasNodeKind = "agent" | "subagent" | "tool" | "skill" | "connection";
 
 export interface CanvasNode {
-  /** Stable id, unique across kinds: "agent", "tool:browse", "skill:web-research". */
+  /**
+   * Stable id, unique across the project: "agent", "subagent:researcher",
+   * "tool:search_docs", or owner-qualified for a subagent's own capability,
+   * "tool:researcher/browse".
+   */
   id: string;
   kind: CanvasNodeKind;
   name: string;
@@ -59,74 +17,122 @@ export interface CanvasNode {
   filePath: string;
 }
 
+export interface CanvasEdge {
+  source: string;
+  target: string;
+}
+
 export interface CanvasGraph {
   nodes: CanvasNode[];
-  edges: ProjectGraphEdge[];
+  edges: CanvasEdge[];
+}
+
+const TOOL_LABELS: Record<ToolKind, string> = {
+  tool: "Tool",
+  workflow: "Workflow tool",
+  provided: "Built-in tool",
+  disabled: "Disabled built-in",
+  dynamic: "Dynamic tool",
+  other: "Tool module",
+};
+
+interface CapabilityOwner {
+  tools: Tool[];
+  skills: Skill[];
+  connections: Connection[];
+  subagents: Subagent[];
+}
+
+function hostOf(url: string | undefined): string | undefined {
+  if (!url) return undefined;
+  try {
+    return new URL(url).host;
+  } catch {
+    return undefined;
+  }
 }
 
 /**
- * The canvas view: the agent, its subagents, and every capability, each pointing
- * at the file that defines it. Edges are ownership, so the picture answers "what
- * can this agent reach, and through whom?".
+ * The canvas view: the agent, its subagents, and what each of them can use. In
+ * Eve a subagent inherits nothing from its parent, so an edge means the file
+ * lives in that agent's own directory.
  */
 export function getCanvasGraph(project: EveProject): CanvasGraph {
+  const base = project.root ? `${project.root}/` : "";
+  const { agent } = project;
   const nodes: CanvasNode[] = [
     {
       id: "agent",
       kind: "agent",
-      name: project.agent.name,
-      detail: project.agent.model.id || "No model set",
-      filePath: project.agent.instructionsPath,
+      name: agent.name,
+      detail: agent.model?.id || (agent.model?.expression ? "Model set in code" : "Default model"),
+      filePath: project.files.some((file) => file.path === `${base}instructions.md`) || !agent.hasConfig
+        ? `${base}instructions.md`
+        : `${base}agent.ts`,
     },
   ];
-  const edges: ProjectGraphEdge[] = [];
+  const edges: CanvasEdge[] = [];
+  addOwner(nodes, edges, "agent", "", base, project);
+  return { nodes, edges };
+}
 
-  for (const subagent of project.subagents) {
-    const id = `subagent:${subagent.id}`;
+function addOwner(
+  nodes: CanvasNode[],
+  edges: CanvasEdge[],
+  ownerId: string,
+  ownerKey: string,
+  base: string,
+  owner: CapabilityOwner,
+): void {
+  const prefix = ownerKey ? `${ownerKey}/` : "";
+
+  for (const subagent of owner.subagents) {
+    const key = `${prefix}${subagent.id}`;
+    const id = `subagent:${key}`;
     nodes.push({
       id,
       kind: "subagent",
-      name: subagent.name,
-      detail: subagent.model?.id ?? "Inherits model",
-      filePath: `subagents/${subagent.id}.md`,
+      name: subagent.id,
+      detail:
+        subagent.kind === "remote"
+          ? "Remote agent"
+          : subagent.model?.id || (subagent.model?.expression ? "Model set in code" : "Default model"),
+      filePath: subagent.kind === "remote" ? `${base}subagents/${subagent.id}.ts` : `${base}subagents/${subagent.id}/agent.ts`,
     });
-    edges.push({ source: "agent", target: id });
+    edges.push({ source: ownerId, target: id });
+    if (subagent.kind === "local") addOwner(nodes, edges, id, key, `${base}subagents/${subagent.id}/`, subagent);
   }
 
-  for (const tool of project.tools) {
-    const id = `tool:${tool.id}`;
-    nodes.push({
-      id,
-      kind: "tool",
-      name: tool.name,
-      detail: tool.origin,
-      filePath: `tools/${tool.id}.ts`,
-    });
-    // A tool owned by a subagent hangs off that subagent, not off the root.
-    const owners = project.subagents.filter((subagent) => subagent.tools.includes(tool.id));
-    if (owners.length === 0) {
-      edges.push({ source: "agent", target: id });
-    } else {
-      for (const owner of owners) edges.push({ source: `subagent:${owner.id}`, target: id });
-    }
+  for (const tool of owner.tools) {
+    const id = `tool:${prefix}${tool.id}`;
+    nodes.push({ id, kind: "tool", name: tool.id, detail: tool.description || TOOL_LABELS[tool.kind], filePath: `${base}tools/${tool.file}` });
+    edges.push({ source: ownerId, target: id });
   }
 
-  for (const skill of project.skills) {
-    const id = `skill:${skill.id}`;
+  for (const skill of owner.skills) {
+    const id = `skill:${prefix}${skill.id}`;
+    const files = skill.files.length + 1;
     nodes.push({
       id,
       kind: "skill",
-      name: skill.name,
-      detail: skill.files.length > 0 ? `${skill.files.length + 1} files` : "1 file",
-      filePath: `skills/${skill.id}/SKILL.md`,
+      name: skill.id,
+      detail: skill.description || (skill.format === "package" ? `${files} files` : "Skill"),
+      filePath: skillFilePath(base, skill),
     });
-    const owners = project.subagents.filter((subagent) => subagent.skills.includes(skill.id));
-    if (owners.length === 0) {
-      edges.push({ source: "agent", target: id });
-    } else {
-      for (const owner of owners) edges.push({ source: `subagent:${owner.id}`, target: id });
-    }
+    edges.push({ source: ownerId, target: id });
   }
 
-  return { nodes, edges };
+  for (const connection of owner.connections) {
+    const id = `connection:${prefix}${connection.id}`;
+    const label = connection.kind === "mcp" ? "MCP" : connection.kind === "openapi" ? "OpenAPI" : "Connection";
+    const host = hostOf(connection.url ?? connection.spec);
+    nodes.push({
+      id,
+      kind: "connection",
+      name: connection.id,
+      detail: host ? `${label} · ${host}` : label,
+      filePath: `${base}connections/${connection.file}`,
+    });
+    edges.push({ source: ownerId, target: id });
+  }
 }

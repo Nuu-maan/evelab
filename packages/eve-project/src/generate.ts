@@ -1,146 +1,140 @@
-import {
-  patchAgentSource,
-  readAgentSource,
-  readModelValue,
-  readStringValue,
-  renderModelValue,
-} from "./agent-source.js";
-import { stringifyFrontmatter, type Frontmatter } from "./frontmatter.js";
-import { isGeneratedPath, type EveProject, type ProjectFile, type Subagent } from "./types.js";
+import { patchAgentSource, readAgentSource, readStringValue } from "./agent-source.js";
+import { renderAgentConfig, renderSubagentConfig } from "./agent-template.js";
+import type { Connection, EveProject, ModelConfig, ProjectFile, Reasoning, Skill, Subagent, Tool } from "./types.js";
 
 /**
  * Writes the project model back to real Eve files.
  *
- * Files EveLab does not own (package.json, helpers, tests, anything outside the
- * generated paths) are passed through byte for byte.
+ * Files the parser did not turn into entities (package.json, lib/, hooks/,
+ * sandbox/, evals/, anything else) are passed through byte for byte. Entity
+ * files are written from their verbatim source, and `agent.ts` configs are
+ * patched in place, never regenerated.
  */
 export function generateProject(project: EveProject): ProjectFile[] {
-  const original = new Map(project.files.map((file) => [file.path, file.content]));
+  const generated = new Set(project.generatedPaths);
   const output = new Map<string, string>();
-
   for (const file of project.files) {
-    if (!isGeneratedPath(file.path)) output.set(file.path, file.content);
+    if (!generated.has(file.path)) output.set(file.path, file.content);
   }
 
-  output.set("agent.ts", renderAgentSource(project, original.get("agent.ts")));
-  output.set(project.agent.instructionsPath, project.agent.instructions);
+  const base = project.root ? `${project.root}/` : "";
+  const { agent } = project;
 
-  for (const tool of project.tools) {
-    output.set(`tools/${tool.id}.ts`, tool.source);
+  if (agent.hasConfig) {
+    output.set(`${base}agent.ts`, patchSettings(agent.source, agent));
+  } else if (agent.model?.id) {
+    // Choosing a model is what brings agent.ts into existence; until then Eve uses its default.
+    output.set(`${base}agent.ts`, renderAgentConfig(agent.model.id, agent.reasoning));
   }
 
-  for (const skill of project.skills) {
-    output.set(`skills/${skill.id}/SKILL.md`, skill.markdown);
-    for (const file of skill.files) {
-      output.set(`skills/${skill.id}/${file.path}`, file.content);
-    }
+  const instructionsPath = `${base}instructions.md`;
+  const hadInstructions = project.files.some((file) => file.path === instructionsPath);
+  if (hadInstructions || agent.instructions.length > 0 || agent.instructionSources.length === 0) {
+    output.set(instructionsPath, agent.instructions);
   }
 
-  for (const subagent of project.subagents) {
-    output.set(`subagents/${subagent.id}.md`, renderSubagent(subagent));
-  }
+  writeCapabilities(output, base, project);
+  for (const channel of project.channels) output.set(`${base}channels/${channel.file}`, channel.source);
+  for (const schedule of project.schedules) output.set(`${base}schedules/${schedule.file}`, schedule.source);
 
   return [...output.entries()]
     .map(([path, content]) => ({ path, content }))
     .sort((a, b) => a.path.localeCompare(b.path));
 }
 
-/**
- * Patches an existing `agent.ts` in place; only falls back to a template when
- * the project has no agent module yet (a project created inside EveLab).
- */
-function renderAgentSource(project: EveProject, existing: string | undefined): string {
-  const { agent } = project;
-  const patch: Record<string, string> = {
-    name: JSON.stringify(agent.name),
-    model: renderModelValue(agent.model),
-  };
-  if (agent.description !== undefined) {
-    patch.description = JSON.stringify(agent.description);
-  }
-
-  if (existing) {
-    try {
-      return patchAgentSource(existing, withoutUnchanged(existing, agent, patch));
-    } catch {
-      // Unparseable source is the user's source of truth; never clobber it.
-      return existing;
-    }
-  }
-  return renderAgentTemplate(project);
+interface DesiredSettings {
+  model?: ModelConfig;
+  reasoning?: Reasoning;
+  description?: string;
+  raw: Record<string, string>;
 }
 
 /**
- * Drops edits whose value is already what the source says, so an untouched
- * field keeps its original formatting instead of being normalised.
+ * Brings a `defineAgent` module in line with the desired settings by patching
+ * only the values that differ. Values the source computes (and so the parser
+ * kept in `raw`) are never touched, and a module that cannot be read is
+ * returned unchanged: it is the user's source of truth.
  */
-function withoutUnchanged(
-  source: string,
-  agent: EveProject["agent"],
-  patch: Record<string, string>,
-): Record<string, string> {
+export function patchSettings(source: string, desired: DesiredSettings): string {
   const config = readAgentSource(source);
-  if (!config) return patch;
+  if (!config) return source;
 
-  const result: Record<string, string> = {};
-  for (const [key, text] of Object.entries(patch)) {
-    const current = config.properties.get(key)?.text;
-    if (current === undefined) {
-      result[key] = text;
+  const patch: Record<string, string> = {};
+  const remove: string[] = [];
+  const literal = (name: string): string | undefined => {
+    const text = config.properties.get(name)?.text;
+    return text === undefined ? undefined : readStringValue(text);
+  };
+
+  if (desired.model && !desired.model.expression && desired.model.id && literal("model") !== desired.model.id) {
+    patch.model = JSON.stringify(desired.model.id);
+  }
+
+  for (const key of ["reasoning", "description"] as const) {
+    if (desired.raw[key] !== undefined) continue;
+    const wanted = desired[key];
+    const present = config.properties.has(key);
+    if (wanted === undefined || wanted === "") {
+      if (present) remove.push(key);
+    } else if (literal(key) !== wanted) {
+      patch[key] = JSON.stringify(wanted);
+    }
+  }
+
+  if (Object.keys(patch).length === 0 && remove.length === 0) return source;
+  try {
+    return patchAgentSource(source, patch, remove);
+  } catch {
+    return source;
+  }
+}
+
+interface CapabilityOwner {
+  tools: Tool[];
+  skills: Skill[];
+  connections: Connection[];
+  subagents: Subagent[];
+}
+
+/** The repository path of a skill's defining file. */
+export function skillFilePath(base: string, skill: Skill): string {
+  switch (skill.format) {
+    case "markdown":
+      return `${base}skills/${skill.id}.md`;
+    case "module":
+      return `${base}skills/${skill.id}.ts`;
+    case "package":
+      return `${base}skills/${skill.id}/SKILL.md`;
+  }
+}
+
+function writeCapabilities(output: Map<string, string>, base: string, owner: CapabilityOwner): void {
+  for (const tool of owner.tools) output.set(`${base}tools/${tool.file}`, tool.source);
+
+  for (const skill of owner.skills) {
+    output.set(skillFilePath(base, skill), skill.content);
+    if (skill.format === "package") {
+      for (const file of skill.files) output.set(`${base}skills/${skill.id}/${file.path}`, file.content);
+    }
+  }
+
+  for (const connection of owner.connections) output.set(`${base}connections/${connection.file}`, connection.source);
+
+  for (const subagent of owner.subagents) {
+    if (subagent.kind === "remote") {
+      output.set(`${base}subagents/${subagent.id}.ts`, subagent.source);
       continue;
     }
-    if (key === "model") {
-      const parsed = readModelValue(current);
-      if (parsed && sameModel(parsed, agent.model)) continue;
-    } else if (readStringValue(current) === JSON.parse(text)) {
-      continue;
+    const dir = `${base}subagents/${subagent.id}/`;
+    output.set(
+      `${dir}agent.ts`,
+      subagent.source
+        ? patchSettings(subagent.source, subagent)
+        : renderSubagentConfig(subagent.description, subagent.model?.id, subagent.reasoning),
+    );
+    if (subagent.hasInstructions || subagent.instructions.length > 0) {
+      output.set(`${dir}instructions.md`, subagent.instructions);
     }
-    result[key] = text;
+    writeCapabilities(output, dir, subagent);
   }
-  return result;
-}
-
-function sameModel(a: EveProject["agent"]["model"], b: EveProject["agent"]["model"]): boolean {
-  return (
-    a.id === b.id &&
-    a.temperature === b.temperature &&
-    a.maxOutputTokens === b.maxOutputTokens &&
-    JSON.stringify(a.raw) === JSON.stringify(b.raw)
-  );
-}
-
-/**
- * Template for projects EveLab creates from scratch.
- *
- * TODO: validate the import path, factory name and option names against the
- * current Eve docs before enabling project creation in production. Everything
- * else in this package works off the user's own source and does not depend on
- * these names being right.
- */
-export function renderAgentTemplate(project: EveProject): string {
-  const { agent } = project;
-  const lines = [
-    `import { Agent } from "eve";`,
-    ``,
-    `export default new Agent({`,
-    `  name: ${JSON.stringify(agent.name)},`,
-  ];
-  if (agent.description) lines.push(`  description: ${JSON.stringify(agent.description)},`);
-  lines.push(`  model: ${renderModelValue(agent.model)},`);
-  lines.push(`  instructions: ${JSON.stringify(agent.instructionsPath)},`);
-  for (const [key, value] of Object.entries(agent.raw)) {
-    lines.push(`  ${key}: ${value},`);
-  }
-  lines.push(`});`, ``);
-  return lines.join("\n");
-}
-
-function renderSubagent(subagent: Subagent): string {
-  const data: Frontmatter = { name: subagent.name };
-  if (subagent.description) data.description = subagent.description;
-  if (subagent.model) data.model = subagent.model.id;
-  if (subagent.tools.length > 0) data.tools = subagent.tools;
-  if (subagent.skills.length > 0) data.skills = subagent.skills;
-  for (const [key, value] of Object.entries(subagent.raw)) data[key] = value;
-  return stringifyFrontmatter(data, subagent.instructions);
 }

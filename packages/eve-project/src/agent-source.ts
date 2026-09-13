@@ -1,13 +1,13 @@
 import ts from "typescript";
-import type { ModelConfig } from "./types.js";
 
 /**
- * Reads and surgically edits the agent config object inside `agent.ts`.
+ * Reads and surgically edits the definition object inside an Eve module:
+ * `export default defineAgent({ ... })`, `defineTool({ ... })` and the rest.
  *
- * EveLab never rewrites an imported `agent.ts` from a template: doing so would
- * discard imports, comments, helpers and any Eve option EveLab has no GUI for.
- * Instead it locates the config object literal and replaces only the value
- * ranges it owns, which keeps GUI edits and hand-written code compatible.
+ * EveLab never rewrites an existing module from a template: that would discard
+ * imports, comments, helpers and any option EveLab has no control for. It
+ * locates the definition object literal and replaces only the value ranges it
+ * owns, which keeps GUI edits and hand-written code compatible.
  */
 
 export interface AgentSourceProperty {
@@ -20,7 +20,7 @@ export interface AgentSourceProperty {
 
 export interface AgentSourceConfig {
   properties: Map<string, AgentSourceProperty>;
-  /** Range of the config object literal, braces included. */
+  /** Range of the definition object literal, braces included. */
   objectStart: number;
   objectEnd: number;
   /** End offset of the last property, used as the insertion point for new ones. */
@@ -30,44 +30,60 @@ export interface AgentSourceConfig {
 }
 
 function createSourceFile(source: string): ts.SourceFile {
-  return ts.createSourceFile("agent.ts", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  return ts.createSourceFile("module.ts", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+}
+
+function unwrap(expression: ts.Expression): ts.Expression {
+  let current = expression;
+  while (
+    ts.isAsExpression(current) ||
+    ts.isParenthesizedExpression(current) ||
+    ts.isSatisfiesExpression(current) ||
+    ts.isAwaitExpression(current) ||
+    ts.isNonNullExpression(current)
+  ) {
+    current = current.expression;
+  }
+  return current;
 }
 
 /**
- * The config object is the first object literal passed to a call or `new`
- * expression that is exported, e.g. `export default new Agent({ ... })`.
+ * The module's exported definition expression. Follows `export default agent`
+ * to the `const agent = defineAgent(...)` it names, and falls back to an
+ * exported `const` for modules without a default export.
  */
-function findConfigObject(file: ts.SourceFile): ts.ObjectLiteralExpression | undefined {
-  let found: ts.ObjectLiteralExpression | undefined;
+function exportedExpression(file: ts.SourceFile): ts.Expression | undefined {
+  const bindings = new Map<string, ts.Expression>();
+  let exported: ts.Expression | undefined;
+  let exportedConst: ts.Expression | undefined;
 
-  const fromExpression = (expression: ts.Expression): ts.ObjectLiteralExpression | undefined => {
-    let current: ts.Expression = expression;
-    while (ts.isAsExpression(current) || ts.isParenthesizedExpression(current)) {
-      current = current.expression;
-    }
-    if (!ts.isCallExpression(current) && !ts.isNewExpression(current)) return undefined;
-    const first = current.arguments?.[0];
-    return first && ts.isObjectLiteralExpression(first) ? first : undefined;
-  };
-
-  const visit = (node: ts.Node): void => {
-    if (found) return;
-    if (ts.isExportAssignment(node)) {
-      found = fromExpression(node.expression);
-    } else if (ts.isVariableStatement(node)) {
-      const isExported = node.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
-      if (isExported) {
-        for (const declaration of node.declarationList.declarations) {
-          if (found) break;
-          if (declaration.initializer) found = fromExpression(declaration.initializer);
-        }
+  for (const statement of file.statements) {
+    if (ts.isVariableStatement(statement)) {
+      const isExported = statement.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword);
+      for (const declaration of statement.declarationList.declarations) {
+        if (!declaration.initializer) continue;
+        if (ts.isIdentifier(declaration.name)) bindings.set(declaration.name.text, declaration.initializer);
+        if (isExported && !exportedConst) exportedConst = declaration.initializer;
       }
+    } else if (ts.isExportAssignment(statement)) {
+      exported = statement.expression;
     }
-    if (!found) ts.forEachChild(node, visit);
-  };
+  }
 
-  ts.forEachChild(file, visit);
-  return found;
+  if (!exported) return exportedConst ? unwrap(exportedConst) : undefined;
+  const inner = unwrap(exported);
+  if (ts.isIdentifier(inner)) {
+    const bound = bindings.get(inner.text);
+    return bound ? unwrap(bound) : undefined;
+  }
+  return inner;
+}
+
+function findConfigObject(file: ts.SourceFile): ts.ObjectLiteralExpression | undefined {
+  const expression = exportedExpression(file);
+  if (!expression || (!ts.isCallExpression(expression) && !ts.isNewExpression(expression))) return undefined;
+  const first = expression.arguments?.[0];
+  return first && ts.isObjectLiteralExpression(first) ? first : undefined;
 }
 
 export function readAgentSource(source: string): AgentSourceConfig | undefined {
@@ -86,16 +102,19 @@ export function readAgentSource(source: string): AgentSourceConfig | undefined {
 
     if (ts.isPropertyAssignment(property)) {
       name =
-        ts.isIdentifier(property.name) || ts.isStringLiteral(property.name)
-          ? property.name.text
-          : undefined;
+        ts.isIdentifier(property.name) || ts.isStringLiteral(property.name) ? property.name.text : undefined;
       start = property.initializer.getStart(file);
       end = property.initializer.getEnd();
     } else if (ts.isShorthandPropertyAssignment(property)) {
-      // `{ gateway }` is a value reference: the identifier is both name and text.
+      // `{ experimental }` is a value reference: the identifier is both name and text.
       name = property.name.text;
       start = property.name.getStart(file);
       end = property.name.getEnd();
+    } else if (ts.isMethodDeclaration(property) && (ts.isIdentifier(property.name) || ts.isStringLiteral(property.name))) {
+      // `async execute() {}` and `run() {}`: recorded so presence can be checked, never patched.
+      name = property.name.text;
+      start = property.getStart(file);
+      end = property.getEnd();
     } else {
       continue;
     }
@@ -120,98 +139,143 @@ function leadingWhitespace(source: string, offset: number): string {
   return /^[ \t]*/.exec(source.slice(lineStart, offset))?.[0] ?? "  ";
 }
 
-/** Reads a string literal value, or undefined when the expression is dynamic. */
-export function readStringValue(text: string): string | undefined {
+function expressionOf(text: string): ts.Expression | undefined {
   const file = createSourceFile(`const value = ${text}`);
   const statement = file.statements[0];
   if (!statement || !ts.isVariableStatement(statement)) return undefined;
   const initializer = statement.declarationList.declarations[0]?.initializer;
-  if (!initializer) return undefined;
-  if (ts.isStringLiteral(initializer) || ts.isNoSubstitutionTemplateLiteral(initializer)) {
-    return initializer.text;
+  return initializer ? unwrap(initializer) : undefined;
+}
+
+function literalText(expression: ts.Expression): string | undefined {
+  return ts.isStringLiteral(expression) || ts.isNoSubstitutionTemplateLiteral(expression) ? expression.text : undefined;
+}
+
+/** Reads a string literal value, or undefined when the expression is computed. */
+export function readStringValue(text: string): string | undefined {
+  const expression = expressionOf(text);
+  return expression ? literalText(expression) : undefined;
+}
+
+/** A top-level string literal property of the definition object, or undefined when absent or computed. */
+export function readStringProperty(source: string, name: string): string | undefined {
+  const text = readAgentSource(source)?.properties.get(name)?.text;
+  return text === undefined ? undefined : readStringValue(text);
+}
+
+/**
+ * The factory the exported definition calls, e.g. `defineAgent`, `defineTool`,
+ * `slackChannel`, `defineMcpClientConnection`. Undefined for anything else.
+ */
+export function readDefinitionCallee(source: string): string | undefined {
+  const expression = exportedExpression(createSourceFile(source));
+  if (!expression || (!ts.isCallExpression(expression) && !ts.isNewExpression(expression))) return undefined;
+  const target = expression.expression;
+  if (ts.isIdentifier(target)) return target.text;
+  if (ts.isPropertyAccessExpression(target)) return target.name.text;
+  return undefined;
+}
+
+/** Module specifiers of every static import and re-export. */
+export function readImports(source: string): string[] {
+  const specifiers: string[] = [];
+  for (const statement of createSourceFile(source).statements) {
+    if ((ts.isImportDeclaration(statement) || ts.isExportDeclaration(statement)) && statement.moduleSpecifier) {
+      if (ts.isStringLiteral(statement.moduleSpecifier)) specifiers.push(statement.moduleSpecifier.text);
+    }
+  }
+  return specifiers;
+}
+
+/** True when a module reaches other files by relative path, which a move would break. */
+export function hasRelativeImports(source: string): boolean {
+  return readImports(source).some((specifier) => specifier.startsWith(".")) || /import\(\s*["']\./.test(source);
+}
+
+/** The connector UID of `connect("uid")` or `connect({ connector: "uid" })`. */
+export function readConnectorValue(text: string): string | undefined {
+  const expression = expressionOf(text);
+  if (!expression || !ts.isCallExpression(expression)) return undefined;
+  const argument = expression.arguments[0];
+  if (!argument) return undefined;
+  const direct = literalText(argument);
+  if (direct !== undefined) return direct;
+  if (!ts.isObjectLiteralExpression(argument)) return undefined;
+  for (const property of argument.properties) {
+    if (ts.isPropertyAssignment(property) && ts.isIdentifier(property.name) && property.name.text === "connector") {
+      return literalText(property.initializer);
+    }
+  }
+  return undefined;
+}
+
+/** `{ allow: [...] }` or `{ block: [...] }` of string literals, as MCP `tools` and OpenAPI `operations` filters are written. */
+export function readFilterValue(text: string): { mode: "allow" | "block"; names: string[] } | undefined {
+  const expression = expressionOf(text);
+  if (!expression || !ts.isObjectLiteralExpression(expression)) return undefined;
+  for (const property of expression.properties) {
+    if (!ts.isPropertyAssignment(property) || !ts.isIdentifier(property.name)) continue;
+    const mode = property.name.text;
+    if ((mode !== "allow" && mode !== "block") || !ts.isArrayLiteralExpression(property.initializer)) continue;
+    const names = property.initializer.elements.map(literalText);
+    if (names.some((name) => name === undefined)) return undefined;
+    return { mode, names: names as string[] };
   }
   return undefined;
 }
 
 /**
- * Reads `model`, which Eve projects write either as a bare model id string or
- * as an options object. Unrecognised keys survive in `raw`.
+ * Replaces the given properties in the definition object, leaving every byte
+ * outside those value ranges untouched. Names in `remove` are deleted with
+ * their whole line.
  */
-export function readModelValue(text: string): ModelConfig | undefined {
-  const asString = readStringValue(text);
-  if (asString !== undefined) return { id: asString, raw: {} };
+export function patchAgentSource(
+  source: string,
+  patch: Record<string, string>,
+  remove: readonly string[] = [],
+): string {
+  const withoutRemoved = remove.length > 0 ? removeProperties(source, remove) : source;
+  return Object.keys(patch).length > 0 ? applyPatch(withoutRemoved, patch) : withoutRemoved;
+}
 
-  const file = createSourceFile(`const value = ${text}`);
-  const statement = file.statements[0];
-  if (!statement || !ts.isVariableStatement(statement)) return undefined;
-  const initializer = statement.declarationList.declarations[0]?.initializer;
-  if (!initializer || !ts.isObjectLiteralExpression(initializer)) return undefined;
+function removeProperties(source: string, names: readonly string[]): string {
+  const file = createSourceFile(source);
+  const object = findConfigObject(file);
+  if (!object) throw new Error("The module does not contain a recognisable definition object");
 
-  const source = `const value = ${text}`;
-  const model: ModelConfig = { id: "", raw: {} };
-  for (const property of initializer.properties) {
-    let key: string;
-    let valueText: string;
-    if (ts.isPropertyAssignment(property) && ts.isIdentifier(property.name)) {
-      key = property.name.text;
-      valueText = source.slice(property.initializer.getStart(file), property.initializer.getEnd());
-    } else if (ts.isShorthandPropertyAssignment(property)) {
-      key = property.name.text;
-      valueText = key;
-    } else {
-      continue;
-    }
-    if (key === "id" || key === "model") {
-      model.id = readStringValue(valueText) ?? valueText;
-    } else if (key === "temperature" || key === "maxOutputTokens") {
-      const numeric = Number(valueText);
-      if (Number.isFinite(numeric)) {
-        model[key] = numeric;
-        continue;
-      }
-      model.raw[key] = valueText;
-    } else {
-      model.raw[key] = valueText;
-    }
+  const ranges: Array<{ start: number; end: number }> = [];
+  for (const property of object.properties) {
+    const name =
+      (ts.isPropertyAssignment(property) || ts.isShorthandPropertyAssignment(property)) &&
+      (ts.isIdentifier(property.name) || ts.isStringLiteral(property.name))
+        ? property.name.text
+        : undefined;
+    if (!name || !names.includes(name)) continue;
+    const start = source.lastIndexOf("\n", property.getStart(file) - 1) + 1;
+    let end = property.getEnd();
+    if (source[end] === ",") end += 1;
+    if (source[end] === "\n") end += 1;
+    ranges.push({ start, end });
   }
-  return model.id ? model : undefined;
+
+  let output = source;
+  for (const range of ranges.sort((a, b) => b.start - a.start)) {
+    output = output.slice(0, range.start) + output.slice(range.end);
+  }
+  return output;
 }
 
-export function renderModelValue(model: ModelConfig): string {
-  const extra = Object.entries(model.raw);
-  const hasOptions =
-    model.temperature !== undefined || model.maxOutputTokens !== undefined || extra.length > 0;
-  if (!hasOptions) return JSON.stringify(model.id);
-
-  const lines = [`id: ${JSON.stringify(model.id)}`];
-  if (model.temperature !== undefined) lines.push(`temperature: ${model.temperature}`);
-  if (model.maxOutputTokens !== undefined) lines.push(`maxOutputTokens: ${model.maxOutputTokens}`);
-  // `{ gateway }` stays shorthand rather than becoming `gateway: gateway`.
-  for (const [key, value] of extra) lines.push(key === value ? key : `${key}: ${value}`);
-  return `{\n    ${lines.join(",\n    ")},\n  }`;
-}
-
-/**
- * Replaces the given properties in the config object, leaving every byte
- * outside those value ranges untouched. Properties set to `undefined` are left
- * alone; removal is deliberately not supported through this path.
- */
-export function patchAgentSource(source: string, patch: Record<string, string>): string {
+function applyPatch(source: string, patch: Record<string, string>): string {
   const config = readAgentSource(source);
-  if (!config) {
-    throw new Error("agent.ts does not contain a recognisable agent config object");
-  }
+  if (!config) throw new Error("The module does not contain a recognisable definition object");
 
   const edits: Array<{ start: number; end: number; text: string }> = [];
   const additions: string[] = [];
 
   for (const [name, text] of Object.entries(patch)) {
     const existing = config.properties.get(name);
-    if (existing) {
-      edits.push({ start: existing.start, end: existing.end, text });
-    } else {
-      additions.push(`${name}: ${text}`);
-    }
+    if (existing) edits.push({ start: existing.start, end: existing.end, text });
+    else additions.push(`${name}: ${text}`);
   }
 
   let output = source;
@@ -222,7 +286,7 @@ export function patchAgentSource(source: string, patch: Record<string, string>):
   if (additions.length > 0) {
     // Recompute the object range: earlier value edits may have shifted it.
     const updated = readAgentSource(output);
-    if (!updated) throw new Error("agent.ts became unparseable while applying edits");
+    if (!updated) throw new Error("The module became unparseable while applying edits");
     const { indent } = updated;
 
     if (updated.lastPropertyEnd === undefined) {
@@ -232,8 +296,7 @@ export function patchAgentSource(source: string, patch: Record<string, string>):
     } else {
       // Insert after the last property, reusing its trailing comma if present.
       const comma = output.indexOf(",", updated.lastPropertyEnd);
-      const hasComma =
-        comma !== -1 && output.slice(updated.lastPropertyEnd, comma).trim().length === 0;
+      const hasComma = comma !== -1 && output.slice(updated.lastPropertyEnd, comma).trim().length === 0;
       const at = hasComma ? comma + 1 : updated.lastPropertyEnd;
       const inserted = `${hasComma ? "" : ","}\n${indent}${additions.join(`,\n${indent}`)},`;
       output = output.slice(0, at) + inserted + output.slice(at);

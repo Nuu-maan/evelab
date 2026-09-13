@@ -2,12 +2,13 @@ import { describe, expect, it } from "vitest";
 import { generateProject, parseProject, validateProject } from "../src/index.js";
 import { loadFixture } from "./fixtures.js";
 
+const FIXTURES = ["basic-agent", "full-agent", "flat-agent"];
+
 describe("round trip", () => {
-  for (const name of ["basic-agent", "subagent-agent"]) {
+  for (const name of FIXTURES) {
     it(`${name} survives parse -> generate byte for byte`, () => {
       const files = loadFixture(name);
-      const { project } = parseProject(files);
-      expect(generateProject(project)).toEqual(files);
+      expect(generateProject(parseProject(files).project)).toEqual(files);
     });
 
     it(`${name} parses back to the same model`, () => {
@@ -23,12 +24,27 @@ describe("round trip", () => {
     });
   }
 
-  it("keeps files EveLab does not own", () => {
-    const files = loadFixture("basic-agent");
-    const { project } = parseProject(files);
-    const generated = generateProject(project);
-    expect(generated.find((file) => file.path === "package.json")?.content).toBe(
-      files.find((file) => file.path === "package.json")?.content,
+  it("passes through every file EveLab does not model", () => {
+    const files = loadFixture("full-agent");
+    const generated = new Map(generateProject(parseProject(files).project).map((file) => [file.path, file.content]));
+    for (const path of ["package.json", "README.md", "agent/lib/format.ts", "agent/hooks/audit.ts", "evals/smoke.eval.ts"]) {
+      expect(generated.get(path)).toBe(files.find((file) => file.path === path)?.content);
+    }
+  });
+
+  it("keeps files in a subagent directory that are not agent slots", () => {
+    const files = [...loadFixture("full-agent"), { path: "agent/subagents/researcher/lib/sources.ts", content: "export const sources = [];\n" }];
+    const generated = generateProject(parseProject(files).project);
+    expect(generated.find((file) => file.path === "agent/subagents/researcher/lib/sources.ts")?.content).toBe(
+      "export const sources = [];\n",
     );
+  });
+
+  it("leaves a skill directory without SKILL.md as plain files", () => {
+    const files = [...loadFixture("basic-agent"), { path: "agent/skills/draft/notes.md", content: "wip\n" }];
+    const { project, warnings } = parseProject(files);
+    expect(project.skills).toEqual([]);
+    expect(warnings.map((warning) => warning.path)).toContain("agent/skills/draft/");
+    expect(generateProject(project)).toEqual([...files].sort((a, b) => a.path.localeCompare(b.path)));
   });
 });

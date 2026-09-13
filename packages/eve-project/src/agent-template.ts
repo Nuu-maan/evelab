@@ -1,0 +1,221 @@
+import type { ConnectionAuth, ProjectFile, Reasoning } from "./types.js";
+
+/**
+ * Source for files EveLab creates. Each shape is taken from Eve's own
+ * documentation or from what `eve init` (eve 0.54.3) writes. Existing files are
+ * never regenerated from these: they are always patched in place.
+ */
+
+function reasoningLine(reasoning: Reasoning | undefined): string {
+  return reasoning && reasoning !== "provider-default" ? `  reasoning: ${JSON.stringify(reasoning)},\n` : "";
+}
+
+/** `agent/agent.ts` exactly as `eve init` scaffolds it. */
+export function renderAgentConfig(model: string, reasoning?: Reasoning): string {
+  return `import { defineAgent } from "eve";\n\nexport default defineAgent({\n  model: ${JSON.stringify(model)},\n${reasoningLine(reasoning)}});\n`;
+}
+
+/** A declared subagent's `agent.ts`. Eve requires `description`. */
+export function renderSubagentConfig(description: string, model?: string, reasoning?: Reasoning): string {
+  const modelLine = model ? `  model: ${JSON.stringify(model)},\n` : "";
+  return `import { defineAgent } from "eve";\n\nexport default defineAgent({\n  description: ${JSON.stringify(description)},\n${modelLine}${reasoningLine(reasoning)}});\n`;
+}
+
+/** An authored tool, as the Eve tools guide writes one. */
+export function renderToolModule(description: string): string {
+  return [
+    `import { defineTool } from "eve/tools";`,
+    `import { z } from "zod";`,
+    ``,
+    `export default defineTool({`,
+    `  description: ${JSON.stringify(description)},`,
+    `  inputSchema: z.object({ query: z.string().min(1) }),`,
+    `  async execute({ query }) {`,
+    `    // Replace with the real implementation. The file is yours from here on.`,
+    `    return { query };`,
+    `  },`,
+    `});`,
+    ``,
+  ].join("\n");
+}
+
+export interface ConnectionTemplateInput {
+  kind: "mcp" | "openapi";
+  /** MCP endpoint or OpenAPI document URL. */
+  url: string;
+  description: string;
+  auth: Exclude<ConnectionAuth, "custom">;
+  /** Vercel Connect connector UID, for `auth: "connect"`. */
+  connector?: string;
+  /** Environment variable holding a bearer token, for `auth: "token"`. */
+  tokenEnv?: string;
+  filter?: { mode: "allow" | "block"; names: string[] };
+}
+
+/** An MCP or OpenAPI connection, as the Eve connections guides write them. */
+export function renderConnectionModule(input: ConnectionTemplateInput): string {
+  const factory = input.kind === "mcp" ? "defineMcpClientConnection" : "defineOpenAPIConnection";
+  const lines: string[] = [];
+  if (input.auth === "connect") lines.push(`import { connect } from "@vercel/connect/eve";`);
+  lines.push(`import { ${factory} } from "eve/connections";`, ``, `export default ${factory}({`);
+  lines.push(`  ${input.kind === "mcp" ? "url" : "spec"}: ${JSON.stringify(input.url)},`);
+  lines.push(`  description: ${JSON.stringify(input.description)},`);
+  if (input.auth === "connect" && input.connector) {
+    lines.push(`  auth: connect(${JSON.stringify(input.connector)}),`);
+  } else if (input.auth === "token" && input.tokenEnv) {
+    lines.push(`  auth: { getToken: async () => ({ token: process.env.${input.tokenEnv}! }) },`);
+  }
+  if (input.filter && input.filter.names.length > 0) {
+    const key = input.kind === "mcp" ? "tools" : "operations";
+    lines.push(`  ${key}: { ${input.filter.mode}: [${input.filter.names.map((name) => JSON.stringify(name)).join(", ")}] },`);
+  }
+  lines.push(`});`, ``);
+  return lines.join("\n");
+}
+
+/** A markdown schedule: `cron` frontmatter and the prompt as the body. */
+export function renderScheduleMarkdown(cron: string, prompt: string): string {
+  return `---\ncron: ${JSON.stringify(cron)}\n---\n\n${prompt.trim()}\n`;
+}
+
+export interface ProjectScaffoldInput {
+  /** npm package name, which Eve uses as the agent's name. */
+  packageName: string;
+  model: string;
+  instructions?: string;
+}
+
+const SCAFFOLD_TSCONFIG = `{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "types": ["node", "eve/workflow-modules"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "include": ["agent/**/*.ts", "evals/**/*.ts"]
+}
+`;
+
+const SCAFFOLD_GITIGNORE = `node_modules
+.env*
+.eve
+.vercel
+.next
+.output
+.nitro
+dist
+.DS_Store
+*.tsbuildinfo
+`;
+
+const SCAFFOLD_EVE_CHANNEL = `import { eveChannel } from "eve/channels/eve";
+import { localDev, placeholderAuth, vercelOidc } from "eve/channels/auth";
+
+export default eveChannel({
+  auth: [
+    // Lets the eve TUI and your Vercel deployments reach the deployed agent.
+    vercelOidc(),
+    // Open on localhost for \`eve dev\` and the REPL; ignored in production.
+    localDev(),
+    // This placeholder will not allow browser requests in production.
+    // Replace it with your app's auth provider, like Auth.js or Clerk,
+    // or use none() for a public demo.
+    placeholderAuth(),
+  ],
+});
+`;
+
+const SCAFFOLD_AGENTS_MD = `# eve Agent App
+
+This project uses the eve framework: an agent is a directory of files under \`agent/\`, and eve compiles and runs it.
+
+For a content-only change to the root agent's identity, purpose, tone, or response guidelines, edit its existing authored instructions. Fresh projects use \`agent/instructions.md\`; a project may instead use \`agent/instructions.ts\` or files under \`agent/instructions/\`. You do not need to read the framework docs for a content-only instructions change. A fresh project already has its selected model in \`agent/agent.ts\`; preserve that file unless the user asks to change the model.
+
+## Read the docs before writing code
+
+\`\`\`sh
+ls node_modules/eve/docs
+\`\`\`
+
+Start with \`docs/README.md\`: it maps each task to the page that covers it. Read that page before authoring tools, connections, channels, skills, subagents, schedules, or deployment. In a workspace or local package install, resolve the installed \`eve\` package location first. If the package docs are missing, use https://eve.dev/docs.
+
+Use a bounded authoring loop:
+
+1. Read the relevant page and inspect only files you will modify or need to imitate.
+2. Stop discovery once the file location, imports, and definition shape are clear. Implement the smallest complete behavior the user requested.
+3. Run one narrow verification. Expand investigation only when it fails or the request needs project-specific details.
+
+Follow links or inspect public types only when the routed page leaves the task unanswered. Do not recursively glob \`node_modules\`, enumerate the entire docs tree, or read unrelated scaffold files when the direct path is known. Package-manager links can hide files from recursive glob tools even though direct reads work.
+
+## Prefer an existing integration
+
+When a task names an external product or service, search the registry before implementing its integration. For a generic capability, author a tool instead.
+
+\`\`\`sh
+eve registry search <query> --json
+eve registry view <item>
+\`\`\`
+
+Prefer items whose \`implementation\` is \`native\`; use Chat SDK adapters when no native channel fits. \`registry view\` links the item's documentation.
+
+Install without driving interactive prompts:
+
+\`\`\`sh
+eve add <item> --non-interactive
+\`\`\`
+
+Exit code 0 means setup completed, 1 failed, and 2 needs an answer or a prerequisite. On exit 2, run the \`next.command\` from the final NDJSON event. For a non-secret question, replace its \`<JSON value>\` answer placeholder with the answer you collected; string values need JSON quotes. Never pass a secret in \`--answer\`. See \`docs/install-integrations.mdx\` for setup prerequisites.
+
+## Use eve for Vercel operations
+
+Use eve to link and deploy Vercel projects:
+
+\`\`\`sh
+eve link --non-interactive --project <name-or-id> [--team <team-id-or-slug>]
+eve deploy --non-interactive --yes [--project <name-or-id>]
+\`\`\`
+
+A setup may report \`eve link\` as a prerequisite; run it, then retry the continuation. When a completed setup event has \`deploymentRequired: true\`, run the \`next\` command it reports.
+
+## Validate the change
+
+Run the validation the task requests. When it does not establish the behavior you changed, run the narrowest relevant check.
+`;
+
+/**
+ * The files `eve init` writes for a new project, so a project created in
+ * EveLab is indistinguishable from one created on the command line.
+ */
+export function renderProjectScaffold(input: ProjectScaffoldInput): ProjectFile[] {
+  const packageJson = {
+    name: input.packageName,
+    version: "0.0.0",
+    type: "module",
+    imports: { "#*": "./agent/*", "#evals/*": "./evals/*" },
+    scripts: {
+      build: "eve build",
+      deploy: "eve deploy",
+      dev: "eve dev",
+      eval: "eve eval",
+      start: "eve start",
+      typecheck: "tsc",
+    },
+    dependencies: { "@vercel/connect": "1.0.0", ai: "^7.0.93", eve: "^0.54.3", zod: "4.5.4" },
+    devDependencies: { "@types/node": "24.x", typescript: "7.0.2" },
+    engines: { node: "24.x" },
+  };
+  return [
+    { path: ".gitignore", content: SCAFFOLD_GITIGNORE },
+    { path: "AGENTS.md", content: SCAFFOLD_AGENTS_MD },
+    { path: "CLAUDE.md", content: "@AGENTS.md\n" },
+    { path: "agent/agent.ts", content: renderAgentConfig(input.model) },
+    { path: "agent/channels/eve.ts", content: SCAFFOLD_EVE_CHANNEL },
+    { path: "agent/instructions.md", content: input.instructions ?? "# Identity\n\nYou are a helpful assistant.\n" },
+    { path: "package.json", content: `${JSON.stringify(packageJson, null, 2)}\n` },
+    { path: "tsconfig.json", content: SCAFFOLD_TSCONFIG },
+  ];
+}
