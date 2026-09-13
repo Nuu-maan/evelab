@@ -39,6 +39,7 @@ import {
   sourceControlMessage,
 } from "@/lib/git";
 import { deploySettingsSchema, saveDeploySettings, startDeployment } from "@/lib/deploy";
+import { LAYOUT_MODES } from "@/components/canvas/layout";
 import { writeLayout } from "@/lib/layout";
 import { createConnection, createSchedule, createSubagent, createTool, ProjectOpError } from "@/lib/project-ops";
 import { forgetProject, recordProject, requireProjectAccess, requireSignedIn } from "@/lib/session";
@@ -233,12 +234,16 @@ export async function deleteEntityAction(formData: FormData) {
 export async function saveLayoutAction(
   projectId: string,
   positions: Record<string, { x: number; y: number }>,
+  options: { mode?: string; collapsed?: string[] } = {},
 ) {
   const id = await projectFrom(projectId);
   const parsed = z
     .record(z.object({ x: z.number().finite(), y: z.number().finite() }))
     .parse(positions);
-  await writeLayout(id, { positions: parsed });
+  const settings = z
+    .object({ mode: z.enum(LAYOUT_MODES).optional(), collapsed: z.array(z.string().max(200)).max(500).optional() })
+    .parse(options);
+  await writeLayout(id, { positions: parsed, ...settings });
 }
 
 const ownershipSchema = z.object({

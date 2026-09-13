@@ -59,7 +59,9 @@ export function ChannelForm({
   existing,
   chatSdkAdapters,
   chatSdkStates,
+  onCreated,
 }: {
+  onCreated?: () => void;
   projectId: string;
   existing: string[];
   chatSdkAdapters: ChatSdkOption[];
@@ -101,6 +103,7 @@ export function ChannelForm({
       setError(result.message);
       return;
     }
+    onCreated?.();
     router.refresh();
   };
 

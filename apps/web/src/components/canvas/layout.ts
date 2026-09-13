@@ -1,61 +1,85 @@
-import type { CanvasGraph, CanvasNodeKind } from "@evelab/eve-project";
+import * as dagre from "@dagrejs/dagre";
+import type { CanvasEdge, CanvasGraph, CanvasNodeKind } from "@evelab/eve-project";
 
 export type Positions = Record<string, { x: number; y: number }>;
 
-export const COLUMN = 264;
-export const ROW = 196;
+export const LAYOUT_MODES = ["hierarchical", "horizontal", "vertical", "freeform"] as const;
+export type LayoutMode = (typeof LAYOUT_MODES)[number];
+
+/** Card sizes by tier, so the root reads largest and resources smallest. Heights are what layout reserves. */
+export const NODE_SIZE: Record<CanvasNodeKind, { width: number; height: number }> = {
+  agent: { width: 300, height: 150 },
+  subagent: { width: 260, height: 132 },
+  tool: { width: 220, height: 96 },
+  skill: { width: 220, height: 96 },
+  connection: { width: 220, height: 96 },
+  channel: { width: 220, height: 96 },
+};
 
 export function nodeWidth(kind: CanvasNodeKind): number {
-  return kind === "agent" ? 240 : 220;
+  return NODE_SIZE[kind].width;
 }
 
 /**
- * Tidy tree layout, used until the user drags something.
- *
- * Children sit under the node that owns them and siblings share the width of
- * their subtree, so the default picture has no crossing edges.
+ * Places every node from the graph's structure. Hierarchical and horizontal
+ * are layered layouts from dagre, which keeps a shared resource between the
+ * agents that use it; vertical is an indented outline, one agent after another.
  */
-export function fallbackPositions(graph: CanvasGraph): Positions {
-  const children = new Map<string, string[]>();
-  const hasParent = new Set<string>();
-  for (const edge of graph.edges) {
-    if (hasParent.has(edge.target)) continue;
-    children.set(edge.source, [...(children.get(edge.source) ?? []), edge.target]);
-    hasParent.add(edge.target);
-  }
+export function autoLayout(
+  graph: CanvasGraph,
+  mode: Exclude<LayoutMode, "freeform"> = "hierarchical",
+  skip?: Set<string>,
+): Positions {
+  const nodes = graph.nodes.filter((node) => !skip?.has(node.id));
+  const edges = graph.edges.filter((edge) => !skip?.has(edge.source) && !skip?.has(edge.target));
+  if (mode === "vertical") return outline(nodes, edges);
 
-  const width = (id: string): number => {
-    const kids = children.get(id) ?? [];
-    if (kids.length === 0) return 1;
-    return kids.reduce((total, kid) => total + width(kid), 0);
-  };
+  const layered = new dagre.graphlib.Graph();
+  layered.setGraph({
+    rankdir: mode === "horizontal" ? "LR" : "TB",
+    nodesep: mode === "horizontal" ? 24 : 36,
+    ranksep: mode === "horizontal" ? 120 : 96,
+  });
+  layered.setDefaultEdgeLabel(() => ({}));
+  for (const node of nodes) layered.setNode(node.id, { ...NODE_SIZE[node.kind] });
+  for (const edge of edges) layered.setEdge(edge.source, edge.target);
+  dagre.layout(layered);
 
   const positions: Positions = {};
-
-  const place = (id: string, left: number, depth: number): void => {
-    const span = width(id);
-    positions[id] = { x: (left + span / 2 - 0.5) * COLUMN, y: depth * ROW };
-    let cursor = left;
-    for (const kid of children.get(id) ?? []) {
-      place(kid, cursor, depth + 1);
-      cursor += width(kid);
-    }
-  };
-
-  const roots = graph.nodes.filter((node) => !hasParent.has(node.id));
-  let cursor = 0;
-  for (const root of roots) {
-    place(root.id, cursor, 0);
-    cursor += width(root.id);
+  for (const node of nodes) {
+    const placed = layered.node(node.id);
+    const { width, height } = NODE_SIZE[node.kind];
+    positions[node.id] = { x: Math.round(placed.x - width / 2), y: Math.round(placed.y - height / 2) };
   }
-
-  // Anything unreachable from a root still needs somewhere to sit.
-  let orphan = 0;
-  for (const node of graph.nodes) {
-    if (!positions[node.id]) {
-      positions[node.id] = { x: orphan++ * COLUMN, y: (roots.length + 2) * ROW };
-    }
-  }
-
   return positions;
+}
+
+const INDENT = 64;
+const GAP = 16;
+
+function outline(nodes: CanvasGraph["nodes"], edges: CanvasEdge[]): Positions {
+  const byId = new Map(nodes.map((node) => [node.id, node]));
+  const out = new Map<string, CanvasEdge[]>();
+  for (const edge of edges) out.set(edge.source, [...(out.get(edge.source) ?? []), edge]);
+
+  const positions: Positions = {};
+  let y = 0;
+  const visit = (id: string, depth: number) => {
+    const node = byId.get(id);
+    if (!node || positions[id]) return;
+    positions[id] = { x: depth * INDENT, y };
+    y += NODE_SIZE[node.kind].height + GAP;
+    const children = out.get(id) ?? [];
+    // An agent's own resources sit right under it, then its subagents with theirs.
+    for (const edge of children) if (edge.relation !== "contains") visit(edge.target, depth + 1);
+    for (const edge of children) if (edge.relation === "contains") visit(edge.target, depth + 1);
+  };
+  visit("agent", 0);
+  for (const node of nodes) visit(node.id, 0);
+  return positions;
+}
+
+/** The picture before anyone drags anything. */
+export function fallbackPositions(graph: CanvasGraph): Positions {
+  return autoLayout(graph);
 }

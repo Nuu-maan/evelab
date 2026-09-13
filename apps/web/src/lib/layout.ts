@@ -1,5 +1,6 @@
 import "server-only";
 import { z } from "zod";
+import { LAYOUT_MODES } from "@/components/canvas/layout";
 import { stateStore } from "@/lib/state-store";
 
 /**
@@ -12,7 +13,12 @@ import { stateStore } from "@/lib/state-store";
 
 const layoutSchema = z.object({
   positions: z.record(z.object({ x: z.number().finite(), y: z.number().finite() })).default({}),
+  mode: z.enum(LAYOUT_MODES).default("hierarchical"),
+  /** Agents whose subagents and resources are folded away. */
+  collapsed: z.array(z.string()).default([]),
 });
+
+const EMPTY: CanvasLayout = { positions: {}, mode: "hierarchical", collapsed: [] };
 
 export type CanvasLayout = z.infer<typeof layoutSchema>;
 
@@ -26,14 +32,14 @@ function layoutKey(projectId: string): string {
 export async function readLayout(projectId: string): Promise<CanvasLayout> {
   try {
     const raw = await stateStore().read(layoutKey(projectId));
-    if (raw === undefined) return { positions: {} };
+    if (raw === undefined) return EMPTY;
     const parsed = layoutSchema.safeParse(JSON.parse(raw));
-    return parsed.success ? parsed.data : { positions: {} };
+    return parsed.success ? parsed.data : EMPTY;
   } catch {
-    return { positions: {} };
+    return EMPTY;
   }
 }
 
-export async function writeLayout(projectId: string, layout: CanvasLayout): Promise<void> {
+export async function writeLayout(projectId: string, layout: z.input<typeof layoutSchema>): Promise<void> {
   await stateStore().write(layoutKey(projectId), `${JSON.stringify(layoutSchema.parse(layout), null, 2)}\n`);
 }

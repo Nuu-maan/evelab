@@ -33,12 +33,24 @@ const EASE_OUT = [0.23, 1, 0.32, 1] as const;
  */
 export function PaletteChip({
   item,
+  variant,
+  draggable = true,
+  selected,
+  badge,
+  dropLabel = "Release to add",
   onActivate,
   canDrop,
   onDrop,
   onHoverDrop,
 }: {
   item: PaletteItem;
+  /** A compact list row instead of a card. */
+  variant?: "row";
+  /** Rows that cannot be attached anywhere are only clicked. */
+  draggable?: boolean;
+  selected?: boolean;
+  badge?: string;
+  dropLabel?: string;
   /** Click or Enter: open the create form without choosing a position. */
   onActivate: () => void;
   canDrop: (point: Point) => boolean;
@@ -82,7 +94,7 @@ export function PaletteChip({
   };
 
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
-    if (event.button !== 0 || drag.current) return;
+    if (!draggable || event.button !== 0 || drag.current) return;
     const rect = event.currentTarget.getBoundingClientRect();
     drag.current = {
       start: { x: event.clientX, y: event.clientY },
@@ -177,6 +189,9 @@ export function PaletteChip({
       <div
         className="palette-chip"
         data-kind={item.kind}
+        data-variant={variant}
+        data-draggable={draggable || undefined}
+        data-selected={selected || undefined}
         data-lifted={ghost ? "" : undefined}
         role="button"
         tabIndex={0}
@@ -199,6 +214,7 @@ export function PaletteChip({
           <span className="palette-chip-title">{item.title}</span>
           <span className="palette-chip-detail mono">{item.detail}</span>
         </span>
+        {badge && <span className="palette-chip-badge">{badge}</span>}
       </div>
 
       {ghost &&
@@ -206,6 +222,7 @@ export function PaletteChip({
           <motion.div
             className="palette-chip drag-ghost"
             data-kind={item.kind}
+            data-variant={variant}
             data-over={over || undefined}
             aria-hidden="true"
             style={{ width: ghost.width, height: ghost.height, transform, opacity }}
@@ -213,7 +230,7 @@ export function PaletteChip({
             <KindTile kind={item.kind} />
             <span className="palette-chip-text">
               <span className="palette-chip-title">{item.title}</span>
-              <span className="palette-chip-detail mono">{over ? "Release to add" : item.detail}</span>
+              <span className="palette-chip-detail mono">{over ? dropLabel : item.detail}</span>
             </span>
           </motion.div>,
           document.body,

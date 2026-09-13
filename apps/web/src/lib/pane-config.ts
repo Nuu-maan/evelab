@@ -2,8 +2,8 @@
 export const PANES = {
   sidebar: { min: 200, max: 360, initial: 240 },
   explorer: { min: 180, max: 520, initial: 260 },
-  palette: { min: 180, max: 360, initial: 220 },
-  inspector: { min: 360, max: 1000, initial: 560 },
+  palette: { min: 200, max: 400, initial: 256 },
+  inspector: { min: 300, max: 900, initial: 360 },
 } as const;
 
 export type PaneName = keyof typeof PANES;
