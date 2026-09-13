@@ -1,7 +1,10 @@
 import Link from "next/link";
+import { IconLogoGithub } from "@/components/icons";
+import { EmptyState } from "@/components/empty-state";
 import { PlainShell } from "@/components/plain-shell";
 import { Reveal } from "@/components/motion";
 import { ImportRepository } from "@/components/source/import-repository";
+import { Button } from "@/components/ui/button";
 import { listAccessibleRepositories, sourceControlMessage, sourceControlMode } from "@/lib/git";
 import type { RepositoryOption } from "@/lib/source-types";
 
@@ -33,9 +36,9 @@ export default async function ImportPage() {
                 </p>
               </div>
               <div className="page-actions">
-                <Link className="button" data-variant="ghost" href="/projects/new">
-                  Start from scratch
-                </Link>
+                <Button asChild variant="ghost">
+                  <Link href="/projects/new">Start from scratch</Link>
+                </Button>
               </div>
             </header>
           </Reveal>
@@ -44,13 +47,10 @@ export default async function ImportPage() {
             {mode ? (
               <ImportRepository repositories={repositories} listError={listError} />
             ) : (
-              <div className="empty">
-                <p className="empty-title">GitHub is not configured.</p>
-                <p className="empty-body">
-                  Set GITHUB_TOKEN to a token that can read the repository, then restart EveLab. The
-                  token is read on the server only and never stored.
-                </p>
-              </div>
+              <EmptyState icon={IconLogoGithub} title="GitHub is not configured.">
+                Set GITHUB_TOKEN to a token that can read the repository, then restart EveLab. The token
+                is read on the server only and never stored.
+              </EmptyState>
             )}
           </Reveal>
         </div>

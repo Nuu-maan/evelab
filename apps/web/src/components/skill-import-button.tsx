@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { SkillImportDialog } from "@/components/skill-import-dialog";
+import { Button } from "@/components/ui/button";
 
 export function SkillImportButton({
   projectId,
@@ -16,14 +17,9 @@ export function SkillImportButton({
 
   return (
     <>
-      <button
-        className="button"
-        data-variant={variant}
-        type="button"
-        onClick={() => setOpen(true)}
-      >
+      <Button variant={variant === "primary" ? "default" : "ghost"} type="button" onClick={() => setOpen(true)}>
         {label}
-      </button>
+      </Button>
       <SkillImportDialog projectId={projectId} open={open} onClose={() => setOpen(false)} />
     </>
   );

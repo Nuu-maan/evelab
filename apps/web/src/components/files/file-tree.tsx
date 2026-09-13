@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { ChevronRight, ListCollapse } from "lucide-react";
+import { IconChevronDoubleUp, IconChevronRight } from "@/components/icons";
 import { FileIcon, FolderIcon } from "@/components/files/file-icon";
 import { ancestorsOf, buildFileTree, visibleRows } from "@/components/files/tree";
+import { Icon } from "@/components/icon";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 /**
  * The project as an editor's explorer shows it: folders first, compacted
@@ -104,17 +107,20 @@ export function FileTree({
     <div className="explorer">
       <div className="explorer-head">
         <span className="explorer-title">{rootName}</span>
-        <button
-          className="button"
-          data-variant="ghost"
-          data-size="icon-small"
-          type="button"
-          aria-label="Collapse folders"
-          title="Collapse folders"
-          onClick={() => setExpanded(new Set())}
-        >
-          <ListCollapse aria-hidden="true" strokeWidth={1.5} />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              type="button"
+              aria-label="Collapse folders"
+              onClick={() => setExpanded(new Set())}
+            >
+              <Icon icon={IconChevronDoubleUp} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Collapse folders</TooltipContent>
+        </Tooltip>
       </div>
 
       <ul className="tree" role="tree" aria-label="Project files" ref={listRef} onKeyDown={onKeyDown}>
@@ -146,12 +152,9 @@ export function FileTree({
                 ))}
               </span>
               {isDirectory ? (
-                <ChevronRight
-                  className="tree-chevron"
-                  data-open={open || undefined}
-                  aria-hidden="true"
-                  strokeWidth={1.5}
-                />
+                <span className="tree-chevron" data-open={open || undefined} aria-hidden="true">
+                  <Icon icon={IconChevronRight} size={14} />
+                </span>
               ) : (
                 <span className="tree-chevron" aria-hidden="true" />
               )}

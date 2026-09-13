@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import { updateModelAction } from "@/lib/actions";
 import { listModels } from "@/lib/models";
 import { readProject } from "@/lib/workspace";
@@ -16,12 +19,9 @@ export default async function ModelPage({ params }: { params: Promise<{ id: stri
       <form action={updateModelAction} className="section">
         <input type="hidden" name="id" value={id} />
 
-        <div className="field">
-          <label className="label" htmlFor="modelId">
-            Model
-          </label>
-          <input
-            className="input"
+        <Field>
+            <FieldLabel htmlFor="modelId">Model</FieldLabel>
+          <Input
             id="modelId"
             name="modelId"
             list="model-options"
@@ -35,20 +35,17 @@ export default async function ModelPage({ params }: { params: Promise<{ id: stri
               </option>
             ))}
           </datalist>
-          <p className="helper">
+          <FieldDescription>
             {known
               ? "Written to agent.ts verbatim."
               : "Not in the known catalogue. It is still written verbatim, so a valid gateway id works."}
-          </p>
-        </div>
+          </FieldDescription>
+        </Field>
 
         <div className="grid-2">
-          <div className="field">
-            <label className="label" htmlFor="temperature">
-              Temperature
-            </label>
-            <input
-              className="input"
+          <Field>
+            <FieldLabel htmlFor="temperature">Temperature</FieldLabel>
+            <Input
               id="temperature"
               name="temperature"
               type="number"
@@ -57,13 +54,10 @@ export default async function ModelPage({ params }: { params: Promise<{ id: stri
               step={0.1}
               defaultValue={model.temperature ?? ""}
             />
-          </div>
-          <div className="field">
-            <label className="label" htmlFor="maxOutputTokens">
-              Max output tokens
-            </label>
-            <input
-              className="input"
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="maxOutputTokens">Max output tokens</FieldLabel>
+            <Input
               id="maxOutputTokens"
               name="maxOutputTokens"
               type="number"
@@ -71,26 +65,24 @@ export default async function ModelPage({ params }: { params: Promise<{ id: stri
               step={1}
               defaultValue={model.maxOutputTokens ?? ""}
             />
-          </div>
+          </Field>
         </div>
 
         <div className="row">
-          <button className="button" data-variant="primary" type="submit">
-            Save
-          </button>
-          <Link className="button" data-variant="ghost" href={`/projects/${id}/files?path=agent.ts`}>
-            View generated agent.ts
-          </Link>
+          <Button type="submit">Save</Button>
+          <Button asChild variant="ghost">
+            <Link href={`/projects/${id}/files?path=agent.ts`}>View generated agent.ts</Link>
+          </Button>
         </div>
       </form>
 
       {Object.keys(model.raw).length > 0 && (
         <section className="section">
           <h2 className="section-title">Options kept from your source</h2>
-          <p className="helper">
+          <FieldDescription>
             EveLab has no control for these yet, so they are preserved exactly as written and
             re-emitted on save.
-          </p>
+          </FieldDescription>
           <pre className="code mono">
             {Object.entries(model.raw)
               .map(([key, value]) => `${key}: ${value}`)

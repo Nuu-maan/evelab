@@ -99,7 +99,7 @@ export function CodeDiffEditor({
       language={language}
       theme={dark ? "evelab-dark" : "evelab-light"}
       beforeMount={prepare}
-      loading={<span className="palette-hint">Loading diff</span>}
+      loading={<span className="hint">Loading diff</span>}
       options={{
         readOnly: true,
         originalEditable: false,
@@ -145,7 +145,7 @@ export function CodeEditor({
       beforeMount={prepare}
       onMount={onMount}
       onChange={(next) => onChange?.(next ?? "")}
-      loading={<span className="palette-hint">Loading editor</span>}
+      loading={<span className="hint">Loading editor</span>}
       options={{
         readOnly,
         minimap: { enabled: false },

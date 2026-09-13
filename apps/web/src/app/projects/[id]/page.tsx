@@ -1,10 +1,20 @@
 import Link from "next/link";
-import { ArrowUpRight, Circle, CircleCheck, CircleDashed, Workflow } from "lucide-react";
+import {
+  IconArrowUpRight,
+  IconCheckCircle,
+  IconCircle,
+  IconMinusCircle,
+  IconRoute,
+} from "@/components/icons";
 import { getCanvasGraph } from "@evelab/eve-project";
 import { GraphPreview } from "@/components/graph-preview";
+import { Icon } from "@/components/icon";
 import { KINDS, KindTile } from "@/components/kinds";
 import { Reveal } from "@/components/motion";
 import { Avatar } from "@/components/project-switcher";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { readLayout } from "@/lib/layout";
 import { readProject, validateProject } from "@/lib/workspace";
 import "@/app/overview.css";
@@ -127,7 +137,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
       href: `${base}/subagents`,
       state: project.subagents.length > 0 ? "done" : "todo",
     },
-    { label: "Connect GitHub", detail: "Not built yet", state: "unavailable" },
+    { label: "Connect GitHub", detail: "Source control", href: `${base}/source`, state: "todo" },
     { label: "Run the agent", detail: "Not built yet", state: "unavailable" },
     { label: "Deploy", detail: "Not built yet", state: "unavailable" },
   ];
@@ -147,22 +157,22 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
             </div>
           </div>
           <div className="page-actions">
-            <Link className="button" href={fileHref("agent.ts")}>
-              View agent.ts
-            </Link>
-            <Link className="button" data-variant="primary" href={`${base}/canvas`}>
-              Open canvas
-            </Link>
+            <Button asChild variant="outline">
+              <Link href={fileHref("agent.ts")}>View agent.ts</Link>
+            </Button>
+            <Button asChild>
+              <Link href={`${base}/canvas`}>Open canvas</Link>
+            </Button>
           </div>
         </header>
       </Reveal>
 
       <Reveal delay={0.04}>
-        <section className="panel overview-hero" aria-label="Project summary">
+        <Card role="region" aria-label="Project summary" className="overview-hero grid gap-0 py-0">
           <Link className="overview-preview" href={`${base}/canvas`} aria-label="Open canvas">
             <GraphPreview graph={graph} positions={layout.positions} />
             <span className="overview-preview-cta" aria-hidden="true">
-              <Workflow strokeWidth={1.5} />
+              <Icon icon={IconRoute} size={14} />
               Open canvas
             </span>
           </Link>
@@ -182,21 +192,23 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
               </div>
             ))}
           </dl>
-        </section>
+        </Card>
       </Reveal>
 
       {issues.length > 0 && (
         <Reveal delay={0.08}>
           <section className="section" id="issues">
             <h2 className="section-title">Needs attention</h2>
-            <ul className="panel list">
-              {issues.map((issue, index) => (
-                <li className="list-item" key={`${issue.at}-${index}`}>
-                  <span className="list-item-detail">{issue.message}</span>
-                  <code className="mono palette-hint">{issue.at}</code>
-                </li>
-              ))}
-            </ul>
+            <Card className="gap-0 py-0">
+              <ul className="list">
+                {issues.map((issue, index) => (
+                  <li className="list-item" key={`${issue.at}-${index}`}>
+                    <span className="list-item-detail">{issue.message}</span>
+                    <code className="mono hint">{issue.at}</code>
+                  </li>
+                ))}
+              </ul>
+            </Card>
           </section>
         </Reveal>
       )}
@@ -206,22 +218,26 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
           <h2 className="section-title">Capabilities</h2>
           <div className="grid-3">
             {columns.map((column) => (
-              <div className="panel overview-column" key={column.kind}>
+              <Card className="overview-column gap-0 py-0" key={column.kind}>
                 <div className="overview-column-head">
                   <KindTile kind={column.kind} />
                   <Link className="overview-column-title" href={column.href}>
                     {KINDS[column.kind].plural}
                   </Link>
-                  <span className="badge">{column.items.length}</span>
-                  <Link
-                    className="button"
-                    data-variant="ghost"
-                    data-size="icon-small"
-                    href={column.href}
+                  <Badge variant="secondary" className="tabular-nums">
+                    {column.items.length}
+                  </Badge>
+                  <Button
+                    asChild
+                    variant="ghost"
+                    size="icon-sm"
+                    className="ml-auto"
                     aria-label={`Manage ${KINDS[column.kind].plural.toLowerCase()}`}
                   >
-                    <ArrowUpRight aria-hidden="true" strokeWidth={1.5} />
-                  </Link>
+                    <Link href={column.href}>
+                      <Icon icon={IconArrowUpRight} />
+                    </Link>
+                  </Button>
                 </div>
                 {column.items.length === 0 ? (
                   <p className="overview-empty">{column.empty}</p>
@@ -242,7 +258,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
                     View all {column.items.length}
                   </Link>
                 )}
-              </div>
+              </Card>
             ))}
           </div>
         </section>
@@ -252,37 +268,43 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
         <section className="section">
           <div className="section-header">
             <h2 className="section-title">Launch checklist</h2>
-            <span className="palette-hint">
+            <span className="hint">
               {done} of {steps.length} done
             </span>
           </div>
-          <ol className="panel list overview-steps">
-            {steps.map((step) => {
-              const Icon =
-                step.state === "done" ? CircleCheck : step.state === "todo" ? Circle : CircleDashed;
-              const body = (
-                <>
-                  <Icon className="overview-step-icon" aria-hidden="true" strokeWidth={1.5} />
-                  <span className="overview-step-label">{step.label}</span>
-                  <span className="overview-step-detail">{step.detail}</span>
-                  <span className="visually-hidden">
-                    {step.state === "done" ? "Done" : step.state === "todo" ? "To do" : "Not available"}
-                  </span>
-                </>
-              );
-              return (
-                <li key={step.label} data-state={step.state}>
-                  {step.href ? (
-                    <Link className="overview-step" href={step.href}>
-                      {body}
-                    </Link>
-                  ) : (
-                    <div className="overview-step">{body}</div>
-                  )}
-                </li>
-              );
-            })}
-          </ol>
+          <Card className="gap-0 py-0">
+            <ol className="list overview-steps">
+              {steps.map((step) => {
+                const icon =
+                  step.state === "done"
+                    ? IconCheckCircle
+                    : step.state === "todo"
+                      ? IconCircle
+                      : IconMinusCircle;
+                const body = (
+                  <>
+                    <Icon icon={icon} className="overview-step-icon" />
+                    <span className="overview-step-label">{step.label}</span>
+                    <span className="overview-step-detail">{step.detail}</span>
+                    <span className="visually-hidden">
+                      {step.state === "done" ? "Done" : step.state === "todo" ? "To do" : "Not available"}
+                    </span>
+                  </>
+                );
+                return (
+                  <li key={step.label} data-state={step.state}>
+                    {step.href ? (
+                      <Link className="overview-step" href={step.href}>
+                        {body}
+                      </Link>
+                    ) : (
+                      <div className="overview-step">{body}</div>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          </Card>
         </section>
       </Reveal>
     </div>

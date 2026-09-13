@@ -1,3 +1,6 @@
+import { IconCloudUpload } from "@/components/icons";
+import { EmptyState } from "@/components/empty-state";
+
 export const dynamic = "force-dynamic";
 
 export default function DeploymentsPage() {
@@ -9,13 +12,10 @@ export default function DeploymentsPage() {
           <p className="page-description">Production and preview state.</p>
         </div>
       </header>
-      <div className="empty">
-        <p className="empty-title">Nothing deployed.</p>
-        <p className="empty-body">
+      <EmptyState icon={IconCloudUpload} title="Nothing deployed.">
           Deployment follows the same path as any Eve project: commit the source, then deploy it.
           The GitHub and deploy integrations are not built yet.
-        </p>
-      </div>
+      </EmptyState>
     </div>
   );
 }

@@ -2,14 +2,18 @@
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronRight } from "lucide-react";
+import { IconChevronRight } from "@/components/icons";
 import type { ProjectFile } from "@evelab/eve-project";
+import { ConfirmDialog } from "@/components/confirm";
+import { EmptyState } from "@/components/empty-state";
 import { CodeEditor, languageFor } from "@/components/editor";
 import { FileIcon } from "@/components/files/file-icon";
 import { FileTree } from "@/components/files/file-tree";
+import { Icon } from "@/components/icon";
 import { ResizeHandle } from "@/components/resize-handle";
 import { SaveIndicator, type SaveState } from "@/components/save-state";
 import { Shortcut } from "@/components/shortcut";
+import { Button } from "@/components/ui/button";
 import { saveFileAction } from "@/lib/actions";
 import "@/app/explorer.css";
 
@@ -49,10 +53,10 @@ export function FileWorkbench({
     setState("saved");
   }, [files, initialPath]);
 
-  const open = useCallback(
+  const [pendingPath, setPendingPath] = useState<string | undefined>();
+
+  const openNow = useCallback(
     (nextPath: string) => {
-      if (nextPath === path) return;
-      if (savedRef.current !== content && !confirm("Discard unsaved changes?")) return;
       const next = files.find((file) => file.path === nextPath)?.content ?? "";
       setPath(nextPath);
       setContent(next);
@@ -60,7 +64,16 @@ export function FileWorkbench({
       setState("saved");
       router.replace(`/projects/${projectId}/files?path=${encodeURIComponent(nextPath)}`);
     },
-    [content, files, path, projectId, router],
+    [files, projectId, router],
+  );
+
+  const open = useCallback(
+    (nextPath: string) => {
+      if (nextPath === path) return;
+      if (savedRef.current !== content) setPendingPath(nextPath);
+      else openNow(nextPath);
+    },
+    [content, openNow, path],
   );
 
   const save = useCallback(async () => {
@@ -90,9 +103,7 @@ export function FileWorkbench({
   if (files.length === 0) {
     return (
       <div className="page">
-        <div className="empty">
-          <p className="empty-title">This project has no files.</p>
-        </div>
+        <EmptyState title="This project has no files." />
       </div>
     );
   }
@@ -127,7 +138,9 @@ export function FileWorkbench({
                   ) : (
                     <>
                       <span>{segment}</span>
-                      <ChevronRight className="editor-crumb-separator" aria-hidden="true" strokeWidth={1.5} />
+                      <span className="editor-crumb-separator" aria-hidden="true">
+                        <Icon icon={IconChevronRight} size={14} />
+                      </span>
                     </>
                   )}
                 </Fragment>
@@ -137,15 +150,15 @@ export function FileWorkbench({
           <div className="row">
             <SaveIndicator state={state} />
             <Shortcut keys="S" />
-            <button
-              className="button"
-              data-size="small"
+            <Button
+              variant="outline"
+              size="sm"
               type="button"
               onClick={() => void save()}
               disabled={state === "saved" || state === "saving"}
             >
               Save
-            </button>
+            </Button>
           </div>
         </div>
         <div className="editor-host">
@@ -160,6 +173,22 @@ export function FileWorkbench({
           />
         </div>
       </div>
+
+      <ConfirmDialog
+        open={pendingPath !== undefined}
+        onOpenChange={(next) => !next && setPendingPath(undefined)}
+        title="Discard unsaved changes?"
+        description={
+          <>
+            Your edits to <span className="mono">{path}</span> have not been saved.
+          </>
+        }
+        confirmLabel="Discard"
+        onConfirm={() => {
+          if (pendingPath) openNow(pendingPath);
+          setPendingPath(undefined);
+        }}
+      />
     </div>
   );
 }

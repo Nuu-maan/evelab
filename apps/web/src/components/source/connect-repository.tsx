@@ -2,6 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import { connectRepositoryAction, createRepositoryAction } from "@/lib/actions";
 import type { RepositoryOption } from "@/lib/source-types";
 import "@/app/source.css";
@@ -50,132 +55,128 @@ export function ConnectRepository({
 
   return (
     <div className="grid-2 source-connect">
-      <section className="panel" aria-label="Connect a repository">
+      <Card role="region" aria-label="Connect a repository">
         <form
+          className="contents"
           onSubmit={(event) => {
             event.preventDefault();
             void connect();
           }}
         >
-          <div className="modal-body">
-            <div className="section">
-              <h2 className="section-title">Connect a repository</h2>
-              <p className="page-description">
-                Its branch becomes the starting point. Anything that differs in this project shows up
-                as a change you can review and commit.
-              </p>
-            </div>
-            <div className="field">
-              <label className="label" htmlFor="connect-repository">
-                Repository
-              </label>
-              <input
-                className="input mono"
-                id="connect-repository"
-                list="connect-repository-options"
-                placeholder="owner/name"
-                value={repository}
-                onChange={(event) => setRepository(event.target.value)}
-                required
-              />
-              <datalist id="connect-repository-options">
-                {repositories.map((option) => (
-                  <option key={option.fullName} value={option.fullName}>
-                    {option.private ? "Private" : "Public"}
-                  </option>
-                ))}
-              </datalist>
-              {listError && <p className="error-text">{listError}</p>}
-            </div>
-            <div className="field">
-              <label className="label" htmlFor="connect-branch">
-                Branch
-              </label>
-              <input
-                className="input mono"
-                id="connect-branch"
-                placeholder={defaultBranch ?? "Default branch"}
-                value={branch}
-                onChange={(event) => setBranch(event.target.value)}
-              />
-            </div>
-            {error?.form === "connect" && <p className="error-text">{error.text}</p>}
-          </div>
-          <div className="modal-foot">
-            <button className="button" data-variant="primary" type="submit" disabled={!repository || Boolean(busy)}>
+          <CardHeader>
+            <CardTitle>Connect a repository</CardTitle>
+            <CardDescription>
+              Its branch becomes the starting point. Anything that differs in this project shows up as
+              a change you can review and commit.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FieldGroup>
+              <Field>
+                <FieldLabel htmlFor="connect-repository">Repository</FieldLabel>
+                <Input
+                  className="font-mono"
+                  id="connect-repository"
+                  list="connect-repository-options"
+                  placeholder="owner/name"
+                  value={repository}
+                  onChange={(event) => setRepository(event.target.value)}
+                  required
+                />
+                <datalist id="connect-repository-options">
+                  {repositories.map((option) => (
+                    <option key={option.fullName} value={option.fullName}>
+                      {option.private ? "Private" : "Public"}
+                    </option>
+                  ))}
+                </datalist>
+                {listError && <FieldError>{listError}</FieldError>}
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="connect-branch">Branch</FieldLabel>
+                <Input
+                  className="font-mono"
+                  id="connect-branch"
+                  placeholder={defaultBranch ?? "Default branch"}
+                  value={branch}
+                  onChange={(event) => setBranch(event.target.value)}
+                />
+              </Field>
+              {error?.form === "connect" && <FieldError>{error.text}</FieldError>}
+            </FieldGroup>
+          </CardContent>
+          <CardFooter className="justify-end">
+            <Button type="submit" disabled={!repository || Boolean(busy)}>
               {busy === "connect" ? "Connecting" : "Connect"}
-            </button>
-          </div>
+            </Button>
+          </CardFooter>
         </form>
-      </section>
+      </Card>
 
-      <section className="panel" aria-label="Create a repository">
+      <Card role="region" aria-label="Create a repository">
         <form
+          className="contents"
           onSubmit={(event) => {
             event.preventDefault();
             void create();
           }}
         >
-          <div className="modal-body">
-            <div className="section">
-              <h2 className="section-title">Create a repository</h2>
-              <p className="page-description">
-                A new repository on your account with this project as its first commit. Files your
-                .gitignore excludes, and every .env file, stay here.
-              </p>
-            </div>
-            <div className="field">
-              <label className="label" htmlFor="create-name">
-                Repository name
-              </label>
-              <input
-                className="input mono"
-                id="create-name"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                required
-                disabled={!canCreate}
-              />
-            </div>
-            <div className="field">
-              <label className="label" htmlFor="create-message">
-                Commit message
-              </label>
-              <input
-                className="input"
-                id="create-message"
-                value={message}
-                onChange={(event) => setMessage(event.target.value)}
-                required
-                disabled={!canCreate}
-              />
-            </div>
-            <label className="checkbox">
-              <input
-                type="checkbox"
-                checked={isPrivate}
-                onChange={(event) => setIsPrivate(event.target.checked)}
-                disabled={!canCreate}
-              />
-              Private repository
-            </label>
-            {!canCreate && (
-              <p className="helper">Creating personal repositories needs GITHUB_TOKEN rather than a GitHub App.</p>
-            )}
-            {error?.form === "create" && <p className="error-text">{error.text}</p>}
-          </div>
-          <div className="modal-foot">
-            <button
-              className="button"
-              data-variant="primary"
-              type="submit"
-              disabled={!canCreate || !name || !message || Boolean(busy)}
-            >
+          <CardHeader>
+            <CardTitle>Create a repository</CardTitle>
+            <CardDescription>
+              A new repository on your account with this project as its first commit. Files your
+              .gitignore excludes, and every .env file, stay here.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FieldGroup>
+              <Field data-disabled={!canCreate || undefined}>
+                <FieldLabel htmlFor="create-name">Repository name</FieldLabel>
+                <Input
+                  className="font-mono"
+                  id="create-name"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  required
+                  disabled={!canCreate}
+                />
+              </Field>
+              <Field data-disabled={!canCreate || undefined}>
+                <FieldLabel htmlFor="create-message">Commit message</FieldLabel>
+                <Input
+                  id="create-message"
+                  value={message}
+                  onChange={(event) => setMessage(event.target.value)}
+                  required
+                  disabled={!canCreate}
+                />
+              </Field>
+              <Field orientation="horizontal" data-disabled={!canCreate || undefined}>
+                <Checkbox
+                  id="create-private"
+                  checked={isPrivate}
+                  onCheckedChange={(checked) => setIsPrivate(checked === true)}
+                  disabled={!canCreate}
+                />
+                <FieldLabel htmlFor="create-private" className="font-normal">
+                  Private repository
+                </FieldLabel>
+              </Field>
+              {!canCreate && (
+                <FieldDescription>
+                  Creating personal repositories needs GITHUB_TOKEN rather than a GitHub App.
+                </FieldDescription>
+              )}
+              {error?.form === "create" && <FieldError>{error.text}</FieldError>}
+            </FieldGroup>
+          </CardContent>
+          <CardFooter className="justify-end">
+            <Button type="submit" disabled={!canCreate || !name || !message || Boolean(busy)}>
               {busy === "create" ? "Creating" : "Create repository and push"}
-            </button>
-          </div>
+            </Button>
+          </CardFooter>
         </form>
-      </section>
+      </Card>
     </div>
   );
 }
