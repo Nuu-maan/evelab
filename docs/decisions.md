@@ -46,13 +46,23 @@ animations that degrade to a visible element. motion/react is used only where
 motion responds to interaction: the inspector, dialogs, and indicators that move
 between items. All of it respects reduced-motion.
 
-**Canvas edges are ownership, and the agent's ownership is implicit.** A tool
-or skill that no subagent lists in its frontmatter belongs to the main agent.
-Dragging an edge onto a subagent adds the id to that subagent's `tools` or
-`skills`; dropping it on empty canvas removes it; moving it to the agent clears
-every subagent's claim. Nothing in `agent.ts` is touched. The rule lives in
-`applyOwnershipChange` in `packages/eve-project`, next to the parser that
-defines those keys, and is covered by round-trip tests.
+**EveLab reads Eve's real layout, checked against eve 0.54.3.** An agent is
+`agent/` (or the same slots at the package root): `agent.ts` with
+`defineAgent`, `instructions.md`, and one file per entity under `tools/`,
+`skills/`, `subagents/<name>/`, `connections/`, `channels/` and `schedules/`.
+Names come from file paths, and the root agent's name from `package.json`.
+New projects get exactly what `eve init` writes, and new files use the shapes
+from Eve's docs (`defineTool`, `defineMcpClientConnection`,
+`defineOpenAPIConnection`, markdown schedules). MCP servers and OpenAPI services
+are connection files, so there is no separate EveLab format for them.
+
+**Canvas edges are ownership, and ownership is a directory.** A declared
+subagent inherits nothing from its parent: it has only what lives in its own
+`subagents/<name>/` directory. Dragging an edge onto a subagent moves the tool,
+skill or connection file into that directory, and dropping it on empty canvas
+moves it back to the agent. A file that imports others by relative path is
+refused, because moving it would break the import. The rule lives in
+`applyOwnershipChange` in `packages/eve-project` and is covered by tests.
 
 **Pane widths are presentation state in cookies.** The server reads them so the
 layout renders at the user's width without a jump, and clamps them because the
@@ -134,23 +144,9 @@ worker, remote development runtime, or a deployed environment. The Runs page is
 empty until this is answered, because EveLab drives Eve rather than
 re-implementing it. This blocks Runs, Traces and the run half of the demo.
 
-**The exact Eve API surface.** Three places assume names that must be checked
-against current Eve docs before they are relied on, each marked `TODO` in code:
-
-- `renderAgentTemplate` in `packages/eve-project/src/generate.ts` (the
-  `new Agent({...})` shape, used only for projects created from scratch).
-- `toolTemplate` in `apps/web/src/lib/actions.ts` (the `tool({...})` factory).
-- The subagent frontmatter keys in `packages/eve-project/src/parse.ts`.
-
-Everything else works off the user's own source and does not depend on these
-names being right.
-
-**skills.sh import.** Only GitHub is supported today. The skills.sh source
-format needs confirming before EveLab claims to read it.
-
-**MCP representation.** Whether MCP servers are Eve-native configuration files
-or another representation EveLab should preserve exactly. Import is not built
-until this is known, so EveLab cannot invent a second format by accident.
+**skills.sh import.** skills.sh lists skills that live in GitHub repositories,
+and `eve add @skills/<owner>/<repo>/<skill>` installs them from there, so the
+GitHub import already reads them. A search over the registry is not built.
 
 **Skill import review.** Planned as: show source, list every file, warn about
 executable content, confirm, then install. Importing code is not executing it,

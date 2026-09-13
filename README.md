@@ -4,17 +4,21 @@
 
 Build visually. Own the code. Run it with Eve.
 
-EveLab edits a real Eve project: `agent.ts`, `instructions.md`, `tools/`,
-`skills/`, `subagents/`. There is no proprietary workflow format, and no state
-that exists only inside the GUI. Every project in `.evelab/workspace/` is a
+EveLab edits a real Eve project, the one `eve init` creates: `agent/agent.ts`,
+`agent/instructions.md`, and `tools/`, `skills/`, `subagents/`, `connections/`,
+`channels/` and `schedules/` under `agent/`. There is no proprietary workflow
+format, and no state that exists only inside the GUI. Every project in `.evelab/workspace/` is a
 normal directory you can open in an editor, commit, and run without EveLab.
 
 ## Run it
 
 ```bash
 pnpm install
-pnpm --filter @evelab/web dev
+pnpm start   # production build, then serve on http://localhost:3000
 ```
+
+For hot reload while working on EveLab itself, run `pnpm --filter @evelab/web dev`
+instead.
 
 Projects are stored in `.evelab/workspace/<slug>/`. Set `EVELAB_WORKSPACE` to
 put them somewhere else.
@@ -44,15 +48,16 @@ packages/auth         Better Auth GitHub configuration
 ## What works today
 
 **The canvas.** Every capability is a node, coloured by what it is: the agent,
-its subagents, its tools, its skills. Drag a chip from the left onto the canvas
-to create a tool or a subagent, or to import a skill. Click any node and the file
+its subagents, its tools, its skills, its connections. Drag a chip from the left
+onto the canvas to create a tool, a subagent or an MCP connection, or to import a
+skill. Click any node and the file
 behind it opens in the right-hand inspector, in Monaco, with `⌘S` to save.
 Editing a skill on the canvas is editing its `SKILL.md`, not a GUI stand-in for
 it.
 
-Edges are ownership. Drag the end of one onto a subagent to hand it a tool or a
-skill, or drop it on empty canvas to give it back to the agent; EveLab rewrites
-that subagent's `tools` or `skills` frontmatter and nothing else. Node positions
+Edges are ownership. In Eve a subagent inherits nothing, so dragging the end of
+an edge onto a subagent moves that file into the subagent's own directory, and
+dropping it on empty canvas moves it back to the agent. Node positions
 are remembered outside the project, so the project directory stays pure Eve.
 
 **The overview.** A drawing of the canvas as you arranged it, the model and
