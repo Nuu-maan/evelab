@@ -5,6 +5,7 @@ import {
   BaseEdge,
   EdgeLabelRenderer,
   getSmoothStepPath,
+  useStore,
   type ConnectionLineComponentProps,
   type Edge,
   type EdgeProps,
@@ -53,6 +54,8 @@ function RelationEdgeBase({
   data,
 }: EdgeProps<RelationEdge>) {
   const { mode, detachEdge } = useContext(CanvasContext);
+  // Once cards are big enough to read, every wire names itself; zoomed out, only the one being looked at does.
+  const readable = useStore((state) => state.transform[2] >= 0.7);
   const horizontal = mode === "horizontal";
   const port = Math.max(0, PORT_ORDER.indexOf(data?.kind as PortKind));
 
@@ -87,19 +90,25 @@ function RelationEdgeBase({
 
   const labelTransform = channel
     ? horizontal
-      ? `translate(0, -50%) translate(${targetX + 12}px, ${targetY}px)`
-      : `translate(-50%, 0) translate(${targetX}px, ${targetY + 10}px)`
+      ? `translate(0, -50%) translate(${targetX + 16}px, ${targetY}px)`
+      : `translate(-50%, 0) translate(${targetX}px, ${targetY + 14}px)`
     : horizontal
-      ? `translate(-100%, -50%) translate(${targetX - 12}px, ${targetY}px)`
-      : `translate(-50%, -100%) translate(${targetX}px, ${targetY - 10}px)`;
+      ? `translate(-100%, -50%) translate(${targetX - 16}px, ${targetY}px)`
+      : `translate(-50%, -100%) translate(${targetX}px, ${targetY - 14}px)`;
+  const active = Boolean(data?.showLabel);
 
   return (
     <>
       <BaseEdge id={id} path={path} interactionWidth={18} />
-      {data?.showLabel && data.relation && (
+      {data?.relation && (active || readable) && (
         <EdgeLabelRenderer>
           <div className="edge-label-anchor nodrag nopan" style={{ transform: labelTransform }}>
-            <div className="edge-label" data-kind={data.kind} data-actionable={(selected && data.detachable) || undefined}>
+            <div
+              className="edge-label"
+              data-kind={data.kind}
+              data-active={active || undefined}
+              data-actionable={(selected && data.detachable) || undefined}
+            >
               <span>{data.relation}</span>
               {selected && data.detachable && (
                 <button type="button" className="edge-label-action" onClick={() => detachEdge(source, target)}>
