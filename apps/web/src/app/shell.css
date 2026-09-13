@@ -385,6 +385,12 @@
     }
   }
 
+  @container header (max-width: 400px) {
+    .header-action-label {
+      display: none;
+    }
+  }
+
   .crumbs a {
     transition: color var(--duration-hover) ease;
   }
@@ -420,5 +426,66 @@
     align-items: center;
     gap: var(--space-2);
     margin-inline-start: auto;
+  }
+
+  /*
+   * Below 720px there is no room for a sidebar column beside the page, so the
+   * sidebar becomes a drawer over the content with a scrim behind it. The
+   * desktop open or closed preference is left untouched.
+   */
+  @media (max-width: 720px) {
+    .shell,
+    .shell[data-sidebar="closed"] {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .shell > .sidebar {
+      position: fixed;
+      inset-block: 0;
+      inset-inline-start: 0;
+      z-index: 60;
+      width: min(280px, 86vw);
+      clip-path: none;
+      box-shadow: var(--shadow-large);
+      visibility: hidden;
+      translate: -100% 0;
+      transition: translate var(--duration-panel) var(--ease-drawer), visibility 0s linear var(--duration-panel);
+    }
+
+    [dir="rtl"] .shell > .sidebar {
+      translate: 100% 0;
+    }
+
+    .shell[data-drawer="open"] > .sidebar {
+      visibility: visible;
+      translate: 0 0;
+      transition: translate var(--duration-panel) var(--ease-drawer), visibility 0s;
+    }
+
+    .shell > .sidebar .sidebar-panel,
+    .shell[data-sidebar="closed"] > .sidebar .sidebar-panel {
+      width: 100%;
+      opacity: 1;
+      translate: none;
+    }
+
+    .shell > .sidebar .resize-handle {
+      display: none;
+    }
+
+    .shell[data-drawer="open"]::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: 55;
+      background: color-mix(in srgb, var(--background) 55%, transparent);
+      animation: drawer-scrim 200ms var(--ease-out) both;
+    }
+
+    @keyframes drawer-scrim {
+      from {
+        opacity: 0;
+      }
+    }
   }
 }
