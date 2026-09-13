@@ -59,7 +59,7 @@ test("the canvas shows every node and the file behind it", async ({ page }) => {
 
 test("the toolbar zooms", async ({ page }) => {
   await page.goto("/projects/demo-agent/canvas");
-  const toolbar = page.getByRole("toolbar", { name: "Canvas" });
+  const toolbar = page.getByRole("toolbar", { name: "Zoom" });
   const zoom = toolbar.getByRole("button", { name: /Reset zoom/ });
   await expect(page.getByTestId("rf__node-agent")).toBeVisible();
   const before = await zoom.textContent();
@@ -84,7 +84,7 @@ test("selecting a node shows its source and saves edits", async ({ page }) => {
   await inspector.getByText("Write things down.").click();
   await page.keyboard.press("End");
   await page.keyboard.insertText(" Cite the source.");
-  await expect(page.getByRole("toolbar", { name: "Canvas" })).toContainText("Unsaved");
+  await expect(page.getByRole("status", { name: "Save state" })).toContainText("Unsaved");
   await inspector.getByRole("button", { name: "Save", exact: true }).click();
 
   await expect.poll(() => readFile(rootSkill, "utf8")).toContain("Cite the source.");
