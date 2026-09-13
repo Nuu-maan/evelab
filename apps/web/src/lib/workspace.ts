@@ -15,6 +15,7 @@ import {
   type ProjectFile,
 } from "@evelab/eve-project";
 import { emitProjectFilesChanged, type FileChange } from "@/lib/project-events";
+import { ENV_EXAMPLE_PATH, ENV_MARKER, README_MARKER, README_PATH, renderEnvExample, renderReadme } from "@/lib/project-docs";
 
 /**
  * File-backed project storage.
@@ -146,6 +147,34 @@ export async function writeProject(id: string, project: EveProject): Promise<voi
     changes.push({ path: file.path, content: file.content });
   }
   emitProjectFilesChanged(id, changes);
+  await syncProjectDocs(id);
+}
+
+/**
+ * Keeps README.md and .env.example in step with the source. A file whose
+ * marker line was deleted belongs to its author and is never overwritten.
+ */
+export async function syncProjectDocs(id: string, options: { onlyMissing?: boolean } = {}): Promise<void> {
+  const docs = [
+    { path: README_PATH, marker: README_MARKER, render: renderReadme },
+    { path: ENV_EXAMPLE_PATH, marker: ENV_MARKER, render: renderEnvExample },
+  ];
+  const current = await Promise.all(
+    docs.map((doc) => readFile(resolveInProject(id, doc.path), "utf8").catch(() => undefined)),
+  );
+  if (options.onlyMissing && current.every((content) => content !== undefined)) return;
+
+  const project = await readProject(id);
+  const changes: FileChange[] = [];
+  for (const [index, doc] of docs.entries()) {
+    const existing = current[index];
+    if (existing !== undefined && (options.onlyMissing || !existing.includes(doc.marker))) continue;
+    const content = doc.render(project);
+    if (existing === content) continue;
+    await writeFile(resolveInProject(id, doc.path), content, "utf8");
+    changes.push({ path: doc.path, content });
+  }
+  if (changes.length > 0) emitProjectFilesChanged(id, changes);
 }
 
 export async function readProjectFile(id: string, path: string): Promise<string> {
@@ -161,6 +190,7 @@ export async function writeProjectFile(
   await mkdir(dirname(absolute), { recursive: true });
   await writeFile(absolute, content, "utf8");
   emitProjectFilesChanged(id, [{ path, content }]);
+  if (path !== README_PATH && path !== ENV_EXAMPLE_PATH) await syncProjectDocs(id);
 }
 
 export async function deleteProjectFile(id: string, path: string): Promise<void> {
@@ -195,7 +225,9 @@ async function writeNewProject(nameHint: string, files: ProjectFile[]): Promise<
 
 /** Creates a project from files that were already read and shown to the user, such as an imported repository. */
 export async function createProjectFromFiles(nameHint: string, files: ProjectFile[]): Promise<string> {
-  return writeNewProject(nameHint, files);
+  const id = await writeNewProject(nameHint, files);
+  await syncProjectDocs(id);
+  return id;
 }
 
 // Project ids are URL segments, so they must not shadow the routes beside them.
@@ -242,7 +274,9 @@ export async function createProject(input: CreateProjectInput): Promise<string> 
   });
   const { project } = parseProject(scaffold, { fallbackName: id });
   project.agent.description = input.description;
-  return writeNewProject(id, generateProject(project));
+  const created = await writeNewProject(id, generateProject(project));
+  await syncProjectDocs(created);
+  return created;
 }
 
 export async function deleteProject(id: string): Promise<void> {
