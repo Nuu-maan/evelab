@@ -58,11 +58,13 @@ test.beforeAll(async () => {
   const directory = join(AUTH_WORKSPACE, PROJECT);
   await rm(AUTH_WORKSPACE, { recursive: true, force: true });
   await mkdir(directory, { recursive: true });
+  await mkdir(join(directory, "agent"), { recursive: true });
+  await writeFile(join(directory, "package.json"), `${JSON.stringify({ name: PROJECT, type: "module" })}\n`);
   await writeFile(
-    join(directory, "agent.ts"),
-    `import { Agent } from "eve";\n\nexport default new Agent({\n  name: "Owned Agent",\n  model: "openai/gpt-5.6",\n  instructions: "instructions.md",\n});\n`,
+    join(directory, "agent", "agent.ts"),
+    `import { defineAgent } from "eve";\n\nexport default defineAgent({\n  model: "openai/gpt-5.6-luna-fast",\n});\n`,
   );
-  await writeFile(join(directory, "instructions.md"), "# Owned Agent\n");
+  await writeFile(join(directory, "agent", "instructions.md"), "# Owned Agent\n");
 
   const projectId = randomUUID();
   await sql`insert into projects (id, slug, name, owner_id) values (${projectId}, ${PROJECT}, 'Owned Agent', ${OWNER.id})`;
@@ -134,7 +136,7 @@ test("a server action called directly by another account is rejected", async ({ 
     maxRedirects: 0,
   });
   expect(response.status()).toBeGreaterThanOrEqual(400);
-  expect(existsSync(join(AUTH_WORKSPACE, PROJECT, "agent.ts"))).toBe(true);
+  expect(existsSync(join(AUTH_WORKSPACE, PROJECT, "agent", "agent.ts"))).toBe(true);
   const [row] = await sql`select count(*)::int as count from projects where slug = ${PROJECT}`;
   expect(row?.count).toBe(1);
   await stranger.close();

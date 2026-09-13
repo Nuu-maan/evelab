@@ -1,38 +1,37 @@
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { access, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
 const WORKSPACE = process.env.E2E_WORKSPACE ?? "/tmp/evelab-e2e/workspace";
 const PROJECT = join(WORKSPACE, "demo-agent");
 
-const AGENT_TS = `import { Agent } from "eve";
+/** A project in Eve's recommended layout, as `eve init` and hand edits leave it. */
+const FILES: Record<string, string> = {
+  "package.json": `${JSON.stringify({ name: "demo-agent", type: "module" }, null, 2)}\n`,
+  "agent/agent.ts": `import { defineAgent } from "eve";\n\nexport default defineAgent({\n  model: "openai/gpt-5.6-luna-fast",\n  description: "A project fixture for the end to end suite.",\n});\n`,
+  "agent/instructions.md": "# Identity\n\nBe useful.\n",
+  "agent/subagents/researcher/agent.ts": `import { defineAgent } from "eve";\n\nexport default defineAgent({\n  description: "Gathers sources.",\n});\n`,
+  "agent/subagents/researcher/instructions.md": "Collect three sources.\n",
+  "agent/skills/notes/SKILL.md": "---\nname: notes\ndescription: Keeps notes while working.\n---\n\nWrite things down.\n",
+};
 
-export default new Agent({
-  name: "Demo Agent",
-  description: "A project fixture for the end to end suite.",
-  model: "openai/gpt-5.6",
-  instructions: "instructions.md",
-});
-`;
+const exists = (path: string) =>
+  access(path).then(
+    () => true,
+    () => false,
+  );
 
 test.beforeAll(async () => {
   await rm(PROJECT, { recursive: true, force: true });
   await rm(join(WORKSPACE, "..", "layouts"), { recursive: true, force: true });
-  await mkdir(join(PROJECT, "subagents"), { recursive: true });
-  await mkdir(join(PROJECT, "skills", "notes"), { recursive: true });
-  await writeFile(join(PROJECT, "agent.ts"), AGENT_TS);
-  await writeFile(join(PROJECT, "instructions.md"), "# Demo Agent\n\nBe useful.\n");
-  await writeFile(
-    join(PROJECT, "subagents", "researcher.md"),
-    "---\nname: Researcher\ndescription: Gathers sources.\n---\n\nCollect three sources.\n",
-  );
-  await writeFile(
-    join(PROJECT, "skills", "notes", "SKILL.md"),
-    "---\nname: Notes\ndescription: Keeps notes while working.\n---\n\nWrite things down.\n",
-  );
+  for (const [path, content] of Object.entries(FILES)) {
+    await mkdir(dirname(join(PROJECT, path)), { recursive: true });
+    await writeFile(join(PROJECT, path), content);
+  }
 });
 
-const researcherFile = () => readFile(join(PROJECT, "subagents", "researcher.md"), "utf8");
+const rootSkill = join(PROJECT, "agent", "skills", "notes", "SKILL.md");
+const researcherSkill = join(PROJECT, "agent", "subagents", "researcher", "skills", "notes", "SKILL.md");
 
 /** Drags from one point to another in small steps, the way React Flow expects a pointer to move. */
 async function drag(page: Page, from: { x: number; y: number }, to: { x: number; y: number }) {
@@ -51,10 +50,10 @@ async function center(locator: Locator) {
 test("the canvas shows every capability and the file behind it", async ({ page }) => {
   await page.goto("/projects/demo-agent/canvas");
 
-  await expect(page.getByTestId("rf__node-agent")).toContainText("Demo Agent");
-  await expect(page.getByTestId("rf__node-subagent:researcher")).toContainText("Researcher");
-  await expect(page.getByText("subagents/researcher.md")).toBeVisible();
-  await expect(page.getByTestId("rf__node-skill:notes")).toContainText("skills/notes/SKILL.md");
+  await expect(page.getByTestId("rf__node-agent")).toContainText("demo-agent");
+  await expect(page.getByTestId("rf__node-subagent:researcher")).toContainText("researcher");
+  await expect(page.getByText("agent/subagents/researcher/agent.ts")).toBeVisible();
+  await expect(page.getByTestId("rf__node-skill:notes")).toContainText("agent/skills/notes/SKILL.md");
 });
 
 test("the zoom controls are visible and work", async ({ page }) => {
@@ -73,32 +72,32 @@ test("the zoom controls are visible and work", async ({ page }) => {
 test("selecting a node opens its file in the inspector and saves edits", async ({ page }) => {
   await page.goto("/projects/demo-agent/canvas");
 
-  await page.getByTestId("rf__node-subagent:researcher").click();
+  await page.getByTestId("rf__node-skill:notes").click();
 
-  const inspector = page.getByRole("complementary", { name: /Researcher inspector/ });
+  const inspector = page.getByRole("complementary", { name: /notes inspector/ });
   await expect(inspector).toBeVisible();
-  await expect(inspector.getByText("subagents/researcher.md")).toBeVisible();
-  await expect(inspector.getByText("Collect three sources.")).toBeVisible();
+  await expect(inspector.getByText("agent/skills/notes/SKILL.md")).toBeVisible();
+  await expect(inspector.getByText("Write things down.")).toBeVisible();
 
   // insertText rather than type: Monaco drops characters from fast key events.
-  await inspector.getByText("Collect three sources.").click();
+  await inspector.getByText("Write things down.").click();
   await page.keyboard.press("End");
-  await page.keyboard.insertText(" Prefer primary sources.");
+  await page.keyboard.insertText(" Cite the source.");
 
   await expect(inspector.getByRole("status")).toHaveText("Unsaved changes");
   await inspector.getByRole("button", { name: "Save", exact: true }).click();
   await expect(inspector.getByRole("status")).toHaveText("Saved");
 
-  const onDisk = await researcherFile();
-  expect(onDisk).toContain("Prefer primary sources.");
+  const onDisk = await readFile(rootSkill, "utf8");
+  expect(onDisk).toContain("Cite the source.");
   // The rest of the file, including its frontmatter, is untouched.
-  expect(onDisk).toContain("name: Researcher");
+  expect(onDisk).toContain("description: Keeps notes while working.");
 
   await inspector.getByRole("button", { name: "Close" }).click();
   await expect(inspector).toBeHidden();
 });
 
-test("dragging an edge hands a skill to a subagent, and dropping it hands it back", async ({ page }) => {
+test("dragging an edge moves a skill into a subagent, and dropping it moves it back", async ({ page }) => {
   await page.goto("/projects/demo-agent/canvas");
 
   const edge = page.getByTestId("rf__edge-agent->skill:notes");
@@ -112,15 +111,18 @@ test("dragging an edge hands a skill to a subagent, and dropping it hands it bac
     .locator(".react-flow__handle.source");
   await drag(page, { x: start.x, y: start.y + 9 }, await center(researcherHandle));
 
-  await expect.poll(researcherFile).toContain("skills: [notes]");
-  await expect(page.getByTestId("rf__edge-subagent:researcher->skill:notes")).toBeVisible();
+  // A subagent inherits nothing in Eve, so the skill's directory moves.
+  await expect.poll(() => exists(researcherSkill)).toBe(true);
+  expect(await exists(rootSkill)).toBe(false);
+  await expect(page.getByTestId("rf__edge-subagent:researcher->skill:researcher/notes")).toBeVisible();
 
-  // Drop the same end on empty canvas: the subagent lets go.
+  // Drop the same end on empty canvas: it goes back to the agent.
   const owned = await center(researcherHandle);
   const pane = await page.locator(".react-flow__pane").boundingBox();
   await drag(page, { x: owned.x, y: owned.y + 9 }, { x: pane!.x + 40, y: pane!.y + 40 });
 
-  await expect.poll(researcherFile).not.toContain("skills:");
+  await expect.poll(() => exists(rootSkill)).toBe(true);
+  expect(await exists(researcherSkill)).toBe(false);
   await expect(page.getByTestId("rf__edge-agent->skill:notes")).toBeVisible();
 });
 
@@ -131,15 +133,33 @@ test("adding a tool from the palette writes a real file", async ({ page }) => {
 
   const panel = page.getByRole("complementary", { name: "New tool" });
   await expect(panel).toBeVisible();
-  await panel.getByLabel("Tool name").fill("search-docs");
+  await panel.getByLabel("Tool name").fill("search_docs");
   await panel.getByLabel("Description").fill("Searches the docs index.");
   await panel.getByRole("button", { name: "Create tool" }).click();
 
-  await expect(page.getByText("tools/search-docs.ts")).toBeVisible();
+  await expect(page.getByText("agent/tools/search_docs.ts")).toBeVisible();
 
-  const source = await readFile(join(PROJECT, "tools", "search-docs.ts"), "utf8");
-  expect(source).toContain('name: "search-docs"');
+  const source = await readFile(join(PROJECT, "agent", "tools", "search_docs.ts"), "utf8");
+  expect(source).toContain('import { defineTool } from "eve/tools";');
   expect(source).toContain("Searches the docs index.");
+});
+
+test("adding a connection writes an MCP connection with Vercel Connect auth", async ({ page }) => {
+  await page.goto("/projects/demo-agent/canvas");
+
+  await page.getByRole("button", { name: /Connection/ }).click();
+  const panel = page.getByRole("complementary", { name: "New connection" });
+  await panel.getByLabel("Connection name").fill("linear");
+  await panel.getByLabel("URL").fill("https://mcp.linear.app/mcp");
+  await panel.getByLabel("Description").fill("Linear issues.");
+  await panel.getByLabel("Authentication").selectOption("connect");
+  await panel.getByLabel("Connector").fill("mcp.linear.app/linear");
+  await panel.getByRole("button", { name: "Create connection" }).click();
+
+  await expect(page.getByTestId("rf__node-connection:linear")).toBeVisible();
+  const source = await readFile(join(PROJECT, "agent", "connections", "linear.ts"), "utf8");
+  expect(source).toContain('import { connect } from "@vercel/connect/eve";');
+  expect(source).toContain('auth: connect("mcp.linear.app/linear"),');
 });
 
 /**
@@ -174,18 +194,20 @@ test("node positions survive a reload", async ({ page }) => {
 });
 
 test("the explorer opens nested files and supports the keyboard", async ({ page }) => {
-  await page.goto("/projects/demo-agent/files?path=agent.ts");
+  await page.goto("/projects/demo-agent/files?path=agent%2Fagent.ts");
 
   const tree = page.getByRole("tree", { name: "Project files" });
-  await tree.getByRole("treeitem", { name: "subagents" }).click();
-  await tree.getByRole("treeitem", { name: "researcher.md" }).click();
-  await expect(page.getByRole("navigation", { name: "File path" })).toContainText("researcher.md");
-  await expect(page).toHaveURL(/path=subagents%2Fresearcher\.md/);
+  // A folder with a single child folder is compacted into one row, as in Zed.
+  const folder = tree.getByRole("treeitem", { name: "skills / notes" });
+  await folder.click();
+  await tree.getByRole("treeitem", { name: "SKILL.md" }).click();
+  await expect(page.getByRole("navigation", { name: "File path" })).toContainText("SKILL.md");
+  await expect(page).toHaveURL(/path=agent%2Fskills%2Fnotes%2FSKILL\.md/);
 
-  await tree.getByRole("treeitem", { name: "researcher.md" }).press("ArrowLeft");
-  await expect(tree.getByRole("treeitem", { name: "subagents" })).toBeFocused();
+  await tree.getByRole("treeitem", { name: "SKILL.md" }).press("ArrowLeft");
+  await expect(folder).toBeFocused();
   await page.keyboard.press("ArrowLeft");
-  await expect(tree.getByRole("treeitem", { name: "subagents" })).toHaveAttribute("aria-expanded", "false");
+  await expect(folder).toHaveAttribute("aria-expanded", "false");
 });
 
 test("resized panes keep their width after a reload", async ({ page }) => {
@@ -207,7 +229,7 @@ test("resized panes keep their width after a reload", async ({ page }) => {
 test("the sidebar switches projects and opens the command palette", async ({ page }) => {
   await page.goto("/projects/demo-agent");
 
-  await page.getByRole("button", { name: /Demo Agent/ }).click();
+  await page.getByRole("button", { name: /demo-agent/ }).first().click();
   const menu = page.getByRole("menu", { name: "Switch project" });
   await expect(menu.getByRole("menuitem", { name: "All projects" })).toBeVisible();
   await page.keyboard.press("Escape");
@@ -216,7 +238,7 @@ test("the sidebar switches projects and opens the command palette", async ({ pag
   await page.getByRole("button", { name: /Find/ }).click();
   const palette = page.getByRole("dialog", { name: "Commands" });
   await expect(palette).toBeVisible();
-  await page.keyboard.insertText("files");
+  await page.keyboard.insertText("browse files");
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/files/);
 });
