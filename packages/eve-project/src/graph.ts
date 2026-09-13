@@ -12,9 +12,21 @@ export interface CanvasNode {
   id: string;
   kind: CanvasNodeKind;
   name: string;
+  /** One short line: the model, the tool's kind, the MCP host. */
   detail: string;
+  /** The entity's own description, when it has one. */
+  description?: string;
+  /** What an agent or subagent owns directly. */
+  counts?: CapabilityCounts;
   /** The file this node edits. Every node on the canvas maps to real source. */
   filePath: string;
+}
+
+export interface CapabilityCounts {
+  tools: number;
+  skills: number;
+  subagents: number;
+  connections: number;
 }
 
 export interface CanvasEdge {
@@ -43,6 +55,15 @@ interface CapabilityOwner {
   subagents: Subagent[];
 }
 
+function countsOf(owner: CapabilityOwner): CapabilityCounts {
+  return {
+    tools: owner.tools.length,
+    skills: owner.skills.length,
+    subagents: owner.subagents.length,
+    connections: owner.connections.length,
+  };
+}
+
 function hostOf(url: string | undefined): string | undefined {
   if (!url) return undefined;
   try {
@@ -66,6 +87,8 @@ export function getCanvasGraph(project: EveProject): CanvasGraph {
       kind: "agent",
       name: agent.name,
       detail: agent.model?.id || (agent.model?.expression ? "Model set in code" : "Default model"),
+      description: agent.description || undefined,
+      counts: countsOf(project),
       filePath: project.files.some((file) => file.path === `${base}instructions.md`) || !agent.hasConfig
         ? `${base}instructions.md`
         : `${base}agent.ts`,
@@ -97,6 +120,8 @@ function addOwner(
         subagent.kind === "remote"
           ? "Remote agent"
           : subagent.model?.id || (subagent.model?.expression ? "Model set in code" : "Default model"),
+      description: subagent.description || undefined,
+      counts: subagent.kind === "local" ? countsOf(subagent) : undefined,
       filePath: subagent.kind === "remote" ? `${base}subagents/${subagent.id}.ts` : `${base}subagents/${subagent.id}/agent.ts`,
     });
     edges.push({ source: ownerId, target: id });
@@ -105,7 +130,14 @@ function addOwner(
 
   for (const tool of owner.tools) {
     const id = `tool:${prefix}${tool.id}`;
-    nodes.push({ id, kind: "tool", name: tool.id, detail: tool.description || TOOL_LABELS[tool.kind], filePath: `${base}tools/${tool.file}` });
+    nodes.push({
+      id,
+      kind: "tool",
+      name: tool.id,
+      detail: TOOL_LABELS[tool.kind],
+      description: tool.description || undefined,
+      filePath: `${base}tools/${tool.file}`,
+    });
     edges.push({ source: ownerId, target: id });
   }
 
@@ -116,7 +148,8 @@ function addOwner(
       id,
       kind: "skill",
       name: skill.id,
-      detail: skill.description || (skill.format === "package" ? `${files} files` : "Skill"),
+      detail: skill.format === "package" ? `Skill package, ${files} files` : skill.format === "module" ? "defineSkill" : "Markdown skill",
+      description: skill.description || undefined,
       filePath: skillFilePath(base, skill),
     });
     edges.push({ source: ownerId, target: id });
@@ -131,6 +164,7 @@ function addOwner(
       kind: "connection",
       name: connection.id,
       detail: host ? `${label} · ${host}` : label,
+      description: connection.description || undefined,
       filePath: `${base}connections/${connection.file}`,
     });
     edges.push({ source: ownerId, target: id });
