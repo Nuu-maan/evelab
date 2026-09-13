@@ -181,6 +181,41 @@ assistant has no general file-write tool.
 copy that leans into horizontal movement, settles on drop and flies back on a
 miss. Native drag and drop cannot tilt or animate its drag image.
 
+**Shared resources live in `lib/`, and agents re-export them.** Eve gives a
+subagent nothing from its parent and shares code through `lib/`. A tool, skill or
+connection used by several agents is defined once in `agent/lib/<kind>/<name>.ts`,
+and each agent that uses it gets a one-line `export { default } from
+"#lib/<kind>/<name>.ts"` in its own slot, or a relative path when package.json has
+no `#*` import map. Markdown and packaged skills become `defineSkill` modules when
+they are first shared, because only a module can be re-exported. Detaching never
+deletes a definition. `attachResource` and `detachResource` in
+`packages/eve-project` hold the rule, and the canvas draws each shared resource
+once, with an edge from every agent that uses it. This shape was compiled against
+eve 0.54.3 with no diagnostics.
+
+**Every subagent is written with a model.** Eve's compiler rejects a subagent
+`agent.ts` without one, so a new subagent takes its own model, then the root
+agent's, then eve init's default, and validation flags one that has none.
+
+**The canvas is an architecture editor, not a workflow builder.** Three regions:
+resources on the left, the graph in the middle, the selection on the right. Edges
+are relationships ("has tool", "contains", "routes to"), and attaching is an
+explicit action from a handle, a drop onto an agent, the Add menu or the
+inspector. Layout is dagre, with positions, layout mode and folded agents stored
+as presentation state beside the workspace. Undo covers moves, attaches and
+detaches; deleting files always asks first.
+
+**New projects ask what eve init asks.** Provider first (AI Gateway via project,
+AI Gateway key, ChatGPT subscription, or a provider's own SDK), then a searchable
+model list with eve init's recommended models first, then reasoning effort. The
+agent.ts written for each answer matches eve init's, and EveLab still never
+stores a key.
+
+**Chat SDK is the default way to add a channel.** Slack, Discord, Teams, GitHub,
+Linear, WhatsApp, Google Chat and Telegram all go through eve's `chatSdkChannel`
+with a Chat SDK adapter, credentials read from the environment. Eve's native
+channels remain available beside them.
+
 ## Open
 
 **skills.sh import.** skills.sh lists skills that live in GitHub repositories,
