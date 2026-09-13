@@ -109,11 +109,12 @@ roles (`--primary`, `--muted`, `--border` and the rest) are aliases of the Geist
 tokens rather than a second palette, and hand-written surface CSS lives in
 `@layer components` so utilities never lose a specificity fight to it.
 
-**Canvas edges show where to grab.** Ownership edges are rounded orthogonal
-paths in the capability's colour. A movable edge shows a dot at each end on
-hover, sitting over React Flow's reconnect anchor, and handles grow a ring
-rather than scaling, because a scaled handle covers the anchor and turns a drag
-meant for the edge into a new connection.
+**Canvas edges show where to grab.** Ownership edges are soft curves that stay a
+quiet hairline at rest; hover or selection colours them with the capability's
+kind and runs a slow flow from owner to capability. A movable edge shows a dot at
+each end on hover, sitting over React Flow's reconnect anchor, and handles grow a
+ring rather than scaling, because a scaled handle covers the anchor and turns a
+drag meant for the edge into a new connection.
 
 **Sign-in is all or nothing.** Better Auth with GitHub turns on only when
 `DATABASE_URL`, the OAuth client id and secret, and `BETTER_AUTH_SECRET` are all
@@ -156,6 +157,29 @@ for any Eve project.
 **skills.sh is read through its registry.** A skills.sh reference resolves to the
 same registry item `eve add @skills/...` installs, with every file inline. It
 passes the same path, size and executable checks as a GitHub import.
+
+**Vercel first, with a fallback for everything.** Each backend concern uses the
+Vercel product built for it: Sandbox for running agents, AI Gateway through the
+AI SDK for the assistant, Blob for EveLab's own state, Connect for credentials,
+Chat SDK for channels eve has no native route for, and Observability for deployed
+agents. `lib/vercel-platform.ts` reads the environment and the Settings page says
+what is on. Nothing is required: without credentials EveLab runs agents locally,
+stores state beside the workspace, and the assistant explains how to connect.
+
+**The dev runtime prefers a sandbox.** With Sandbox credentials, Start creates a
+microVM, uploads the project, installs dependencies there and runs `eve dev` on
+the sandbox's own domain. Saves are pushed into the running sandbox through a
+project change event. Only without credentials does a local EveLab run `eve dev`
+as a child process, and a shared EveLab refuses that unless opted in.
+
+**The assistant edits through the same operations as the UI.** Creating a tool,
+subagent, connection or schedule goes through `lib/project-ops.ts` whether a
+person or the assistant asks, so the files are identical either way. The
+assistant has no general file-write tool.
+
+**Canvas drag is pointer-driven.** A palette chip is carried by a spring-driven
+copy that leans into horizontal movement, settles on drop and flies back on a
+miss. Native drag and drop cannot tilt or animate its drag image.
 
 ## Open
 
