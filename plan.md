@@ -277,11 +277,17 @@ Environment (all optional; with none set EveLab runs as a local single-user tool
 - Prose in the UI is plain and specific. State what a control writes to disk.
   Stub pages say what is missing and why, rather than showing placeholder data.
 - No `any`. `strict` is on everywhere.
-- CSS lives in `src/app`: `globals.css` (tokens, entrance animation), `ui.css`
-  (shared components), and one file per surface (`shell.css`, `canvas.css`,
-  `explorer.css`, `overview.css`) imported by the component that owns it. No
-  Tailwind, no CSS-in-JS. Use the
-  existing custom properties; do not introduce new raw colours or sizes.
+- Components come from shadcn/ui (`src/components/ui`, added with the shadcn
+  CLI from `apps/web`) on Tailwind v4. Its colour roles are aliases of the Geist
+  tokens in `globals.css`, so use those roles or the existing custom properties;
+  do not introduce new raw colours or sizes. No CSS-in-JS.
+- Surface layout CSS lives in `src/app`: `ui.css` (shared layout classes) and one
+  file per surface (`shell.css`, `canvas.css`, `explorer.css`, `overview.css`,
+  `source.css`) imported by the component that owns it. Every one of them sits in
+  `@layer components`, so a Tailwind utility on a shadcn component always wins.
+- Icons are Geist icons, vendored as data in `components/icons.ts` and drawn by
+  `components/icon.tsx`. Registry components that ship another icon set get
+  theirs swapped on the way in.
 - Monochrome first, after Vercel's design language. Colour only where it carries
   meaning: status, destructive, and capability kind (`--kind-*`).
 - No gradients, and no em dashes in UI copy, docs or commit messages.

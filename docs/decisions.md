@@ -93,6 +93,18 @@ authenticates source control. The GitHub App path (`getInstallationClient`) is i
 `packages/github` and takes precedence when configured, but installing the App
 per user waits for sign-in.
 
+**shadcn/ui on the Geist tokens.** Controls, dialogs, menus and forms come from
+shadcn/ui so they share one accessible, keyboard-complete implementation. Its
+roles (`--primary`, `--muted`, `--border` and the rest) are aliases of the Geist
+tokens rather than a second palette, and hand-written surface CSS lives in
+`@layer components` so utilities never lose a specificity fight to it.
+
+**Canvas edges show where to grab.** Ownership edges are rounded orthogonal
+paths in the capability's colour. A movable edge shows a dot at each end on
+hover, sitting over React Flow's reconnect anchor, and handles grow a ring
+rather than scaling, because a scaled handle covers the anchor and turns a drag
+meant for the edge into a new connection.
+
 **Single user.** One user, many projects. `project_members` exists in the schema
 so sharing can be added without rewriting ownership.
 
