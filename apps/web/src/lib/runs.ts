@@ -1,9 +1,7 @@
 import "server-only";
-import { appendFile, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
 import { z } from "zod";
 import { sessionStatus, type EveEvent, type SessionStatus } from "@/lib/run-timeline";
-import { workspaceRoot } from "@/lib/workspace";
+import { stateStore } from "@/lib/state-store";
 
 /**
  * A record of every session started from EveLab, so a run can be inspected
@@ -27,20 +25,22 @@ export const runRecordSchema = z.object({
 });
 export type RunRecord = z.infer<typeof runRecordSchema>;
 
-function runsDirectory(projectId: string): string {
+function runsPrefix(projectId: string): string {
   if (!PROJECT_ID.test(projectId)) throw new Error(`Invalid project id: ${projectId}`);
-  return resolve(join(workspaceRoot(), "..", "runs", projectId));
+  return `runs/${projectId}/`;
 }
 
 function paths(projectId: string, sessionId: string) {
   const id = sessionIdSchema.parse(sessionId);
-  const directory = runsDirectory(projectId);
-  return { directory, record: join(directory, `${id}.json`), events: join(directory, `${id}.ndjson`) };
+  const prefix = runsPrefix(projectId);
+  return { record: `${prefix}${id}.json`, events: `${prefix}${id}.ndjson` };
 }
 
-async function readRecord(file: string): Promise<RunRecord | undefined> {
+async function readRecord(key: string): Promise<RunRecord | undefined> {
   try {
-    const parsed = runRecordSchema.safeParse(JSON.parse(await readFile(file, "utf8")));
+    const raw = await stateStore().read(key);
+    if (raw === undefined) return undefined;
+    const parsed = runRecordSchema.safeParse(JSON.parse(raw));
     return parsed.success ? parsed.data : undefined;
   } catch {
     return undefined;
@@ -48,8 +48,7 @@ async function readRecord(file: string): Promise<RunRecord | undefined> {
 }
 
 export async function startRunRecord(projectId: string, sessionId: string, title: string, target: string): Promise<void> {
-  const { directory, record } = paths(projectId, sessionId);
-  await mkdir(directory, { recursive: true });
+  const { record } = paths(projectId, sessionId);
   const now = new Date().toISOString();
   const run: RunRecord = {
     sessionId,
@@ -61,20 +60,12 @@ export async function startRunRecord(projectId: string, sessionId: string, title
     eventCount: 0,
     usage: { inputTokens: 0, outputTokens: 0, costUsd: 0 },
   };
-  await writeFile(record, `${JSON.stringify(run, null, 2)}\n`);
+  await stateStore().write(record, `${JSON.stringify(run, null, 2)}\n`);
 }
 
 export async function listRuns(projectId: string): Promise<RunRecord[]> {
-  const directory = runsDirectory(projectId);
-  let names: string[];
-  try {
-    names = await readdir(directory);
-  } catch {
-    return [];
-  }
-  const records = await Promise.all(
-    names.filter((name) => name.endsWith(".json")).map((name) => readRecord(join(directory, name))),
-  );
+  const keys = await stateStore().list(runsPrefix(projectId));
+  const records = await Promise.all(keys.filter((key) => key.endsWith(".json")).map((key) => readRecord(key)));
   return records
     .filter((record): record is RunRecord => Boolean(record))
     .sort((a, b) => b.startedAt.localeCompare(a.startedAt));
@@ -86,7 +77,7 @@ export async function getRun(projectId: string, sessionId: string): Promise<RunR
 
 export async function readRunEvents(projectId: string, sessionId: string): Promise<EveEvent[]> {
   try {
-    const raw = await readFile(paths(projectId, sessionId).events, "utf8");
+    const raw = (await stateStore().read(paths(projectId, sessionId).events)) ?? "";
     return raw
       .split("\n")
       .filter(Boolean)
@@ -133,8 +124,8 @@ async function writeRunEvents(projectId: string, sessionId: string, incoming: Ev
     return true;
   });
   if (fresh.length === 0) return;
-  await mkdir(file.directory, { recursive: true });
-  await appendFile(file.events, fresh.map((event) => `${JSON.stringify(event)}\n`).join(""));
+  const store = stateStore();
+  await store.append(file.events, fresh.map((event) => `${JSON.stringify(event)}\n`).join(""));
 
   const all = [...stored, ...fresh];
   const record = await readRecord(file.record);
@@ -148,7 +139,7 @@ async function writeRunEvents(projectId: string, sessionId: string, incoming: Ev
     usage.costUsd += typeof step.costUsd === "number" ? step.costUsd : 0;
   }
   const status: SessionStatus = sessionStatus(all);
-  await writeFile(
+  await store.write(
     file.record,
     `${JSON.stringify({ ...record, status, eventCount: all.length, usage, updatedAt: new Date().toISOString() }, null, 2)}\n`,
   );

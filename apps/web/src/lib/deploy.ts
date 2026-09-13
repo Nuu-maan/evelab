@@ -1,11 +1,9 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
 import { z } from "zod";
 import { readGitState } from "@/lib/git";
 import { ensureEve, eveCommand, runInProject } from "@/lib/runtime";
-import { workspaceRoot } from "@/lib/workspace";
+import { stateStore } from "@/lib/state-store";
 
 /**
  * Deployment is `eve deploy`, the same command a developer runs: it installs
@@ -51,14 +49,16 @@ const stateSchema = z.object({
 });
 export type DeployState = z.infer<typeof stateSchema>;
 
-function statePath(projectId: string): string {
+function stateKey(projectId: string): string {
   if (!PROJECT_ID.test(projectId)) throw new Error(`Invalid project id: ${projectId}`);
-  return resolve(join(workspaceRoot(), "..", "deployments", `${projectId}.json`));
+  return `deployments/${projectId}.json`;
 }
 
 export async function readDeployState(projectId: string): Promise<DeployState> {
   try {
-    const parsed = stateSchema.safeParse(JSON.parse(await readFile(statePath(projectId), "utf8")));
+    const raw = await stateStore().read(stateKey(projectId));
+    if (raw === undefined) return { settings: {}, deployments: [] };
+    const parsed = stateSchema.safeParse(JSON.parse(raw));
     return parsed.success ? parsed.data : { settings: {}, deployments: [] };
   } catch {
     return { settings: {}, deployments: [] };
@@ -72,9 +72,7 @@ function updateState(projectId: string, change: (state: DeployState) => void): P
   const next = (writes.get(projectId) ?? Promise.resolve()).then(async () => {
     const state = await readDeployState(projectId);
     change(state);
-    const path = statePath(projectId);
-    await mkdir(dirname(path), { recursive: true });
-    await writeFile(path, `${JSON.stringify(state, null, 2)}\n`);
+    await stateStore().write(stateKey(projectId), `${JSON.stringify(state, null, 2)}\n`);
     return state;
   });
   writes.set(projectId, next.catch(() => undefined));

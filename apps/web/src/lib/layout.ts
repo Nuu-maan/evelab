@@ -1,8 +1,6 @@
 import "server-only";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
 import { z } from "zod";
-import { workspaceRoot } from "@/lib/workspace";
+import { stateStore } from "@/lib/state-store";
 
 /**
  * Canvas node positions.
@@ -20,15 +18,15 @@ export type CanvasLayout = z.infer<typeof layoutSchema>;
 
 const ID_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/;
 
-function layoutPath(projectId: string): string {
+function layoutKey(projectId: string): string {
   if (!ID_PATTERN.test(projectId)) throw new Error(`Invalid project id: ${projectId}`);
-  const path = resolve(join(workspaceRoot(), "..", "layouts", `${projectId}.json`));
-  return path;
+  return `layouts/${projectId}.json`;
 }
 
 export async function readLayout(projectId: string): Promise<CanvasLayout> {
   try {
-    const raw = await readFile(layoutPath(projectId), "utf8");
+    const raw = await stateStore().read(layoutKey(projectId));
+    if (raw === undefined) return { positions: {} };
     const parsed = layoutSchema.safeParse(JSON.parse(raw));
     return parsed.success ? parsed.data : { positions: {} };
   } catch {
@@ -37,7 +35,5 @@ export async function readLayout(projectId: string): Promise<CanvasLayout> {
 }
 
 export async function writeLayout(projectId: string, layout: CanvasLayout): Promise<void> {
-  const path = layoutPath(projectId);
-  await mkdir(dirname(path), { recursive: true });
-  await writeFile(path, `${JSON.stringify(layoutSchema.parse(layout), null, 2)}\n`, "utf8");
+  await stateStore().write(layoutKey(projectId), `${JSON.stringify(layoutSchema.parse(layout), null, 2)}\n`);
 }
