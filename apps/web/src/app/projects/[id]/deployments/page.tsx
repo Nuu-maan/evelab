@@ -86,8 +86,10 @@ export default async function DeploymentsPage({ params }: { params: Promise<{ id
                 <ul className="list" aria-label="Environment variables">
                   {env.map((entry) => (
                     <li className="list-item" key={entry.name}>
-                      <code className="mono">{entry.name}</code>
-                      <span className="list-item-detail mono">{entry.files.join(", ")}</span>
+                      <div className="flex w-full min-w-0 flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+                        <code className="mono">{entry.name}</code>
+                        <span className="list-item-detail mono truncate">{entry.files.join(", ")}</span>
+                      </div>
                     </li>
                   ))}
                 </ul>

@@ -76,9 +76,9 @@ export default async function ProjectsPage() {
                     <div className="project-card-body">
                       <div className="row" style={{ gap: "var(--space-3)" }}>
                         <Avatar name={project.name} size="large" />
-                        <div className="page-heading">
-                          <span className="card-title">{project.name}</span>
-                          <span className="card-detail mono">{project.model || "No model set"}</span>
+                        <div className="page-heading min-w-0">
+                          <span className="card-title truncate">{project.name}</span>
+                          <span className="card-detail mono truncate">{project.model || "No model set"}</span>
                         </div>
                       </div>
                       <div className="row" style={{ gap: "var(--space-4)" }}>

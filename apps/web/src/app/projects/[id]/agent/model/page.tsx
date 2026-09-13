@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { agentPath } from "@evelab/eve-project";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -45,9 +46,10 @@ export default async function ModelPage({ params }: { params: Promise<{ id: stri
   }
 
   return (
-    <div className="section" style={{ maxWidth: 600, width: "100%" }}>
-      <form action={updateModelAction} className="section">
+    <Card className="py-0" style={{ maxWidth: 600, width: "100%" }}>
+      <form action={updateModelAction} className="contents">
         <input type="hidden" name="id" value={id} />
+        <CardContent className="flex flex-col gap-5 pt-5">
 
         <Field>
           <FieldLabel htmlFor="modelId">Model</FieldLabel>
@@ -91,13 +93,14 @@ export default async function ModelPage({ params }: { params: Promise<{ id: stri
           <FieldDescription>How much the model thinks before it answers, where the provider supports it.</FieldDescription>
         </Field>
 
-        <div className="row">
-          <Button type="submit">Save</Button>
+        </CardContent>
+        <CardFooter className="justify-end gap-2 border-t py-4">
           <Button asChild variant="ghost">
             <Link href={configHref}>View {configPath}</Link>
           </Button>
-        </div>
+          <Button type="submit">Save</Button>
+        </CardFooter>
       </form>
-    </div>
+    </Card>
   );
 }
