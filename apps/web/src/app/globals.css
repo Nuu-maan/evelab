@@ -45,6 +45,8 @@
   --kind-tool: var(--blue);
   --kind-skill: var(--amber);
   --kind-connection: var(--teal);
+  /* Canvas grid: present enough to place things by, quiet enough to forget. */
+  --canvas-dot: color-mix(in srgb, var(--foreground) 16%, transparent);
 
   /* shadcn/ui roles, mapped onto the tokens above. */
   --card: var(--surface);

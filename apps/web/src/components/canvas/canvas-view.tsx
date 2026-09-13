@@ -29,9 +29,9 @@ import {
 } from "@/components/canvas/canvas-node";
 import { CanvasInspector } from "@/components/canvas/canvas-inspector";
 import { CanvasCreatePanel, type DraftKind } from "@/components/canvas/canvas-create-panel";
+import { PaletteChip } from "@/components/canvas/palette-chip";
 import { fallbackPositions, type Positions } from "@/components/canvas/layout";
 import { Icon } from "@/components/icon";
-import { KindTile } from "@/components/kinds";
 import { ResizeHandle } from "@/components/resize-handle";
 import { SkillImportDialog } from "@/components/skill-import-dialog";
 import { Button } from "@/components/ui/button";
@@ -65,11 +65,22 @@ function palette(root: string): { kind: PaletteKind; title: string; detail: stri
   ];
 }
 
-const PALETTE_KINDS = new Set<string>(["tool", "subagent", "connection", "skill"]);
 const MOVABLE = new Set<CanvasNodeKind>(["tool", "skill", "connection"]);
 
 function nodeData(node: CanvasNode, fresh: boolean): CanvasNodeData {
-  return { name: node.name, detail: node.detail, filePath: node.filePath, kind: node.kind, fresh };
+  const { name, detail, description, counts, filePath, kind } = node;
+  return { name, detail, description, counts, filePath, kind, fresh };
+}
+
+/** Whether a refreshed node would render exactly as the one on screen. */
+function sameData(previous: CanvasNodeData, node: CanvasNode): boolean {
+  return (
+    previous.name === node.name &&
+    previous.detail === node.detail &&
+    previous.description === node.description &&
+    previous.filePath === node.filePath &&
+    JSON.stringify(previous.counts) === JSON.stringify(node.counts)
+  );
 }
 
 function toEdge(source: string, target: string, kind: CanvasNodeKind): OwnershipEdge {
@@ -165,6 +176,8 @@ function CanvasInner({ projectId, graph, contents, positions, defaultModel, root
   const pending = useRef<Positions>({});
   const reconnecting = useRef<{ edge: OwnershipEdge; connected: boolean } | undefined>(undefined);
   const renderedGraph = useRef(graph);
+  const surfaceRef = useRef<HTMLDivElement>(null);
+  const [dropTarget, setDropTarget] = useState(false);
 
   const kinds = useMemo(
     () => new Map(graph.nodes.map((node) => [node.id, node.kind] as const)),
@@ -203,9 +216,7 @@ function CanvasInner({ projectId, graph, contents, positions, defaultModel, root
       return graph.nodes.map((node) => {
         const previous = existing.get(node.id);
         if (previous) {
-          const { name, detail, filePath } = previous.data;
-          const same = name === node.name && detail === node.detail && filePath === node.filePath;
-          return same ? previous : { ...previous, data: nodeData(node, previous.data.fresh) };
+          return sameData(previous.data, node) ? previous : { ...previous, data: nodeData(node, previous.data.fresh) };
         }
         const position = pending.current[node.id] ?? positions[node.id] ?? fallback[node.id];
         delete pending.current[node.id];
@@ -338,6 +349,11 @@ function CanvasInner({ projectId, graph, contents, positions, defaultModel, root
     else setDraft({ kind, ...point });
   };
 
+  const overSurface = useCallback((point: { x: number; y: number }) => {
+    const rect = surfaceRef.current?.getBoundingClientRect();
+    return Boolean(rect && point.x >= rect.left && point.x <= rect.right && point.y >= rect.top && point.y <= rect.bottom);
+  }, []);
+
   const selected: CanvasNode | undefined = graph.nodes.find((node) => node.id === selectedId);
 
   const hint = notice
@@ -353,58 +369,29 @@ function CanvasInner({ projectId, graph, contents, positions, defaultModel, root
           <p className="canvas-palette-label">Add to canvas</p>
 
           {palette(root).map((item) => (
-            <div
+            <PaletteChip
               key={item.kind}
-              className="palette-chip"
-              data-kind={item.kind}
-              draggable
-              role="button"
-              tabIndex={0}
-              onDragStart={(event) => {
-                event.dataTransfer.setData("application/evelab-kind", item.kind);
-                event.dataTransfer.effectAllowed = "move";
-              }}
-              onClick={() => openDraft(item.kind)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  openDraft(item.kind);
-                }
-              }}
-            >
-              <KindTile kind={item.kind} />
-              <span className="palette-chip-text">
-                <span className="palette-chip-title">{item.title}</span>
-                <span className="palette-chip-detail mono">{item.detail}</span>
-              </span>
-            </div>
+              item={item}
+              onActivate={() => openDraft(item.kind)}
+              canDrop={overSurface}
+              onHoverDrop={setDropTarget}
+              onDrop={(point) => openDraft(item.kind, screenToFlowPosition(point))}
+            />
           ))}
 
-          <p className="canvas-palette-hint">
-            Drop a chip on the canvas, or press Enter on it. Edges show who can use what. A subagent
-            inherits nothing, so dragging an edge onto a subagent moves the file into its directory,
-            and dropping it on empty canvas moves it back to the agent.
-          </p>
+          <div className="canvas-palette-hint">
+            <p>Drag a chip onto the canvas, or press Enter on it.</p>
+            <p>
+              Edges are ownership. Drag an edge&apos;s end onto a subagent to move that file into its
+              directory; drop it on empty canvas to give it back.
+            </p>
+          </div>
         </div>
 
         <ResizeHandle pane="palette" label="Resize palette" />
       </aside>
 
-      <div
-        className="canvas-surface"
-        onDragOver={(event) => {
-          if (event.dataTransfer.types.includes("application/evelab-kind")) {
-            event.preventDefault();
-            event.dataTransfer.dropEffect = "move";
-          }
-        }}
-        onDrop={(event) => {
-          const kind = event.dataTransfer.getData("application/evelab-kind");
-          if (!PALETTE_KINDS.has(kind)) return;
-          event.preventDefault();
-          openDraft(kind as PaletteKind, screenToFlowPosition({ x: event.clientX, y: event.clientY }));
-        }}
-      >
+      <div className="canvas-surface" ref={surfaceRef} data-drop-target={dropTarget || undefined}>
         <ReactFlow<CapabilityNode, OwnershipEdge>
           nodes={nodes}
           edges={edges}
@@ -439,13 +426,14 @@ function CanvasInner({ projectId, graph, contents, positions, defaultModel, root
           elevateEdgesOnSelect
           // Nodes are files; removing one is a confirmed action in the inspector, never a keypress.
           deleteKeyCode={null}
-          proOptions={{ hideAttribution: true }}
+          // React Flow asks open projects without a Pro plan to keep its attribution.
+          attributionPosition="bottom-right"
           fitView
           fitViewOptions={{ padding: 0.25, maxZoom: 1 }}
           minZoom={0.3}
           maxZoom={1.75}
         >
-          <Background variant={BackgroundVariant.Dots} gap={20} size={1.2} color="var(--border-strong)" />
+          <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="var(--canvas-dot)" />
           <CanvasControls />
         </ReactFlow>
 

@@ -44,23 +44,39 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: var(--space-2);
+    padding: 8px 10px;
     border: 1px solid var(--border);
-    border-radius: var(--radius-large);
+    border-radius: 10px;
     background: var(--surface);
     box-shadow: var(--shadow-small);
     cursor: grab;
+    touch-action: none;
     user-select: none;
-    transition: border-color var(--duration-hover) ease, transform var(--duration-press) var(--ease-out);
+    transition: border-color var(--duration-hover) ease, box-shadow var(--duration-hover) ease,
+      opacity var(--duration-hover) ease, transform var(--duration-press) var(--ease-out);
   }
 
-  .palette-chip:hover {
-    border-color: color-mix(in srgb, var(--kind) 45%, var(--border));
+  @media (hover: hover) and (pointer: fine) {
+    .palette-chip:hover {
+      border-color: var(--border-strong);
+      box-shadow: var(--shadow);
+    }
   }
 
   .palette-chip:active {
     cursor: grabbing;
     transform: scale(0.97);
+  }
+
+  .palette-chip:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  /* The chip stays behind as a faint placeholder while its copy is carried. */
+  .palette-chip[data-lifted] {
+    opacity: 0.4;
+    transform: none;
   }
 
   .palette-chip-text {
@@ -82,7 +98,37 @@
     font-size: 11px;
   }
 
+  /*
+   * The carried copy. Its transform (position, lean, lift) is written by a
+   * spring every frame, so nothing here transitions transform.
+   */
+  .palette-chip.drag-ghost {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+    margin: 0;
+    box-shadow: var(--shadow-large);
+    cursor: grabbing;
+    pointer-events: none;
+    will-change: transform;
+    transition: border-color var(--duration-hover) ease, box-shadow var(--duration-hover) ease;
+  }
+
+  .palette-chip.drag-ghost[data-over] {
+    border-color: color-mix(in srgb, var(--kind) 55%, var(--border));
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--kind) 14%, transparent), var(--shadow-large);
+  }
+
+  body[data-palette-dragging],
+  body[data-palette-dragging] * {
+    cursor: grabbing !important;
+    user-select: none;
+  }
+
   .canvas-palette-hint {
+    display: grid;
+    gap: var(--space-2);
     margin-top: var(--space-2);
     padding: 0 var(--space-1);
     color: var(--foreground-tertiary);
@@ -102,6 +148,35 @@
 
   .canvas-surface .react-flow {
     background: transparent;
+  }
+
+  /* Kept, as React Flow asks, but set as quietly as the rest of the chrome. */
+  .canvas-surface .react-flow__attribution {
+    padding: 2px 6px;
+    background: transparent;
+    font-size: 10px;
+  }
+
+  .canvas-surface .react-flow__attribution a {
+    color: var(--foreground-tertiary);
+  }
+
+  /* Where a carried chip will land. Flat tint and a dashed rule, no glow. */
+  .canvas-surface::after {
+    content: "";
+    position: absolute;
+    inset: var(--space-3);
+    z-index: 4;
+    border: 1.5px dashed color-mix(in srgb, var(--focus) 55%, transparent);
+    border-radius: var(--radius-xl);
+    background: color-mix(in srgb, var(--focus) 4%, transparent);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--duration-hover) ease;
+  }
+
+  .canvas-surface[data-drop-target]::after {
+    opacity: 1;
   }
 
   .canvas-hint {
@@ -154,50 +229,45 @@
   /* ---------- Nodes ---------- */
 
   /*
-   * A node is its kind: a thick border in the kind's colour over a faint tint
-   * of it, with a hairline of the same hue under the title. Colour carries the
-   * category, so the text inside stays neutral apart from the kind label.
+   * A node is a card, the way Vercel draws a project: neutral surface, hairline
+   * border, stacked shadow. Colour lives only in the icon tile, the kind counts
+   * and the selection ring, so a full canvas stays calm and the kinds still read.
    */
   .node {
-    --node-border: color-mix(in srgb, var(--kind) 60%, var(--surface));
-    --node-rule: color-mix(in srgb, var(--kind) 22%, var(--surface));
     position: relative;
-    width: 248px;
-    border: 2px solid var(--node-border);
-    border-radius: 10px;
-    background: color-mix(in srgb, var(--kind) 7%, var(--surface));
+    width: 272px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
     box-shadow: var(--shadow-small);
     cursor: pointer;
     transition: border-color var(--duration-hover) ease, box-shadow 200ms var(--ease-out);
   }
 
-  /* The agent's kind colour is the foreground, which at full strength would shout. */
   .node[data-kind="agent"] {
-    --node-border: color-mix(in srgb, var(--kind) 38%, var(--surface));
-    --node-rule: color-mix(in srgb, var(--kind) 14%, var(--surface));
-    width: 264px;
-    background: color-mix(in srgb, var(--kind) 4%, var(--surface));
+    width: 312px;
   }
 
   @media (hover: hover) and (pointer: fine) {
     .node:hover {
-      border-color: color-mix(in srgb, var(--kind) 85%, var(--surface));
+      border-color: var(--border-strong);
+      box-shadow: var(--shadow);
     }
   }
 
   .node[data-selected] {
-    border-color: var(--kind);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--kind) 20%, transparent), var(--shadow);
+    border-color: color-mix(in srgb, var(--kind) 55%, var(--border));
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--kind) 14%, transparent), var(--shadow);
   }
 
   /* While a connection is dragged, the nodes that can own it say so. */
   .node[data-receiving] {
-    border-color: color-mix(in srgb, var(--kind) 80%, var(--surface));
+    border-color: color-mix(in srgb, var(--kind) 40%, var(--border));
   }
 
   .node[data-targeted] {
-    border-color: var(--kind);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--kind) 26%, transparent), var(--shadow);
+    border-color: color-mix(in srgb, var(--kind) 70%, var(--border));
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--kind) 22%, transparent), var(--shadow);
   }
 
   .react-flow__node.dragging .node {
@@ -217,38 +287,77 @@
     }
   }
 
+  @media (prefers-reduced-motion: reduce) {
+    .node[data-fresh] {
+      animation-name: node-fade;
+    }
+
+    @keyframes node-fade {
+      from {
+        opacity: 0;
+      }
+    }
+  }
+
   .node-head {
     display: flex;
     align-items: center;
-    gap: var(--space-2);
-    height: 42px;
-    margin: 0 var(--space-3);
-    border-bottom: 1px solid var(--node-rule);
+    gap: 10px;
+    padding: 12px 12px 10px;
   }
 
-  .node-icon {
-    width: 16px;
-    height: 16px;
-    color: var(--kind);
-  }
-
-  .node-label {
-    flex: none;
-    color: var(--kind);
-    font-size: 10px;
-    font-weight: var(--weight-semibold);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-
-  .node[data-kind="agent"] .node-label {
-    color: var(--foreground-tertiary);
-  }
-
-  .node-body {
+  .node-tile {
     display: grid;
-    gap: 6px;
-    padding: 10px var(--space-3) var(--space-3);
+    place-items: center;
+    flex: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    color: var(--kind);
+    background: color-mix(in srgb, var(--kind) 11%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--kind) 16%, transparent);
+  }
+
+  /* The agent is the root: a solid tile, like the mark on a Vercel project. */
+  .node[data-kind="agent"] .node-tile {
+    color: var(--background);
+    background: var(--foreground);
+    box-shadow: none;
+  }
+
+  .node-titles {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .node-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 14px;
+    font-weight: var(--weight-medium);
+    line-height: 20px;
+    letter-spacing: -0.01em;
+  }
+
+  .node-detail {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--foreground-secondary);
+    font-size: var(--text-label);
+    line-height: 16px;
+  }
+
+  .node-badge {
+    flex: none;
+    align-self: flex-start;
+    padding: 1px 7px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-pill);
+    color: var(--foreground-tertiary);
+    font-size: 11px;
+    line-height: 16px;
   }
 
   .node-kind {
@@ -257,44 +366,46 @@
     font-weight: var(--weight-medium);
   }
 
-  .node[data-kind="agent"] .node-kind,
   .node-kind[data-kind="agent"] {
     color: var(--foreground-secondary);
   }
 
-  .node-name {
-    flex: 1;
-    min-width: 0;
+  .node-description {
+    display: -webkit-box;
+    margin: 0 12px 10px;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 15px;
-    font-weight: var(--weight-medium);
-    letter-spacing: -0.01em;
-  }
-
-  .node-meta {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
     color: var(--foreground-secondary);
     font-size: var(--text-compact);
+    line-height: 18px;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
 
-  .node-file {
+  .node-counts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin: 0 12px 10px;
+  }
+
+  .node-foot {
     display: flex;
     align-items: center;
     gap: 6px;
     min-width: 0;
+    padding: 7px 12px;
+    border-top: 1px solid var(--border);
+    border-radius: 0 0 11px 11px;
+    background: var(--background);
   }
 
-  .node-file .file-icon {
+  .node-foot .file-icon {
     width: 14px;
     height: 14px;
     margin: 0;
   }
 
-  .node-file .file-icon svg {
+  .node-foot .file-icon svg {
     width: 14px;
     height: 14px;
   }
@@ -311,11 +422,11 @@
   /* ---------- Handles ---------- */
 
   .react-flow__handle.node-handle {
-    width: 14px;
-    height: 14px;
+    width: 10px;
+    height: 10px;
     min-width: 0;
     min-height: 0;
-    border: 2px solid color-mix(in srgb, var(--kind) 70%, var(--border-strong));
+    border: 1.5px solid var(--border-strong);
     border-radius: 50%;
     background: var(--surface);
     transition: scale 200ms var(--ease-out), background-color var(--duration-hover) ease,
@@ -335,7 +446,7 @@
     .react-flow__handle.node-handle.source:hover {
       background: var(--kind);
       border-color: var(--kind);
-      box-shadow: 0 0 0 4px color-mix(in srgb, var(--kind) 22%, transparent);
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--kind) 20%, transparent);
     }
   }
 
@@ -346,11 +457,11 @@
 
   .node[data-receiving] .react-flow__handle.node-handle.source {
     border-color: var(--kind);
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--kind) 18%, transparent);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--kind) 16%, transparent);
   }
 
   .react-flow__handle.node-handle.connectingto.valid {
-    scale: 1.45;
+    scale: 1.4;
     background: var(--kind);
     border-color: var(--kind);
   }
@@ -379,20 +490,50 @@
 
   .react-flow__edge-path {
     fill: none;
-    stroke: color-mix(in srgb, var(--kind) 50%, var(--border-strong));
-    stroke-width: 2;
+    stroke: var(--border-strong);
+    stroke-width: 1.5;
     stroke-linecap: round;
-    stroke-linejoin: round;
-    transition: stroke var(--duration-hover) ease, stroke-width var(--duration-hover) ease;
+    transition: stroke var(--duration-hover) ease;
   }
 
   .react-flow__edge:hover .react-flow__edge-path,
   .react-flow__edge.selected .react-flow__edge-path {
-    stroke: var(--kind);
+    stroke: color-mix(in srgb, var(--kind) 45%, var(--border-strong));
   }
 
-  .react-flow__edge.selected .react-flow__edge-path {
-    stroke-width: 2.5;
+  /* Ownership flows from owner to capability: shown only where the eye already is. */
+  .edge-flow {
+    fill: none;
+    stroke: var(--kind);
+    stroke-width: 1.5;
+    stroke-dasharray: 2 10;
+    stroke-linecap: round;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--duration-hover) ease;
+  }
+
+  .react-flow__edge:hover .edge-flow,
+  .react-flow__edge.selected .edge-flow {
+    opacity: 1;
+    animation: edge-flow 900ms linear infinite;
+  }
+
+  .react-flow__edge.updating .edge-flow {
+    opacity: 0;
+  }
+
+  @keyframes edge-flow {
+    to {
+      stroke-dashoffset: -12;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .react-flow__edge:hover .edge-flow,
+    .react-flow__edge.selected .edge-flow {
+      animation: none;
+    }
   }
 
   .react-flow__edge.updating .react-flow__edge-path {
@@ -403,7 +544,7 @@
   .edge-grip {
     fill: var(--surface);
     stroke: var(--kind);
-    stroke-width: 2;
+    stroke-width: 1.5;
     opacity: 0;
     pointer-events: none;
     transition: opacity var(--duration-hover) ease;
@@ -432,7 +573,7 @@
   .edge-label {
     position: absolute;
     z-index: 10;
-    padding: 2px var(--space-2);
+    padding: 3px var(--space-2);
     border: 1px solid var(--border);
     border-radius: var(--radius-pill);
     background: var(--surface-raised);
@@ -453,15 +594,15 @@
   .connection-line path {
     fill: none;
     stroke: var(--foreground-tertiary);
-    stroke-width: 2;
-    stroke-dasharray: 6 5;
+    stroke-width: 1.5;
+    stroke-dasharray: 5 5;
     stroke-linecap: round;
   }
 
   .connection-line circle {
     fill: var(--surface);
     stroke: var(--foreground-tertiary);
-    stroke-width: 2;
+    stroke-width: 1.5;
   }
 
   .connection-line[data-status="valid"] path {

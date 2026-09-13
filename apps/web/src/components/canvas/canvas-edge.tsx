@@ -4,7 +4,7 @@ import { memo } from "react";
 import {
   BaseEdge,
   EdgeLabelRenderer,
-  getSmoothStepPath,
+  getBezierPath,
   Position,
   type ConnectionLineComponentProps,
   type Edge,
@@ -13,7 +13,7 @@ import {
 
 export type OwnershipEdge = Edge<{ movable: boolean }, "ownership">;
 
-const RADIUS = 16;
+const CURVATURE = 0.32;
 /** How far along the edge the grab dots sit, so a node's handle never covers them. */
 const GRIP_OFFSET = 10;
 
@@ -31,9 +31,11 @@ function along(x: number, y: number, position: Position, distance: number) {
 }
 
 /**
- * An ownership edge: a rounded orthogonal path in the colour of the capability
- * it points at. Movable edges show a dot at each end on hover, which is where
- * React Flow's reconnect anchors sit, so the thing to grab is visible.
+ * An ownership edge: a soft curve from owner to capability. At rest it is a
+ * quiet hairline; hover or selection colours it with the capability's kind and
+ * runs a slow flow along it from owner to capability, which is the direction
+ * ownership reads in. Movable edges show a dot at each end where React Flow's
+ * reconnect anchors sit, so the thing to grab is visible.
  */
 function OwnershipEdgeBase({
   id,
@@ -47,15 +49,14 @@ function OwnershipEdgeBase({
   interactionWidth,
   data,
 }: EdgeProps<OwnershipEdge>) {
-  const [path, labelX, labelY] = getSmoothStepPath({
+  const [path, labelX, labelY] = getBezierPath({
     sourceX,
     sourceY,
     sourcePosition,
     targetX,
     targetY,
     targetPosition,
-    borderRadius: RADIUS,
-    offset: 24,
+    curvature: CURVATURE,
   });
   const movable = data?.movable ?? false;
   const start = along(sourceX, sourceY, sourcePosition, GRIP_OFFSET);
@@ -64,6 +65,7 @@ function OwnershipEdgeBase({
   return (
     <>
       <BaseEdge id={id} path={path} interactionWidth={interactionWidth ?? 24} />
+      <path className="edge-flow" d={path} aria-hidden="true" />
       {movable && (
         <>
           <circle className="edge-grip" cx={start.x} cy={start.y} r={4} />
@@ -75,9 +77,9 @@ function OwnershipEdgeBase({
           <div
             className="edge-label"
             // Above the path, not on it: a selected edge is raised over the label layer.
-            style={{ transform: `translate(${labelX}px, ${labelY}px) translate(-50%, calc(-100% - 8px))` }}
+            style={{ transform: `translate(${labelX}px, ${labelY}px) translate(-50%, calc(-100% - 10px))` }}
           >
-            Drag an end to reassign
+            Drag an end onto another agent
           </div>
         </EdgeLabelRenderer>
       )}
@@ -97,14 +99,14 @@ export function OwnershipConnectionLine({
   toPosition,
   connectionStatus,
 }: ConnectionLineComponentProps) {
-  const [path] = getSmoothStepPath({
+  const [path] = getBezierPath({
     sourceX: fromX,
     sourceY: fromY,
     sourcePosition: fromPosition,
     targetX: toX,
     targetY: toY,
     targetPosition: toPosition,
-    borderRadius: RADIUS,
+    curvature: CURVATURE,
   });
 
   return (
