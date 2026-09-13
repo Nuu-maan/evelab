@@ -1,6 +1,6 @@
 import { RunConsole } from "@/components/runs/run-console";
 import { listRuns, readRunEvents, sessionIdSchema } from "@/lib/runs";
-import { getRuntime, localRuntimeAllowed } from "@/lib/runtime";
+import { getRuntime, runtimeAvailable } from "@/lib/runtime";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +21,7 @@ export default async function RunsPage({
       key={sessionId ?? "new"}
       projectId={id}
       initialRuntime={getRuntime(id)}
-      allowed={localRuntimeAllowed()}
+      allowed={runtimeAvailable()}
       runs={runs}
       sessionId={sessionId}
       initialEvents={events}
