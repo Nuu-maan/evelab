@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { agentPath, type ChannelKind } from "@evelab/eve-project";
+import { agentPath, CHAT_SDK_ADAPTERS, CHAT_SDK_STATES, type ChannelKind } from "@evelab/eve-project";
 import { ChannelForm } from "@/components/channel-form";
 import { ConfirmSubmit } from "@/components/confirm";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
@@ -119,11 +119,16 @@ export default async function ChannelsPage({ params }: { params: Promise<{ id: s
             <CardTitle>Add a channel</CardTitle>
             <CardDescription>
               Writes {directory}&lt;platform&gt;.ts in the shape <code className="mono">eve add channel/&lt;platform&gt;</code>{" "}
-              creates. For Google Chat, WhatsApp and other services, use a Chat SDK adapter in a hand-written channel.
+              creates, or a Chat SDK adapter for WhatsApp, Google Chat and other services eve has no native channel for.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ChannelForm projectId={id} existing={project.channels.map((channel) => channel.id)} />
+            <ChannelForm
+              projectId={id}
+              existing={project.channels.map((channel) => channel.id)}
+              chatSdkAdapters={Object.entries(CHAT_SDK_ADAPTERS).map(([key, value]) => ({ id: key, label: value.label, env: value.env }))}
+              chatSdkStates={Object.entries(CHAT_SDK_STATES).map(([key, value]) => ({ id: key, label: value.label, env: value.env }))}
+            />
           </CardContent>
         </Card>
       </Reveal>

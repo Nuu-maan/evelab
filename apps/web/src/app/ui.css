@@ -438,6 +438,22 @@
     font-size: var(--text-body);
   }
 
+  .channel-env {
+    display: grid;
+    gap: var(--space-1);
+    padding: var(--space-3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-large);
+    background: var(--background);
+  }
+
+  .channel-env ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-3);
+    font-size: var(--text-compact);
+  }
+
   .form-error {
     color: var(--destructive, var(--red, currentColor));
     font-size: var(--text-body);

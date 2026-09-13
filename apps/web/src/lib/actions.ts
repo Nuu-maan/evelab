@@ -11,6 +11,13 @@ import {
   OwnershipError,
   reasoningSchema,
   removeEntity,
+  addPackageDependencies,
+  CHAT_SDK_ADAPTERS,
+  CHAT_SDK_STATES,
+  chatSdkDependencies,
+  renderChatSdkChannelModule,
+  type ChatSdkAdapter,
+  type ChatSdkState,
   renderChannelModule,
   renderConnectionModule,
   renderScheduleMarkdown,
@@ -323,6 +330,43 @@ export async function createChannelAction(
     return { ok: false, message: error instanceof Error ? error.message : "Could not write that channel." };
   }
   project.channels.push({ id: value.kind, file: `${value.kind}.ts`, kind: value.kind, source });
+  await save(projectId, project);
+  return { ok: true };
+}
+
+/**
+ * Writes a Chat SDK channel for a service eve has no first-class channel for,
+ * and adds the packages it imports to the project's package.json.
+ */
+export async function createChatSdkChannelAction(input: {
+  projectId: string;
+  adapter: string;
+  state: string;
+}): Promise<{ ok: true } | { ok: false; message: string }> {
+  const projectId = await projectFrom(input.projectId);
+  if (!(input.adapter in CHAT_SDK_ADAPTERS) || !(input.state in CHAT_SDK_STATES)) {
+    return { ok: false, message: "Choose a Chat SDK adapter and a state store." };
+  }
+  const adapter = input.adapter as ChatSdkAdapter;
+  const state = input.state as ChatSdkState;
+
+  const project = await readProject(projectId);
+  if (project.channels.some((channel) => channel.id === adapter)) {
+    return { ok: false, message: `A ${adapter} channel is already set up.` };
+  }
+  const packageFile = project.files.find((file) => file.path === "package.json");
+  if (!packageFile) return { ok: false, message: "This project has no package.json to add the Chat SDK packages to." };
+  try {
+    packageFile.content = addPackageDependencies(packageFile.content, chatSdkDependencies(adapter, state));
+  } catch {
+    return { ok: false, message: "package.json is not valid JSON, so the Chat SDK packages could not be added." };
+  }
+  project.channels.push({
+    id: adapter,
+    file: `${adapter}.ts`,
+    kind: "chat-sdk",
+    source: renderChatSdkChannelModule({ adapter, state, userName: project.agent.name }),
+  });
   await save(projectId, project);
   return { ok: true };
 }
