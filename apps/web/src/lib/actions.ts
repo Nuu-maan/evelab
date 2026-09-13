@@ -29,6 +29,7 @@ import {
   pullProject,
   sourceControlMessage,
 } from "@/lib/git";
+import { deploySettingsSchema, saveDeploySettings, startDeployment } from "@/lib/deploy";
 import { writeLayout } from "@/lib/layout";
 import { forgetProject, recordProject, requireProjectAccess, requireSignedIn } from "@/lib/session";
 import {
@@ -466,11 +467,11 @@ export async function previewSkillAction(
 ): Promise<{ ok: true; candidate: SkillCandidate } | { ok: false; message: string }> {
   await requireSignedIn();
   try {
-    const candidate = await fetchSkillCandidate(z.string().url().parse(url));
+    const candidate = await fetchSkillCandidate(z.string().trim().min(1).max(500).parse(url));
     return { ok: true, candidate };
   } catch (error) {
     if (error instanceof SkillImportError) return { ok: false, message: error.message };
-    if (error instanceof z.ZodError) return { ok: false, message: "That is not a valid URL." };
+    if (error instanceof z.ZodError) return { ok: false, message: "Paste a link or a skills.sh name." };
     return { ok: false, message: "Could not read that skill." };
   }
 }
@@ -490,7 +491,7 @@ const installSkillSchema = z.object({
       }),
     )
     .min(1)
-    .max(60),
+    .max(120),
 });
 
 /** Writes a reviewed skill package into `skills/<id>/`. Called only after confirmation. */
@@ -630,4 +631,30 @@ export async function disconnectRepositoryAction(formData: FormData) {
   const id = await projectFrom(formData.get("id") ?? formData.get("projectId"));
   await disconnectRepository(id);
   revalidatePath(`/projects/${id}`, "layout");
+}
+
+/*
+ * Deployment. `eve deploy` runs on the server with the server's VERCEL_TOKEN;
+ * the token never reaches the browser or the project.
+ */
+
+export async function saveDeploySettingsAction(formData: FormData) {
+  const projectId = await projectFrom(formData.get("projectId"));
+  const settings = deploySettingsSchema.parse({
+    project: formData.get("project") || undefined,
+    team: formData.get("team") || undefined,
+  });
+  await saveDeploySettings(projectId, settings);
+  revalidatePath(`/projects/${projectId}/deployments`);
+}
+
+export async function deployAction(projectId: string): Promise<{ ok: true } | { ok: false; message: string }> {
+  const id = await projectFrom(projectId);
+  try {
+    await startDeployment(id);
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : "The deployment did not start." };
+  }
+  revalidatePath(`/projects/${id}/deployments`);
+  return { ok: true };
 }

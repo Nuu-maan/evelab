@@ -152,15 +152,25 @@ async function waitForHealth(entry: RuntimeEntry, url: string): Promise<void> {
   throw new Error("eve dev did not become healthy within 90 seconds.");
 }
 
+/**
+ * Makes sure eve can be invoked for a project, installing its dependencies
+ * (eve is one of them) when it cannot. Returns false when that failed.
+ */
+export async function ensureEve(projectId: string, onOutput: (chunk: string) => void): Promise<boolean> {
+  if (eveCommand(projectId, [])) return true;
+  onOutput("Installing the project's dependencies, eve included...\n");
+  const code = await runInProject(projectId, installCommand(projectId), onOutput);
+  if (code === 0 && eveCommand(projectId, [])) return true;
+  onOutput("Installing dependencies failed, so eve is not available.\n");
+  return false;
+}
+
 async function boot(projectId: string, entry: RuntimeEntry): Promise<void> {
   if (!eveCommand(projectId, [])) {
     entry.status = "installing";
-    pushLog(entry, "Installing the project's dependencies, eve included...");
-    const code = await runInProject(projectId, installCommand(projectId), (chunk) => pushLog(entry, chunk));
+    const installed = await ensureEve(projectId, (chunk) => pushLog(entry, chunk));
     if (entry.status !== "installing") return;
-    if (code !== 0 || !eveCommand(projectId, [])) {
-      throw new Error("Installing dependencies failed, so eve is not available. See the log.");
-    }
+    if (!installed) throw new Error("Installing dependencies failed, so eve is not available. See the log.");
   }
 
   entry.status = "starting";
