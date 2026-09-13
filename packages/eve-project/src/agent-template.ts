@@ -219,3 +219,50 @@ export function renderProjectScaffold(input: ProjectScaffoldInput): ProjectFile[
     { path: "tsconfig.json", content: SCAFFOLD_TSCONFIG },
   ];
 }
+
+/** Platform channels EveLab can write, each in the shape its Eve docs page shows. */
+export const CHANNEL_TEMPLATES = {
+  slack: { factory: "slackChannel", connect: "connectSlackCredentials", connectOptional: true },
+  discord: { factory: "discordChannel", connect: "connectDiscordCredentials", connectOptional: false },
+  linear: { factory: "linearChannel", connect: "connectLinearCredentials", connectOptional: false },
+  github: { factory: "githubChannel", connect: "connectGitHubCredentials", connectOptional: false },
+  linq: { factory: "linqChannel", connect: "connectLinqCredentials", connectOptional: false },
+  photon: { factory: "photonIMessageChannel", connect: "connectPhotonCredentials", connectOptional: false },
+  teams: { factory: "teamsChannel", connect: undefined, connectOptional: true },
+  telegram: { factory: "telegramChannel", connect: undefined, connectOptional: true },
+  mcp: { factory: "mcpChannel", connect: undefined, connectOptional: true },
+} as const;
+
+export type ChannelTemplateKind = keyof typeof CHANNEL_TEMPLATES;
+
+export interface ChannelTemplateInput {
+  kind: ChannelTemplateKind;
+  /** Vercel Connect connector UID, such as "slack/my-agent". */
+  connector?: string;
+  /** GitHub App bot name the channel answers to. */
+  botName?: string;
+  /** Telegram bot username. */
+  botUsername?: string;
+}
+
+export function renderChannelModule(input: ChannelTemplateInput): string {
+  const template = CHANNEL_TEMPLATES[input.kind];
+  const connector = template.connect ? input.connector : undefined;
+  if (template.connect && !template.connectOptional && !connector) {
+    throw new Error(`A ${input.kind} channel needs a Vercel Connect connector.`);
+  }
+
+  const imports: string[] = [];
+  if (connector && template.connect) imports.push(`import { ${template.connect} } from "@vercel/connect/eve";`);
+  if (input.kind === "mcp") imports.push(`import { localDev } from "eve/channels/auth";`);
+  imports.push(`import { ${template.factory} } from "eve/channels/${input.kind}";`);
+
+  const options: string[] = [];
+  if (input.kind === "github") options.push(`  botName: ${JSON.stringify(input.botName ?? "")},`);
+  if (input.kind === "telegram") options.push(`  botUsername: ${JSON.stringify(input.botUsername ?? "")},`);
+  if (input.kind === "mcp") options.push(`  auth: localDev(),`);
+  if (connector && template.connect) options.push(`  credentials: ${template.connect}(${JSON.stringify(connector)}),`);
+
+  const call = options.length > 0 ? `${template.factory}({\n${options.join("\n")}\n})` : `${template.factory}()`;
+  return `${imports.join("\n")}\n\nexport default ${call};\n`;
+}
