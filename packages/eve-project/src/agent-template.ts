@@ -344,6 +344,36 @@ export function renderChannelModule(input: ChannelTemplateInput): string {
  * written into the channel file.
  */
 export const CHAT_SDK_ADAPTERS = {
+  slack: {
+    label: "Slack",
+    package: "@chat-adapter/slack",
+    factory: "createSlackAdapter",
+    env: ["SLACK_BOT_TOKEN", "SLACK_SIGNING_SECRET"],
+  },
+  discord: {
+    label: "Discord",
+    package: "@chat-adapter/discord",
+    factory: "createDiscordAdapter",
+    env: ["DISCORD_BOT_TOKEN", "DISCORD_PUBLIC_KEY", "DISCORD_APPLICATION_ID"],
+  },
+  teams: {
+    label: "Microsoft Teams",
+    package: "@chat-adapter/teams",
+    factory: "createTeamsAdapter",
+    env: ["TEAMS_APP_ID", "TEAMS_APP_PASSWORD", "TEAMS_APP_TENANT_ID"],
+  },
+  github: {
+    label: "GitHub",
+    package: "@chat-adapter/github",
+    factory: "createGitHubAdapter",
+    env: ["GITHUB_TOKEN", "GITHUB_WEBHOOK_SECRET"],
+  },
+  linear: {
+    label: "Linear",
+    package: "@chat-adapter/linear",
+    factory: "createLinearAdapter",
+    env: ["LINEAR_API_KEY", "LINEAR_WEBHOOK_SECRET"],
+  },
   whatsapp: {
     label: "WhatsApp",
     package: "@chat-adapter/whatsapp",
