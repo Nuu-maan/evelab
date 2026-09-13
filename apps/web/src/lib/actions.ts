@@ -31,6 +31,7 @@ import {
 } from "@/lib/git";
 import { deploySettingsSchema, saveDeploySettings, startDeployment } from "@/lib/deploy";
 import { writeLayout } from "@/lib/layout";
+import { createConnection, createSchedule, createSubagent, createTool, ProjectOpError } from "@/lib/project-ops";
 import { forgetProject, recordProject, requireProjectAccess, requireSignedIn } from "@/lib/session";
 import {
   fetchSkillCandidate,
@@ -71,14 +72,6 @@ async function projectFrom(value: unknown): Promise<string> {
 async function save(id: string, project: EveProject): Promise<void> {
   await writeProject(id, project);
   revalidatePath(`/projects/${id}`, "layout");
-}
-
-/** Eve rejects a tool and a subagent with the same name on one agent. */
-function assertNameFree(project: EveProject, name: string): void {
-  if (project.tools.some((tool) => tool.id === name)) throw new Error(`There is already a tool named "${name}".`);
-  if (project.subagents.some((subagent) => subagent.id === name)) {
-    throw new Error(`There is already a subagent named "${name}".`);
-  }
 }
 
 /* Sign-in. Plain forms, so they work before any JavaScript loads. */
@@ -187,70 +180,28 @@ export async function saveFileAction(projectId: string, path: string, content: s
   revalidatePath(`/projects/${id}`, "layout");
 }
 
-const toolSchema = z.object({
-  id: nameSchema,
-  description: z.string().trim().max(500).default(""),
-});
-
 export async function createToolAction(formData: FormData) {
   const projectId = await projectFrom(formData.get("projectId"));
-  const input = toolSchema.parse({
-    id: formData.get("toolId"),
-    description: formData.get("description") ?? "",
+  const { path } = await createTool(projectId, {
+    name: String(formData.get("toolId") ?? ""),
+    description: String(formData.get("description") ?? ""),
   });
-
-  const project = await readProject(projectId);
-  assertNameFree(project, input.id);
-
-  const description = input.description || `The ${input.id} tool.`;
-  project.tools.push({
-    id: input.id,
-    file: `${input.id}.ts`,
-    description,
-    kind: "tool",
-    source: renderToolModule(description),
-  });
-  await save(projectId, project);
+  revalidatePath(`/projects/${projectId}`, "layout");
   // The canvas keeps the user in place; the Tools page sends them to the source.
   if (formData.get("openSource") === "true") {
-    const path = agentPath(project.root, `tools/${input.id}.ts`);
     redirect(`/projects/${projectId}/files?path=${encodeURIComponent(path)}`);
   }
 }
 
-const subagentSchema = z.object({
-  id: nameSchema,
-  description: z.string().trim().min(1, "Eve needs a description to route work to a subagent").max(500),
-  modelId: z.string().trim().max(200).optional(),
-});
-
 /** A subagent is a directory with its own agent.ts and instructions. It inherits nothing. */
 export async function createSubagentAction(formData: FormData) {
   const projectId = await projectFrom(formData.get("projectId"));
-  const input = subagentSchema.parse({
-    id: formData.get("subagentId"),
-    description: formData.get("description"),
-    modelId: formData.get("modelId") || undefined,
+  await createSubagent(projectId, {
+    name: String(formData.get("subagentId") ?? ""),
+    description: String(formData.get("description") ?? ""),
+    model: String(formData.get("modelId") ?? "") || undefined,
   });
-
-  const project = await readProject(projectId);
-  assertNameFree(project, input.id);
-
-  project.subagents.push({
-    id: input.id,
-    kind: "local",
-    description: input.description,
-    model: input.modelId ? { id: input.modelId } : undefined,
-    raw: {},
-    source: "",
-    instructions: `# ${input.id}\n\n${input.description}\n`,
-    hasInstructions: true,
-    tools: [],
-    skills: [],
-    connections: [],
-    subagents: [],
-  });
-  await save(projectId, project);
+  revalidatePath(`/projects/${projectId}`, "layout");
 }
 
 /** Removes a tool, skill, connection or subagent by its canvas id, and only its files. */
@@ -299,75 +250,43 @@ export async function changeOwnershipAction(
   return { ok: true };
 }
 
-const connectionSchema = z
-  .object({
-    id: nameSchema,
-    kind: z.enum(["mcp", "openapi"]),
-    url: z.string().trim().url().refine((value) => value.startsWith("https://") || value.startsWith("http://localhost"), {
-      message: "Use an https URL",
-    }),
-    description: z.string().trim().max(500).default(""),
-    auth: z.enum(["none", "connect", "token"]),
-    connector: z.string().trim().max(200).optional(),
-    tokenEnv: z
-      .string()
-      .trim()
-      .regex(/^[A-Z_][A-Z0-9_]*$/, "Use an environment variable name like LINEAR_API_KEY")
-      .optional(),
-    allow: z.string().trim().max(2000).optional(),
-  })
-  .refine((input) => input.auth !== "connect" || input.connector, {
-    message: "Enter the Vercel Connect connector",
-    path: ["connector"],
-  })
-  .refine((input) => input.auth !== "token" || input.tokenEnv, {
-    message: "Enter the environment variable that holds the token",
-    path: ["tokenEnv"],
-  });
-
 /**
  * Writes `connections/<id>.ts`. Credentials never touch EveLab: Vercel Connect
  * resolves them at run time, or the token comes from the deployment's environment.
  */
-export async function createConnectionAction(
-  input: z.input<typeof connectionSchema> & { projectId: string },
-): Promise<{ ok: true } | { ok: false; message: string }> {
+export async function createConnectionAction(input: {
+  projectId: string;
+  id: string;
+  kind: "mcp" | "openapi";
+  url: string;
+  description?: string;
+  auth: "none" | "connect" | "token";
+  connector?: string;
+  tokenEnv?: string;
+  allow?: string;
+}): Promise<{ ok: true } | { ok: false; message: string }> {
   const projectId = await projectFrom(input.projectId);
-  const parsed = connectionSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Check the form." };
-  const value = parsed.data;
-
-  const project = await readProject(projectId);
-  if (project.connections.some((connection) => connection.id === value.id)) {
-    return { ok: false, message: `There is already a connection named "${value.id}".` };
-  }
-  const names = (value.allow ?? "")
+  const allow = (input.allow ?? "")
     .split(/[\s,]+/)
     .map((name) => name.trim())
     .filter(Boolean);
-  const filter = names.length > 0 ? { mode: "allow" as const, names } : undefined;
-
-  project.connections.push({
-    id: value.id,
-    file: `${value.id}.ts`,
-    kind: value.kind,
-    description: value.description,
-    url: value.kind === "mcp" ? value.url : undefined,
-    spec: value.kind === "openapi" ? value.url : undefined,
-    auth: value.auth,
-    connector: value.auth === "connect" ? value.connector : undefined,
-    filter,
-    source: renderConnectionModule({
-      kind: value.kind,
-      url: value.url,
-      description: value.description,
-      auth: value.auth,
-      connector: value.connector,
-      tokenEnv: value.tokenEnv,
-      filter,
-    }),
-  });
-  await save(projectId, project);
+  try {
+    await createConnection(projectId, {
+      name: input.id,
+      kind: input.kind,
+      url: input.url,
+      description: input.description,
+      auth: input.auth,
+      connector: input.connector,
+      tokenEnv: input.tokenEnv,
+      allow,
+    });
+  } catch (error) {
+    if (error instanceof ProjectOpError) return { ok: false, message: error.message };
+    if (error instanceof z.ZodError) return { ok: false, message: error.issues[0]?.message ?? "Check the form." };
+    throw error;
+  }
+  revalidatePath(`/projects/${projectId}`, "layout");
   return { ok: true };
 }
 
@@ -416,38 +335,15 @@ export async function deleteChannelAction(formData: FormData) {
   await save(projectId, project);
 }
 
-const scheduleSchema = z.object({
-  id: nameSchema,
-  cron: z
-    .string()
-    .trim()
-    .refine((value) => value.split(/\s+/).length === 5, { message: "Use a five-field cron expression" }),
-  prompt: z.string().trim().min(1, "Write what the agent should do").max(20_000),
-});
-
 /** Writes a markdown schedule: the cron in frontmatter and the prompt as the body. */
 export async function createScheduleAction(formData: FormData) {
   const projectId = await projectFrom(formData.get("projectId"));
-  const input = scheduleSchema.parse({
-    id: formData.get("scheduleId"),
-    cron: formData.get("cron"),
-    prompt: formData.get("prompt"),
+  await createSchedule(projectId, {
+    name: String(formData.get("scheduleId") ?? ""),
+    cron: String(formData.get("cron") ?? ""),
+    prompt: String(formData.get("prompt") ?? ""),
   });
-
-  const project = await readProject(projectId);
-  if (project.schedules.some((schedule) => schedule.id === input.id)) {
-    throw new Error(`There is already a schedule named "${input.id}".`);
-  }
-  project.schedules.push({
-    id: input.id,
-    file: `${input.id}.md`,
-    format: "markdown",
-    cron: input.cron,
-    prompt: input.prompt,
-    handler: false,
-    source: renderScheduleMarkdown(input.cron, input.prompt),
-  });
-  await save(projectId, project);
+  revalidatePath(`/projects/${projectId}`, "layout");
 }
 
 export async function deleteScheduleAction(formData: FormData) {
