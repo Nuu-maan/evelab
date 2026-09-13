@@ -3,9 +3,9 @@
 import { createContext, memo, useContext } from "react";
 import { Handle, Position, useConnection, type Node, type NodeProps } from "@xyflow/react";
 import type { CanvasNodeKind, CapabilityCounts } from "@evelab/eve-project";
-import { IconChevronDown, IconChevronRight, IconUsers } from "@/components/icons";
+import { IconChevronDown, IconChevronRight } from "@/components/icons";
 import { Icon } from "@/components/icon";
-import { KINDS, KindCount } from "@/components/kinds";
+import { KINDS } from "@/components/kinds";
 
 export type CanvasNodeData = {
   name: string;
@@ -51,18 +51,38 @@ export function isResourceKind(kind: CanvasNodeKind | undefined): kind is "tool"
   return kind === "tool" || kind === "skill" || kind === "connection";
 }
 
-const COUNT_KINDS = [
-  ["subagent", "subagents"],
-  ["tool", "tools"],
-  ["skill", "skills"],
-  ["connection", "connections"],
-  ["channel", "channels"],
-] as const;
+function plural(count: number, one: string, many: string) {
+  return count === 1 ? one : many;
+}
+
+/** The two readings a card leads with, like a dashboard tile: a big number and what it counts. */
+function readings(data: CanvasNodeData): { value: string; label: string }[] {
+  const counts = data.counts;
+  const resources = counts ? counts.tools + counts.skills + counts.connections : 0;
+  if (data.kind === "agent") {
+    return [
+      { value: String(counts?.subagents ?? 0), label: plural(counts?.subagents ?? 0, "subagent", "subagents") },
+      { value: String(resources), label: plural(resources, "resource", "resources") },
+    ];
+  }
+  if (data.kind === "subagent") {
+    return [
+      { value: String(resources), label: plural(resources, "resource", "resources") },
+      { value: String(counts?.subagents ?? 0), label: "nested" },
+    ];
+  }
+  if (data.kind === "channel") return [{ value: `/${data.name}`, label: "route" }];
+  const usedBy = data.usedBy ?? 0;
+  return [
+    { value: String(usedBy), label: plural(usedBy, "agent", "agents") },
+    { value: "", label: data.shared ? "shared" : "local" },
+  ];
+}
 
 /**
- * One node per agent or resource. Size says where it sits in the hierarchy,
- * colour only says what kind it is, and a shared resource says how many agents
- * use it, because it is drawn once however many do.
+ * One card per agent or resource: a tinted frame in the kind's colour, its
+ * name, two readings and the model or source it runs on. The root is the
+ * largest card, resources the smallest.
  */
 function CanvasNodeCardBase({ id, data, selected }: NodeProps<CapabilityNode>) {
   const { horizontal, uses, toggleCollapse } = useContext(CanvasContext);
@@ -73,8 +93,8 @@ function CanvasNodeCardBase({ id, data, selected }: NodeProps<CapabilityNode>) {
   const targeted = useConnection((connection) => connection.inProgress && connection.toNode?.id === id);
   const valid = resource && from !== undefined && !uses(from, id);
   const tier = data.kind === "agent" ? "root" : owns ? "agent" : "resource";
-  const counts = data.counts ? COUNT_KINDS.filter(([, key]) => (data.counts![key] ?? 0) > 0) : [];
-  const usedBy = data.usedBy ?? 0;
+  const [primary, secondary] = readings(data);
+  const foldable = owns && data.counts && data.counts.subagents + data.counts.tools + data.counts.skills + data.counts.connections > 0;
 
   return (
     <div
@@ -86,6 +106,7 @@ function CanvasNodeCardBase({ id, data, selected }: NodeProps<CapabilityNode>) {
       data-valid={valid || undefined}
       data-invalid={(from !== undefined && from !== id && !valid) || undefined}
       data-targeted={(targeted && valid) || undefined}
+      title={data.description}
     >
       {data.kind !== "agent" && (
         <Handle
@@ -97,19 +118,10 @@ function CanvasNodeCardBase({ id, data, selected }: NodeProps<CapabilityNode>) {
       )}
 
       <div className="node-head">
-        <span className="node-tile" aria-hidden="true">
-          <Icon icon={KINDS[data.kind].icon} size={tier === "resource" ? 14 : 16} />
-        </span>
-        <div className="node-titles">
-          <p className="node-type">
-            {KINDS[data.kind].label}
-            {data.shared && <span className="node-shared">Shared</span>}
-          </p>
-          <p className="node-name" title={data.name}>
-            {data.name}
-          </p>
-        </div>
-        {owns && counts.length > 0 && (
+        <Icon icon={KINDS[data.kind].icon} size={tier === "resource" ? 16 : 18} />
+        <p className="node-name">{data.name}</p>
+        {data.shared && <span className="node-shared">Shared</span>}
+        {foldable && (
           <button
             type="button"
             className="node-collapse nodrag nopan"
@@ -126,35 +138,28 @@ function CanvasNodeCardBase({ id, data, selected }: NodeProps<CapabilityNode>) {
         )}
       </div>
 
-      {data.description && tier !== "resource" && (
-        <p className="node-description" title={data.description}>
-          {data.description}
-        </p>
-      )}
-
-      <div className="node-meta">
-        <span className="node-detail" title={data.detail}>
-          {data.detail}
-        </span>
-        {resource && (data.shared || usedBy > 1) && (
-          <span className="node-usage" title={`${usedBy} ${usedBy === 1 ? "agent uses" : "agents use"} this`}>
-            <Icon icon={IconUsers} size={12} />
-            <span className="tabular-nums">{usedBy}</span>
-          </span>
-        )}
-      </div>
-
-      {owns && counts.length > 0 && (
-        <div className="node-counts">
-          {counts.map(([kind, key]) => (
-            <KindCount key={kind} kind={kind} count={data.counts![key] ?? 0} />
-          ))}
+      <div className="node-body">
+        <div className="node-readings">
+          {primary && (
+            <span className="node-reading">
+              {primary.value && <strong>{primary.value}</strong>}
+              <em>{primary.label}</em>
+            </span>
+          )}
+          {secondary && (
+            <span className="node-reading" data-secondary="">
+              {secondary.value && <strong>{secondary.value}</strong>}
+              <em>{secondary.label}</em>
+            </span>
+          )}
         </div>
-      )}
-
-      <p className="node-path mono" title={data.filePath}>
-        {data.filePath}
-      </p>
+        <p className="node-detail" title={data.detail}>
+          {data.detail}
+        </p>
+        <p className="node-path" title={data.filePath}>
+          {data.filePath}
+        </p>
+      </div>
 
       {owns && (
         <Handle className="node-handle" type="source" position={horizontal ? Position.Right : Position.Bottom} />

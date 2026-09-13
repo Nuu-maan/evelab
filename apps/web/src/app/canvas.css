@@ -1,4 +1,4 @@
-/* Canvas: resource browser, React Flow surface, nodes, edges, inspector. */
+/* Canvas: a whiteboard with floating panels, metric cards, wires and annotations. */
 
 /* Layered so Tailwind utilities on shadcn components always win. */
 @layer theme, base, components, utilities;
@@ -7,53 +7,511 @@
 @import "@xyflow/react/dist/base.css" layer(base);
 
 @layer components {
-  /* Three regions: what exists, the picture, what is selected. */
   .canvas-layout {
-    display: grid;
-    grid-template-columns: var(--pane-palette, 256px) minmax(0, 1fr) var(--pane-inspector, 360px);
+    --canvas-grid: color-mix(in srgb, var(--foreground) 5%, transparent);
+    --canvas-edge: color-mix(in srgb, var(--foreground) 38%, transparent);
+    --float-gap: 12px;
+    --browser-width: var(--pane-palette, 248px);
+    position: relative;
     height: 100%;
     min-height: 0;
+    overflow: hidden;
+    background: var(--background);
+  }
+
+  /* Every panel floats over the board: raised surface, hairline, soft shadow. */
+  .canvas-float {
+    z-index: 10;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--surface-raised) 94%, transparent);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(8px);
+  }
+
+  /* ---------- Surface ---------- */
+
+  .canvas-surface {
+    position: absolute;
+    inset: 0;
+  }
+
+  .canvas-surface .react-flow {
+    background: transparent;
+  }
+
+  .canvas-surface .react-flow__pane {
+    cursor: default;
+  }
+
+  .canvas-surface .react-flow__pane.dragging {
+    cursor: grabbing;
+  }
+
+  .canvas-surface .react-flow__attribution {
+    top: auto;
+    right: 50%;
+    bottom: 2px;
+    padding: 0 6px;
+    transform: translateX(50%);
+    background: transparent;
+    font-size: 9px;
+    opacity: 0.6;
+  }
+
+  .canvas-surface .react-flow__attribution a {
+    color: var(--foreground-tertiary);
+  }
+
+  .canvas-surface .react-flow__selection,
+  .canvas-surface .react-flow__nodesselection-rect {
+    border: 1px dashed color-mix(in srgb, var(--focus) 70%, transparent);
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--focus) 6%, transparent);
+  }
+
+  .canvas-surface .react-flow__minimap {
+    right: var(--float-gap);
+    bottom: 60px;
+    margin: 0;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    box-shadow: var(--shadow-small);
+  }
+
+  .canvas-layout[data-inspector] .canvas-surface .react-flow__minimap {
+    right: calc(var(--pane-inspector, 360px) + var(--float-gap) * 2);
+  }
+
+  .canvas-surface .react-flow__minimap-mask {
+    fill: color-mix(in srgb, var(--background) 72%, transparent);
+  }
+
+  .minimap-node {
+    fill: var(--border-strong);
+  }
+
+  .minimap-agent {
+    fill: var(--foreground);
+  }
+
+  .minimap-subagent {
+    fill: var(--kind-subagent);
+  }
+
+  .minimap-tool {
+    fill: var(--kind-tool);
+  }
+
+  .minimap-skill {
+    fill: var(--kind-skill);
+  }
+
+  .minimap-connection {
+    fill: var(--kind-connection);
+  }
+
+  .minimap-channel {
+    fill: var(--kind-channel);
+  }
+
+  .minimap-annotation {
+    fill: color-mix(in srgb, var(--foreground) 12%, transparent);
+  }
+
+  /* ---------- Floating chrome ---------- */
+
+  .canvas-title {
+    position: absolute;
+    top: var(--float-gap);
+    left: var(--float-gap);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    width: var(--browser-width);
+    height: 52px;
+    padding: 0 6px 0 12px;
+  }
+
+  .canvas-title-text {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .canvas-title-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    font-weight: var(--weight-semibold);
+  }
+
+  .canvas-title-sub {
+    color: var(--foreground-tertiary);
+    font-size: 11px;
+  }
+
+  .canvas-save {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--foreground-tertiary);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .icon-mirror svg {
+    transform: scaleX(-1);
+  }
+
+  .sync-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--success);
+  }
+
+  .canvas-save[data-tone="busy"] .sync-dot {
+    background: var(--focus);
+    animation: sync-pulse 900ms ease-in-out infinite alternate;
+  }
+
+  .canvas-save[data-tone="warning"] .sync-dot {
+    background: var(--warning);
+  }
+
+  .canvas-save[data-tone="error"] {
+    color: var(--danger);
+  }
+
+  .canvas-save[data-tone="error"] .sync-dot {
+    background: var(--danger);
+  }
+
+  @keyframes sync-pulse {
+    to {
+      opacity: 0.35;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .canvas-save[data-tone="busy"] .sync-dot {
+      animation: none;
+    }
+  }
+
+  /* The stats bar reads like an instrument panel: small caps labels over big mono numbers. */
+  .canvas-stats {
+    position: absolute;
+    top: var(--float-gap);
+    left: 50%;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    height: 52px;
+    padding: 0 10px 0 10px;
+    transform: translateX(-50%);
+    white-space: nowrap;
+  }
+
+  .canvas-stats-separator {
+    width: 1px;
+    height: 28px;
+    margin: 0 10px;
+    background: var(--border);
+  }
+
+  .canvas-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+    padding: 0 10px;
+  }
+
+  .canvas-stat-label {
+    color: var(--foreground-tertiary);
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .canvas-stat-value {
+    color: var(--foreground);
+    font-family: var(--font-mono);
+    font-size: 18px;
+    font-weight: var(--weight-medium);
+    font-variant-numeric: tabular-nums;
+    line-height: 22px;
+  }
+
+  .canvas-stat-button {
+    height: 42px;
+    justify-content: center;
+    border-radius: 8px;
+    transition: background-color var(--duration-hover) ease;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .canvas-stat-button:hover {
+      background: var(--surface-hover);
+    }
+  }
+
+  .canvas-stat-button[aria-pressed="true"] {
+    background: var(--surface-active);
+  }
+
+  .canvas-stat-button[data-tone="warning"] .canvas-stat-value {
+    color: var(--warning);
+  }
+
+  .canvas-stat-button[data-tone="error"] .canvas-stat-value {
+    color: var(--danger);
+  }
+
+  .canvas-hints {
+    position: absolute;
+    top: 72px;
+    left: 50%;
+    z-index: 9;
+    display: flex;
+    gap: 14px;
+    padding: 4px 10px;
+    transform: translateX(-50%);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--background) 80%, transparent);
+    color: var(--foreground-tertiary);
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  .canvas-view-menu {
+    position: absolute;
+    top: var(--float-gap);
+    right: var(--float-gap);
+    padding: 3px;
+  }
+
+  .canvas-view-menu [data-slot="button"],
+  .canvas-title [data-slot="button"],
+  .canvas-zoom [data-slot="button"],
+  .canvas-icon-float [data-slot="button"] {
+    border-radius: 8px;
+  }
+
+  .canvas-bottom-left {
+    position: absolute;
+    bottom: var(--float-gap);
+    left: var(--float-gap);
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: left 240ms var(--ease-out);
+  }
+
+  .canvas-layout[data-panel] .canvas-bottom-left {
+    left: calc(var(--browser-width) + var(--float-gap) * 2);
+  }
+
+  .canvas-icon-float {
+    padding: 3px;
+  }
+
+  .canvas-status {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: 34px;
+    padding: 0 12px;
+    color: var(--foreground-tertiary);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .canvas-status-mode {
+    color: var(--foreground-secondary);
+  }
+
+  .canvas-zoom {
+    position: absolute;
+    right: var(--float-gap);
+    bottom: var(--float-gap);
+    display: flex;
+    align-items: center;
+    gap: 1px;
+    padding: 3px;
+  }
+
+  .menu-text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.3;
+  }
+
+  .menu-hint {
+    color: var(--foreground-tertiary);
+    font-size: 12px;
+  }
+
+  .menu-meta {
+    margin-left: auto;
+    color: var(--foreground-tertiary);
+    font-size: 11px;
+  }
+
+  .menu-kbd {
+    margin-left: auto;
+    padding: 0 5px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--foreground-tertiary);
+    font-family: var(--font-mono);
+    font-size: 10px;
+  }
+
+  .canvas-empty {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 4;
+    display: grid;
+    justify-items: center;
+    gap: var(--space-2);
+    width: min(400px, calc(100% - 48px));
+    padding: var(--space-5) var(--space-4);
+    transform: translate(-50%, 40px);
+    text-align: center;
+    pointer-events: none;
+    animation: canvas-empty-in 320ms var(--ease-out) both;
+  }
+
+  .canvas-empty button {
+    pointer-events: auto;
+  }
+
+  @keyframes canvas-empty-in {
+    from {
+      opacity: 0;
+      transform: translate(-50%, 48px);
+    }
+  }
+
+  .canvas-empty-title {
+    font-family: "Caveat", cursive;
+    font-size: 30px;
+    font-weight: 700;
+  }
+
+  .canvas-empty-text {
+    margin-bottom: var(--space-2);
+    color: var(--foreground-secondary);
+    font-size: var(--text-compact);
+    line-height: 1.5;
+    text-wrap: pretty;
+  }
+
+  .canvas-notice {
+    position: absolute;
+    bottom: var(--float-gap);
+    left: 50%;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    max-width: 420px;
+    height: 40px;
+    padding: 0 6px 0 var(--space-3);
+    transform: translateX(-50%);
+    color: var(--foreground-secondary);
+    font-size: var(--text-label);
+    white-space: nowrap;
+    animation: notice-in 200ms var(--ease-out) both;
+  }
+
+  .canvas-notice[data-raised] {
+    bottom: calc(34px + 40px + var(--float-gap) * 3);
+  }
+
+  .canvas-notice > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-right: var(--space-2);
+  }
+
+  @keyframes notice-in {
+    from {
+      opacity: 0;
+      transform: translate(-50%, 6px);
+    }
+  }
+
+  .canvas-notice[data-tone="error"] {
+    border-color: color-mix(in srgb, var(--danger) 35%, var(--border));
+    color: var(--danger);
+  }
+
+  .canvas-notice-action {
+    height: 26px;
+    padding: 0 10px;
+    border-radius: 6px;
+    background: var(--surface-hover);
+    color: var(--foreground);
+    font-size: 12px;
+    font-weight: var(--weight-medium);
+    transition: background-color var(--duration-hover) ease, transform var(--duration-press) var(--ease-out);
+  }
+
+  .canvas-notice-action:active {
+    transform: scale(0.96);
   }
 
   /* ---------- Resource browser ---------- */
 
   .canvas-browser {
-    position: relative;
+    position: absolute;
+    top: calc(52px + var(--float-gap) * 2);
+    bottom: var(--float-gap);
+    left: var(--float-gap);
     display: flex;
     flex-direction: column;
-    min-width: 0;
-    min-height: 0;
-    border-right: 1px solid var(--border);
-    background: var(--background);
+    width: var(--browser-width);
+    overflow: hidden;
+    animation: float-in-left 220ms var(--ease-out) both;
   }
 
-  .browser-head {
-    display: grid;
-    gap: var(--space-2);
-    padding: var(--space-3) var(--space-3) var(--space-2);
-  }
-
-  .browser-title-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding-left: var(--space-1);
-  }
-
-  .browser-title {
-    font-size: var(--text-compact);
-    font-weight: var(--weight-medium);
+  @keyframes float-in-left {
+    from {
+      opacity: 0;
+      transform: translateX(-8px);
+    }
   }
 
   .browser-search {
     display: flex;
     align-items: center;
     gap: var(--space-2);
-    height: 32px;
+    height: 36px;
+    margin: 8px 8px 4px;
     padding: 0 10px;
     border: 1px solid var(--border);
     border-radius: 8px;
-    background: var(--surface);
+    background: var(--background);
     color: var(--foreground-tertiary);
     transition: border-color var(--duration-hover) ease, box-shadow var(--duration-hover) ease;
   }
@@ -77,73 +535,83 @@
     display: none;
   }
 
-  .browser-filters {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-  }
-
-  .browser-filter {
-    flex: none;
-    height: 24px;
-    padding: 0 8px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-pill);
-    background: transparent;
-    color: var(--foreground-secondary);
-    font-size: 12px;
-    transition: background-color var(--duration-hover) ease, color var(--duration-hover) ease,
-      border-color var(--duration-hover) ease, transform var(--duration-press) var(--ease-out);
-  }
-
-  @media (hover: hover) and (pointer: fine) {
-    .browser-filter:hover {
-      color: var(--foreground);
-      border-color: var(--border-strong);
-    }
-  }
-
-  .browser-filter:active {
-    transform: scale(0.97);
-  }
-
-  .browser-filter[aria-pressed="true"] {
-    border-color: var(--foreground);
-    background: var(--foreground);
-    color: var(--background);
-  }
-
   .browser-list {
     flex: 1;
     min-height: 0;
-    padding: var(--space-1) var(--space-2) var(--space-3);
+    padding: 4px 6px 10px;
     overflow-y: auto;
+    scrollbar-width: thin;
   }
 
   .browser-group + .browser-group {
-    margin-top: var(--space-3);
+    margin-top: 10px;
+  }
+
+  .browser-group-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 6px 2px 10px;
   }
 
   .browser-group-label {
-    display: flex;
-    justify-content: space-between;
-    padding: 6px var(--space-2) 4px;
     color: var(--foreground-tertiary);
-    font-size: 12px;
-    font-weight: var(--weight-medium);
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
 
-  .browser-empty,
-  .browser-hint {
-    padding: var(--space-3);
+  .browser-group-add {
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 5px;
     color: var(--foreground-tertiary);
-    font-size: 12px;
-    line-height: 1.5;
-    text-wrap: pretty;
+    opacity: 0;
+    transition: opacity var(--duration-hover) ease, background-color var(--duration-hover) ease, color var(--duration-hover) ease;
   }
 
-  .browser-hint {
-    border-top: 1px solid var(--border);
+  .browser-group:hover .browser-group-add,
+  .browser-group-add:focus-visible {
+    opacity: 1;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .browser-group-add:hover {
+      background: var(--surface-hover);
+      color: var(--foreground);
+    }
+  }
+
+  .browser-empty-row {
+    width: 100%;
+    padding: 6px 10px;
+    border-radius: 8px;
+    color: var(--foreground-tertiary);
+    font-size: 12px;
+    text-align: left;
+    transition: background-color var(--duration-hover) ease, color var(--duration-hover) ease;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .browser-empty-row:hover {
+      background: var(--surface-hover);
+      color: var(--foreground);
+    }
+  }
+
+  .canvas-browser .kind-tile {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--kind) 10%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--kind) 45%, transparent);
+  }
+
+  .canvas-browser .annotate-tile {
+    --kind: var(--foreground-secondary);
   }
 
   /* ---------- Chips and rows ---------- */
@@ -170,8 +638,8 @@
   }
 
   .palette-chip[data-variant="row"] {
-    gap: 8px;
-    padding: 5px var(--space-2);
+    gap: 10px;
+    padding: 5px 8px;
     border-color: transparent;
     border-radius: 8px;
     background: transparent;
@@ -225,8 +693,11 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: var(--text-compact);
-    font-weight: var(--weight-medium);
+    font-size: 13px;
+  }
+
+  .palette-chip[data-variant="row"] .palette-chip-detail {
+    display: none;
   }
 
   .palette-chip-detail {
@@ -239,9 +710,15 @@
 
   .palette-chip-badge {
     flex: none;
+    min-width: 18px;
+    padding: 0 5px;
+    border-radius: 5px;
+    background: var(--surface-hover);
     color: var(--foreground-tertiary);
-    font-size: 11px;
-    font-variant-numeric: tabular-nums;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    line-height: 16px;
+    text-align: center;
   }
 
   /*
@@ -263,9 +740,13 @@
     transition: border-color var(--duration-hover) ease, box-shadow var(--duration-hover) ease;
   }
 
+  .palette-chip.drag-ghost .palette-chip-detail {
+    display: block;
+  }
+
   .palette-chip.drag-ghost[data-over] {
-    border-color: color-mix(in srgb, var(--kind) 55%, var(--border));
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--kind) 16%, transparent), var(--shadow-large);
+    border-color: color-mix(in srgb, var(--kind, var(--focus)) 55%, var(--border));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--kind, var(--focus)) 16%, transparent), var(--shadow-large);
   }
 
   body[data-palette-dragging],
@@ -274,316 +755,50 @@
     user-select: none;
   }
 
-  /* ---------- Surface ---------- */
-
-  .canvas-surface {
-    position: relative;
-    min-width: 0;
-    min-height: 0;
-    background: var(--background);
-  }
-
-  .canvas-surface .react-flow {
-    background: transparent;
-  }
-
-  .canvas-surface .react-flow__attribution {
-    padding: 2px 6px;
-    background: transparent;
-    font-size: 10px;
-  }
-
-  .canvas-surface .react-flow__attribution a {
-    color: var(--foreground-tertiary);
-  }
-
-  .canvas-surface .react-flow__selection,
-  .canvas-surface .react-flow__nodesselection-rect {
-    border: 1px solid color-mix(in srgb, var(--focus) 60%, transparent);
-    border-radius: 4px;
-    background: color-mix(in srgb, var(--focus) 6%, transparent);
-  }
-
-  .canvas-surface .react-flow__minimap {
-    margin: var(--space-3);
-    overflow: hidden;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    background: var(--surface);
-    box-shadow: var(--shadow-small);
-  }
-
-  .canvas-surface .react-flow__minimap-mask {
-    fill: color-mix(in srgb, var(--background) 72%, transparent);
-  }
-
-  .minimap-node {
-    fill: var(--border-strong);
-  }
-
-  .minimap-agent {
-    fill: var(--foreground);
-  }
-
-  .minimap-subagent {
-    fill: var(--kind-subagent);
-  }
-
-  .minimap-tool {
-    fill: var(--kind-tool);
-  }
-
-  .minimap-skill {
-    fill: var(--kind-skill);
-  }
-
-  .minimap-connection {
-    fill: var(--kind-connection);
-  }
-
-  .minimap-channel {
-    fill: var(--kind-channel);
-  }
-
-  /* Outer radius 10, padding 3: controls take 7 so the corners stay concentric. */
-  .canvas-toolbar {
-    position: absolute;
-    top: var(--space-3);
-    left: 50%;
-    z-index: 5;
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    max-width: calc(100% - var(--space-6, 32px));
-    padding: 3px;
-    transform: translateX(-50%);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    background: var(--surface-raised);
-    box-shadow: var(--shadow);
-    white-space: nowrap;
-  }
-
-  .canvas-toolbar [data-slot="button"] {
-    border-radius: 7px;
-  }
-
-  .canvas-toolbar-separator {
-    flex: none;
-    width: 1px;
-    height: 16px;
-    margin: 0 3px;
-    background: var(--border);
-  }
-
-  .sync-status {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    height: 28px;
-    padding: 0 10px 0 8px;
-    border-radius: 7px;
-    color: var(--foreground-secondary);
-    font-size: 12px;
-    transition: background-color var(--duration-hover) ease;
-  }
-
-  @media (hover: hover) and (pointer: fine) {
-    .sync-status:hover {
-      background: var(--surface-hover);
-    }
-  }
-
-  .sync-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--success);
-  }
-
-  .sync-status[data-tone="busy"] .sync-dot {
-    background: var(--focus);
-    animation: sync-pulse 900ms ease-in-out infinite alternate;
-  }
-
-  .sync-status[data-tone="warning"] .sync-dot {
-    background: var(--warning);
-  }
-
-  .sync-status[data-tone="error"] {
-    color: var(--danger);
-  }
-
-  .sync-status[data-tone="error"] .sync-dot {
-    background: var(--danger);
-  }
-
-  @keyframes sync-pulse {
-    to {
-      opacity: 0.35;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .sync-status[data-tone="busy"] .sync-dot {
-      animation: none;
-    }
-  }
-
-  .menu-text {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    min-width: 0;
-    line-height: 1.3;
-  }
-
-  .menu-hint {
-    color: var(--foreground-tertiary);
-    font-size: 12px;
-  }
-
-  .menu-meta {
-    margin-left: auto;
-    color: var(--foreground-tertiary);
-    font-size: 11px;
-  }
-
-  .canvas-empty {
-    position: absolute;
-    top: 64%;
-    left: 50%;
-    z-index: 4;
-    display: grid;
-    justify-items: center;
-    gap: var(--space-2);
-    width: min(360px, calc(100% - 48px));
-    padding: var(--space-5) var(--space-4);
-    transform: translate(-50%, -50%);
-    border: 1px dashed var(--border-strong);
-    border-radius: 14px;
-    background: color-mix(in srgb, var(--background) 88%, transparent);
-    text-align: center;
-    animation: canvas-empty-in 320ms var(--ease-out) both;
-  }
-
-  @keyframes canvas-empty-in {
-    from {
-      opacity: 0;
-      transform: translate(-50%, calc(-50% + 6px));
-    }
-  }
-
-  .canvas-empty-title {
-    font-size: 15px;
-    font-weight: var(--weight-semibold);
-    letter-spacing: -0.01em;
-  }
-
-  .canvas-empty-text {
-    margin-bottom: var(--space-2);
-    color: var(--foreground-secondary);
-    font-size: var(--text-compact);
-    line-height: 1.5;
-    text-wrap: pretty;
-  }
-
-  .canvas-notice {
-    position: absolute;
-    bottom: var(--space-4);
-    left: 50%;
-    z-index: 6;
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    max-width: calc(100% - 320px);
-    padding: 6px 6px 6px var(--space-3);
-    transform: translateX(-50%);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-pill);
-    background: var(--surface-raised);
-    box-shadow: var(--shadow);
-    color: var(--foreground-secondary);
-    font-size: var(--text-label);
-    white-space: nowrap;
-    animation: notice-in 200ms var(--ease-out) both;
-  }
-
-  .canvas-notice > span {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    padding-right: var(--space-2);
-  }
-
-  @keyframes notice-in {
-    from {
-      opacity: 0;
-      transform: translate(-50%, 6px);
-    }
-  }
-
-  .canvas-notice[data-tone="error"] {
-    border-color: color-mix(in srgb, var(--danger) 35%, var(--border));
-    color: var(--danger);
-  }
-
-  .canvas-notice-action {
-    height: 24px;
-    padding: 0 10px;
-    border-radius: var(--radius-pill);
-    background: var(--surface-hover);
-    color: var(--foreground);
-    font-size: 12px;
-    font-weight: var(--weight-medium);
-    transition: background-color var(--duration-hover) ease, transform var(--duration-press) var(--ease-out);
-  }
-
-  .canvas-notice-action:active {
-    transform: scale(0.96);
-  }
-
   /* ---------- Nodes ---------- */
 
   /*
-   * Neutral cards. Size carries the hierarchy and colour carries only the kind,
-   * in the icon and the type label, so a full canvas stays calm.
+   * A card is a tinted frame in its kind's colour, like an instrument on a
+   * systems diagram: the name on top, two readings in mono, then where it runs.
    */
   .node {
     position: relative;
-    width: 220px;
-    border: 1px solid var(--border);
+    width: 232px;
+    border: 1.5px solid color-mix(in srgb, var(--kind) 62%, transparent);
     border-radius: 10px;
-    background: var(--surface);
+    background: color-mix(in srgb, var(--kind) 7%, var(--surface));
     box-shadow: var(--shadow-small);
     transition: border-color var(--duration-hover) ease, box-shadow 200ms var(--ease-out), opacity 200ms ease;
   }
 
   .node[data-tier="agent"] {
-    width: 260px;
-    border-radius: 12px;
+    width: 264px;
   }
 
   .node[data-tier="root"] {
     width: 300px;
-    border-color: var(--border-strong);
-    border-radius: 14px;
+    border-color: color-mix(in srgb, var(--foreground) 55%, transparent);
+    background: var(--surface);
     box-shadow: var(--shadow);
   }
 
   @media (hover: hover) and (pointer: fine) {
     .node:hover {
-      border-color: var(--border-strong);
-      box-shadow: var(--shadow);
+      border-color: var(--kind);
     }
   }
 
   .node[data-selected] {
-    border-color: var(--focus);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 18%, transparent), var(--shadow);
+    border-color: var(--kind);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--kind) 22%, transparent), var(--shadow);
+  }
+
+  .node[data-tier="root"][data-selected] {
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--foreground) 14%, transparent), var(--shadow);
   }
 
   .react-flow__node.is-dim .node {
-    opacity: 0.4;
+    opacity: 0.35;
   }
 
   .react-flow__node.is-settling {
@@ -593,22 +808,22 @@
   /* While an attach is dragged, resources that can take it say so; the rest step back. */
   .node[data-valid] {
     border-style: dashed;
-    border-color: color-mix(in srgb, var(--focus) 55%, var(--border));
+    border-color: var(--focus);
   }
 
   .node[data-invalid] {
-    opacity: 0.45;
+    opacity: 0.4;
   }
 
   .node[data-targeted] {
     border-style: solid;
     border-color: var(--focus);
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--focus) 20%, transparent), var(--shadow);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--focus) 22%, transparent), var(--shadow);
   }
 
   .react-flow__node.is-attach-target .node {
     border-color: var(--focus);
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--focus) 20%, transparent), var(--shadow-large);
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--focus) 22%, transparent), var(--shadow-large);
   }
 
   .react-flow__node.is-attach-target .node::after {
@@ -618,11 +833,13 @@
     left: 50%;
     padding: 3px 8px;
     transform: translateX(-50%);
-    border-radius: var(--radius-pill);
+    border-radius: 6px;
     background: var(--focus);
     color: #fff;
-    font-size: 11px;
-    font-weight: var(--weight-medium);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
     white-space: nowrap;
     animation: notice-in 160ms var(--ease-out) both;
   }
@@ -662,96 +879,49 @@
   .node-head {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px 10px 6px 12px;
-  }
-
-  .node-tile {
-    display: grid;
-    place-items: center;
-    flex: none;
-    width: 28px;
-    height: 28px;
-    border-radius: 7px;
+    gap: 9px;
+    margin: 0 12px;
+    padding: 11px 0 9px;
+    border-bottom: 1px solid color-mix(in srgb, var(--kind) 22%, transparent);
     color: var(--kind);
-    background: var(--surface-hover);
-    box-shadow: inset 0 0 0 1px var(--border);
   }
 
-  .node[data-tier="agent"] .node-tile {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
+  .node[data-tier="root"] .node-head {
+    border-bottom-color: var(--border);
   }
 
-  /* The root reads as the anchor: a solid tile. */
-  .node[data-tier="root"] .node-tile {
-    width: 36px;
-    height: 36px;
-    border-radius: 9px;
-    color: var(--background);
-    background: var(--foreground);
-    box-shadow: none;
-  }
-
-  .node-titles {
+  .node-name {
     flex: 1;
     min-width: 0;
+    overflow: hidden;
+    color: var(--foreground);
+    font-size: 15px;
+    letter-spacing: -0.01em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
-  .node-type {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    color: var(--foreground-tertiary);
-    font-size: 11px;
-    line-height: 16px;
+  .node[data-tier="agent"] .node-name {
+    font-size: 16px;
   }
 
-  .node-type::before {
-    content: "";
-    width: 6px;
-    height: 6px;
-    border-radius: 2px;
-    background: var(--kind);
-  }
-
-  .node[data-tier="root"] .node-type::before {
-    display: none;
+  .node[data-tier="root"] .node-name {
+    font-size: 17px;
+    font-weight: var(--weight-medium);
   }
 
   .node-shared {
     display: inline-flex;
     align-items: center;
-    height: 16px;
+    height: 17px;
     padding: 0 6px;
-    border: 1px solid color-mix(in srgb, var(--kind) 35%, var(--border));
-    border-radius: var(--radius-pill);
+    border: 1px solid color-mix(in srgb, var(--kind) 45%, transparent);
+    border-radius: 5px;
     color: var(--kind);
-    font-size: 10px;
-    font-weight: var(--weight-medium);
-    line-height: 1;
-  }
-
-  .node-name {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 13px;
-    font-weight: var(--weight-medium);
-    line-height: 18px;
-    letter-spacing: -0.01em;
-  }
-
-  .node[data-tier="agent"] .node-name {
-    font-size: 14px;
-    line-height: 20px;
-  }
-
-  .node[data-tier="root"] .node-name {
-    font-size: 15px;
-    font-weight: var(--weight-semibold);
-    line-height: 20px;
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
   }
 
   .node-collapse {
@@ -759,86 +929,80 @@
     align-items: center;
     gap: 2px;
     flex: none;
-    align-self: flex-start;
     height: 22px;
     padding: 0 4px;
     border-radius: 6px;
     color: var(--foreground-tertiary);
+    font-family: var(--font-mono);
     font-size: 11px;
     transition: background-color var(--duration-hover) ease, color var(--duration-hover) ease;
   }
 
   @media (hover: hover) and (pointer: fine) {
     .node-collapse:hover {
-      background: var(--surface-hover);
+      background: color-mix(in srgb, var(--foreground) 8%, transparent);
       color: var(--foreground);
     }
   }
 
-  .node-description {
-    display: -webkit-box;
-    margin: 0 12px 6px;
-    overflow: hidden;
-    color: var(--foreground-secondary);
-    font-size: 12px;
-    line-height: 17px;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
+  .node-body {
+    display: grid;
+    gap: 3px;
+    padding: 9px 12px 10px;
   }
 
-  .node-meta {
+  .node-readings {
     display: flex;
-    align-items: center;
-    gap: var(--space-2);
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .node-reading {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 5px;
     min-width: 0;
-    margin: 0 12px 8px;
+    font-family: var(--font-mono);
+  }
+
+  .node-reading strong {
+    color: var(--foreground);
+    font-size: 18px;
+    font-weight: var(--weight-semibold);
+    letter-spacing: -0.02em;
+  }
+
+  .node-reading em {
     color: var(--foreground-secondary);
-    font-size: 12px;
+    font-size: 11px;
+    font-style: normal;
+    font-weight: var(--weight-medium);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .node-reading[data-secondary] strong {
+    font-size: 13px;
+    font-weight: var(--weight-medium);
+  }
+
+  .node-detail,
+  .node-path {
+    overflow: hidden;
+    font-family: var(--font-mono);
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .node-detail {
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .node-usage {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    flex: none;
-    color: var(--foreground-tertiary);
-    font-size: 11px;
-  }
-
-  .node-counts {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-3);
-    margin: 0 12px 8px;
+    color: var(--foreground-secondary);
+    font-size: 11.5px;
   }
 
   .node-path {
-    margin: 0;
-    padding: 5px 12px;
-    overflow: hidden;
-    border-top: 1px solid var(--border);
-    border-radius: 0 0 9px 9px;
-    background: var(--background);
     color: var(--foreground-tertiary);
-    font-size: 10.5px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .node[data-tier="agent"] .node-path {
-    border-radius: 0 0 11px 11px;
-  }
-
-  .node[data-tier="root"] .node-path {
-    border-radius: 0 0 13px 13px;
+    font-size: 10px;
   }
 
   /* ---------- Handles ---------- */
@@ -848,7 +1012,7 @@
     height: 9px;
     min-width: 0;
     min-height: 0;
-    border: 1.5px solid var(--border-strong);
+    border: 1.5px solid color-mix(in srgb, var(--kind) 70%, var(--border-strong));
     border-radius: 50%;
     background: var(--surface);
     transition: opacity var(--duration-hover) ease, background-color var(--duration-hover) ease,
@@ -863,7 +1027,6 @@
     cursor: crosshair;
   }
 
-  /* Hover grows a ring, not the handle, so the handle never jumps under the pointer. */
   @media (hover: hover) and (pointer: fine) {
     .react-flow__handle.node-handle.source:hover {
       background: var(--focus);
@@ -917,60 +1080,43 @@
   }
 
   .react-flow__edge.is-dim {
-    opacity: 0.25;
+    opacity: 0.2;
   }
 
+  /* Wires: dashed, quiet at rest, and flowing in the kind's colour when looked at. */
   .react-flow__edge-path {
     fill: none;
-    stroke: var(--border-strong);
-    stroke-width: 1.25;
+    stroke: var(--canvas-edge);
+    stroke-width: 1.5;
+    stroke-dasharray: 6 4;
     stroke-linecap: round;
-    transition: stroke var(--duration-hover) ease, stroke-width var(--duration-hover) ease;
+    transition: stroke var(--duration-hover) ease;
   }
 
   .react-flow__edge.is-related .react-flow__edge-path,
-  .react-flow__edge:hover .react-flow__edge-path {
-    stroke: color-mix(in srgb, var(--kind) 70%, var(--border-strong));
+  .react-flow__edge.selected .react-flow__edge-path {
+    stroke: var(--kind);
+    animation: edge-flow 700ms linear infinite;
   }
 
   .react-flow__edge.selected .react-flow__edge-path {
-    stroke: var(--kind);
     stroke-width: 2;
   }
 
   .react-flow__edge.is-preview .react-flow__edge-path {
     stroke: var(--focus);
-    stroke-dasharray: 5 5;
-  }
-
-  /* Flow runs from agent to what it uses, shown only where the eye already is. */
-  .edge-flow {
-    fill: none;
-    stroke: var(--kind);
-    stroke-width: 1.5;
-    stroke-dasharray: 2 10;
-    stroke-linecap: round;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity var(--duration-hover) ease;
-  }
-
-  .react-flow__edge.is-related .edge-flow,
-  .react-flow__edge.selected .edge-flow {
-    opacity: 1;
-    animation: edge-flow 900ms linear infinite;
+    animation: edge-flow 500ms linear infinite;
   }
 
   @keyframes edge-flow {
     to {
-      stroke-dashoffset: -12;
+      stroke-dashoffset: -10;
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .react-flow__edge.is-related .edge-flow,
-    .react-flow__edge.selected .edge-flow {
-      animation: none;
+    .react-flow__edge-path {
+      animation: none !important;
     }
   }
 
@@ -980,37 +1126,43 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    padding: 2px 8px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-pill);
-    background: var(--surface-raised);
-    box-shadow: var(--shadow-small);
-    color: var(--foreground-secondary);
-    font-size: 11px;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: var(--background);
+    color: var(--foreground-tertiary);
+    font-family: var(--font-mono);
+    font-size: 10.5px;
     white-space: nowrap;
     pointer-events: none;
-    animation: edge-label-in 140ms var(--ease-out) both;
+  }
+
+  .react-flow__edge.is-related + .edge-label,
+  .edge-label[data-actionable] {
+    color: var(--foreground-secondary);
   }
 
   .edge-label[data-actionable] {
-    padding-right: 2px;
+    padding: 2px 2px 2px 7px;
+    border: 1px solid var(--border);
+    background: var(--surface-raised);
+    box-shadow: var(--shadow-small);
     pointer-events: all;
   }
 
   .edge-label-action {
-    height: 18px;
+    height: 20px;
     padding: 0 7px;
-    border-radius: var(--radius-pill);
+    border-radius: 3px;
     background: var(--surface-hover);
     color: var(--foreground);
-    font-size: 11px;
-    font-weight: var(--weight-medium);
-    transition: background-color var(--duration-hover) ease, transform var(--duration-press) var(--ease-out);
+    font-size: 10.5px;
+    transition: background-color var(--duration-hover) ease, color var(--duration-hover) ease,
+      transform var(--duration-press) var(--ease-out);
   }
 
   @media (hover: hover) and (pointer: fine) {
     .edge-label-action:hover {
-      background: color-mix(in srgb, var(--danger) 12%, transparent);
+      background: color-mix(in srgb, var(--danger) 14%, transparent);
       color: var(--danger);
     }
   }
@@ -1019,17 +1171,11 @@
     transform: scale(0.95);
   }
 
-  @keyframes edge-label-in {
-    from {
-      opacity: 0;
-    }
-  }
-
   .connection-line path {
     fill: none;
     stroke: var(--foreground-tertiary);
     stroke-width: 1.5;
-    stroke-dasharray: 5 5;
+    stroke-dasharray: 6 4;
     stroke-linecap: round;
   }
 
@@ -1041,7 +1187,6 @@
 
   .connection-line[data-status="valid"] path {
     stroke: var(--focus);
-    stroke-dasharray: none;
   }
 
   .connection-line[data-status="valid"] circle {
@@ -1054,16 +1199,255 @@
     stroke: var(--danger);
   }
 
+  /* ---------- Annotations ---------- */
+
+  .note {
+    position: relative;
+    width: 100%;
+    min-height: 100%;
+    padding: 6px 10px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    transition: border-color var(--duration-hover) ease;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .note:hover {
+      border-color: color-mix(in srgb, var(--foreground) 14%, transparent);
+    }
+  }
+
+  .note[data-selected],
+  .note[data-editing] {
+    border-color: color-mix(in srgb, var(--focus) 70%, transparent);
+  }
+
+  .note-text {
+    margin: 0;
+    line-height: 1.3;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .note-input {
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-height: 1.3em;
+    padding: 0;
+    border: 0;
+    outline: none;
+    background: transparent;
+    line-height: 1.3;
+    resize: none;
+    field-sizing: content;
+  }
+
+  .note-input::placeholder {
+    color: var(--foreground-tertiary);
+  }
+
+  /* A section is a frame you can see through; only its edge and label take the pointer. */
+  .react-flow__node-section {
+    pointer-events: none;
+  }
+
+  .section {
+    --annotation: var(--kind-tool);
+    position: relative;
+    width: 100%;
+    height: 100%;
+  }
+
+  .section-frame {
+    position: absolute;
+    inset: 0;
+    border: 1.5px solid color-mix(in srgb, var(--annotation) 70%, transparent);
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--annotation) 9%, transparent);
+    pointer-events: none;
+    transition: box-shadow 200ms var(--ease-out);
+  }
+
+  /* An 8px band along the frame's edge is where a section is picked up. */
+  .section::before {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    border: 8px solid transparent;
+    border-radius: 12px;
+    pointer-events: all;
+    cursor: move;
+  }
+
+  .section[data-selected] .section-frame {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--annotation) 22%, transparent);
+  }
+
+  .section-label {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 0;
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    padding: 4px 10px;
+    overflow: hidden;
+    border-radius: 7px;
+    background: color-mix(in srgb, var(--annotation) 20%, var(--background));
+    line-height: 1.3;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    pointer-events: all;
+    cursor: move;
+  }
+
+  .section-input {
+    min-width: 4ch;
+    padding: 0;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+  }
+
+  .react-flow__resize-control.annotation-resize-handle {
+    width: 8px;
+    height: 8px;
+    border: 1.5px solid var(--focus);
+    border-radius: 2px;
+    background: var(--surface);
+    pointer-events: all;
+  }
+
+  .react-flow__resize-control.annotation-resize-line {
+    border-color: transparent;
+    pointer-events: all;
+  }
+
+  .annotation-toolbar {
+    position: absolute;
+    bottom: calc(34px + var(--float-gap) * 2);
+    left: 50%;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    height: 40px;
+    padding: 0 6px;
+    transform: translateX(-50%);
+    animation: notice-in 180ms var(--ease-out) both;
+  }
+
+  .annotation-tool {
+    display: grid;
+    place-items: center;
+    min-width: 28px;
+    height: 28px;
+    padding: 0 4px;
+    border-radius: 6px;
+    color: var(--foreground-secondary);
+    font-size: 12px;
+    transition: background-color var(--duration-hover) ease, color var(--duration-hover) ease,
+      transform var(--duration-press) var(--ease-out);
+  }
+
+  .annotation-tool[data-glyph="bold"] {
+    font-weight: 700;
+  }
+
+  .annotation-tool[data-glyph="italic"] {
+    font-family: ui-serif, Georgia, serif;
+    font-style: italic;
+  }
+
+  .annotation-tool[data-glyph="underline"] {
+    text-decoration: underline;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .annotation-tool:hover {
+      background: var(--surface-hover);
+      color: var(--foreground);
+    }
+  }
+
+  .annotation-tool:active,
+  .annotation-swatch:active {
+    transform: scale(0.92);
+  }
+
+  .annotation-tool[aria-pressed="true"] {
+    background: color-mix(in srgb, var(--focus) 16%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--focus) 60%, transparent);
+    color: var(--foreground);
+  }
+
+  .annotation-separator {
+    width: 1px;
+    height: 18px;
+    margin: 0 5px;
+    background: var(--border);
+  }
+
+  .annotation-swatch {
+    width: 16px;
+    height: 16px;
+    margin: 0 1px;
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--swatch) 30%, transparent);
+    box-shadow: inset 0 0 0 1.5px var(--swatch);
+    transition: transform var(--duration-press) var(--ease-out), box-shadow var(--duration-hover) ease;
+  }
+
+  .annotation-swatch[data-color="default"] {
+    border-radius: 50%;
+    background: transparent;
+    box-shadow: inset 0 0 0 1.5px var(--foreground-secondary);
+    position: relative;
+  }
+
+  .annotation-swatch[data-color="default"]::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 2px;
+    right: 2px;
+    height: 1.5px;
+    transform: rotate(-45deg);
+    background: var(--foreground-secondary);
+  }
+
+  .annotation-swatch[aria-pressed="true"] {
+    box-shadow: inset 0 0 0 1.5px var(--swatch), 0 0 0 2px var(--surface), 0 0 0 3.5px var(--swatch);
+  }
+
+  .annotation-swatch:focus-visible,
+  .annotation-tool:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 1px;
+  }
+
   /* ---------- Inspector ---------- */
 
   .canvas-inspector {
-    position: relative;
+    position: absolute;
+    top: calc(52px + var(--float-gap) * 2);
+    right: var(--float-gap);
+    bottom: calc(40px + var(--float-gap) * 2);
     display: flex;
     flex-direction: column;
-    min-width: 0;
-    min-height: 0;
-    border-left: 1px solid var(--border);
-    background: var(--surface);
+    width: var(--pane-inspector, 360px);
+    max-width: calc(100% - 32px);
+    overflow: hidden;
+    animation: float-in-right 220ms var(--ease-out) both;
+  }
+
+  @keyframes float-in-right {
+    from {
+      opacity: 0;
+      transform: translateX(8px);
+    }
   }
 
   .inspector-content {
@@ -1082,7 +1466,9 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .inspector-content {
+    .inspector-content,
+    .canvas-inspector,
+    .canvas-browser {
       animation: none;
     }
   }
@@ -1104,7 +1490,10 @@
     align-items: center;
     gap: 6px;
     color: var(--foreground-tertiary);
-    font-size: 12px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
   }
 
   .inspector-name {
@@ -1118,10 +1507,11 @@
 
   .inspector-detail {
     overflow: hidden;
+    color: var(--foreground-secondary);
+    font-family: var(--font-mono);
+    font-size: 11.5px;
     text-overflow: ellipsis;
     white-space: nowrap;
-    color: var(--foreground-secondary);
-    font-size: 12px;
   }
 
   .inspector-tabs {
@@ -1179,8 +1569,11 @@
     display: flex;
     justify-content: space-between;
     color: var(--foreground-tertiary);
-    font-size: 12px;
+    font-family: var(--font-mono);
+    font-size: 10px;
     font-weight: var(--weight-medium);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
 
   .inspector-list {
@@ -1230,10 +1623,11 @@
 
   .inspector-row-detail {
     overflow: hidden;
+    color: var(--foreground-tertiary);
+    font-family: var(--font-mono);
+    font-size: 10.5px;
     text-overflow: ellipsis;
     white-space: nowrap;
-    color: var(--foreground-tertiary);
-    font-size: 11px;
   }
 
   .inspector-stats {
@@ -1269,9 +1663,9 @@
   }
 
   .inspector-stat dd {
+    font-family: var(--font-mono);
     font-size: 18px;
-    font-weight: var(--weight-semibold);
-    letter-spacing: -0.02em;
+    font-weight: var(--weight-medium);
   }
 
   .inspector-status {

@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { animate, motion, useMotionTemplate, useMotionValue, useReducedMotion, useSpring } from "motion/react";
 import type { CanvasNodeKind } from "@evelab/eve-project";
 import { KindTile } from "@/components/kinds";
 
 export interface PaletteItem {
-  kind: CanvasNodeKind;
+  kind?: CanvasNodeKind;
+  /** Replaces the kind tile, for rows that are not a kind of node. */
+  tile?: ReactNode;
   title: string;
   detail: string;
 }
@@ -209,7 +211,7 @@ export function PaletteChip({
         }}
         onKeyDown={onKeyDown}
       >
-        <KindTile kind={item.kind} />
+        {item.tile ?? (item.kind && <KindTile kind={item.kind} />)}
         <span className="palette-chip-text">
           <span className="palette-chip-title">{item.title}</span>
           <span className="palette-chip-detail mono">{item.detail}</span>
@@ -227,7 +229,7 @@ export function PaletteChip({
             aria-hidden="true"
             style={{ width: ghost.width, height: ghost.height, transform, opacity }}
           >
-            <KindTile kind={item.kind} />
+            {item.tile ?? (item.kind && <KindTile kind={item.kind} />)}
             <span className="palette-chip-text">
               <span className="palette-chip-title">{item.title}</span>
               <span className="palette-chip-detail mono">{over ? dropLabel : item.detail}</span>
