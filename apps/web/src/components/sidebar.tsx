@@ -18,11 +18,12 @@ import {
 import { openCommandPalette } from "@/components/command-palette";
 import { Icon, type IconData } from "@/components/icon";
 import { KINDS } from "@/components/kinds";
-import { ProjectSwitcher, type SwitcherProject } from "@/components/project-switcher";
+import { Avatar, ProjectSwitcher, type SwitcherProject } from "@/components/project-switcher";
 import { ResizeHandle } from "@/components/resize-handle";
 import { Shortcut } from "@/components/shortcut";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { signOutAction } from "@/lib/actions";
 import "@/app/shell.css";
 
 interface Item {
@@ -36,10 +37,13 @@ export function Sidebar({
   project,
   projects,
   counts,
+  account,
 }: {
   project: SwitcherProject;
   projects: SwitcherProject[];
   counts: { tools: number; skills: number; subagents: number };
+  /** The signed-in user; absent in local mode. */
+  account?: { name: string };
 }) {
   const pathname = usePathname();
   const base = `/projects/${project.id}`;
@@ -112,8 +116,22 @@ export function Sidebar({
         </nav>
 
         <div className="sidebar-foot">
-          <Icon icon={IconDatabase} />
-          <span>Local workspace</span>
+          {account ? (
+            <>
+              <Avatar name={account.name} />
+              <span className="min-w-0 flex-1 truncate">{account.name}</span>
+              <form action={signOutAction}>
+                <Button variant="ghost" size="sm" type="submit">
+                  Sign out
+                </Button>
+              </form>
+            </>
+          ) : (
+            <>
+              <Icon icon={IconDatabase} />
+              <span>Local workspace</span>
+            </>
+          )}
         </div>
       </div>
 

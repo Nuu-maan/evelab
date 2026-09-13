@@ -5,6 +5,7 @@ import { ProjectHeader } from "@/components/project-header";
 import { Sidebar } from "@/components/sidebar";
 import { getSourceSummary } from "@/lib/git";
 import { paneStyle } from "@/lib/panes";
+import { getAccount, requireProjectPage, visibleProjectIds } from "@/lib/session";
 import { SIDEBAR_COOKIE, parseSidebarState } from "@/lib/sidebar-state";
 import { listProjects, projectExists, readProject, validateProject } from "@/lib/workspace";
 
@@ -19,15 +20,20 @@ export default async function ProjectLayout({
 }) {
   const { id } = await params;
   if (!(await projectExists(id))) notFound();
+  // With sign-in on, a project someone else owns is indistinguishable from one that does not exist.
+  await requireProjectPage(id);
 
-  const [project, projects, style, source, jar] = await Promise.all([
+  const [project, all, visible, account, style, source, jar] = await Promise.all([
     readProject(id),
     listProjects(),
+    visibleProjectIds(),
+    getAccount(),
     paneStyle(),
     // Local status only, plus GitHub's answer if one is cached: navigation never waits on GitHub.
     getSourceSummary(id),
     cookies(),
   ]);
+  const projects = visible ? all.filter((summary) => visible.has(summary.id)) : all;
   const errors = validateProject(project).filter((issue) => issue.level === "error");
   const sidebar = parseSidebarState(jar.get(SIDEBAR_COOKIE)?.value);
 
@@ -45,6 +51,7 @@ export default async function ProjectLayout({
           skills: project.skills.length,
           subagents: project.subagents.length,
         }}
+        account={account && { name: account.name }}
       />
 
       <div className="workspace">

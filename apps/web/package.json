@@ -11,6 +11,8 @@
     "e2e": "playwright test"
   },
   "dependencies": {
+    "@evelab/auth": "workspace:*",
+    "@evelab/db": "workspace:*",
     "@evelab/eve-project": "workspace:*",
     "@evelab/github": "workspace:*",
     "@monaco-editor/react": "^4.6.0",
@@ -35,6 +37,7 @@
     "@types/node": "^22.10.2",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
+    "postgres": "^3.4.9",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
   }

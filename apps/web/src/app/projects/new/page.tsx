@@ -8,10 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createProjectAction } from "@/lib/actions";
 import { listModels } from "@/lib/models";
+import { requireAccount } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
 export default async function NewProjectPage() {
+  await requireAccount();
   const models = await listModels();
 
   return (
