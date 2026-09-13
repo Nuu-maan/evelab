@@ -2,7 +2,7 @@ import "server-only";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { z } from "zod";
-import { parseProject, validateProject, type ProjectFile } from "@evelab/eve-project";
+import { looksLikeEveProject, parseProject, validateProject, type ProjectFile } from "@evelab/eve-project";
 import {
   commitFiles,
   computeChanges,
@@ -211,14 +211,17 @@ async function readBranch(repository: string, branch: string | undefined) {
   return { ref, info, branch: name, snapshot };
 }
 
-const NOT_EVE = "There is no agent.ts at the root of this branch, so it is not an Eve project.";
+const NOT_EVE =
+  "This branch has no agent/agent.ts or agent/instructions.md (or the same at the root), so it is not an Eve project.";
+
+const isEveProject = (files: ProjectFile[]) => looksLikeEveProject(files.map((file) => file.path));
 
 /** Reads a branch and describes the project it would become. Writes nothing. */
 export async function previewImport(repository: string, branch?: string): Promise<ImportPreview> {
   const { ref, branch: name, snapshot } = await readBranch(repository, branch);
   const files = filesOf(snapshot);
-  const { project, warnings } = parseProject(files);
-  const hasAgent = files.some((file) => file.path === "agent.ts");
+  const { project, warnings } = parseProject(files, { fallbackName: ref.name });
+  const hasAgent = isEveProject(files);
 
   return {
     repository: ref.fullName,
@@ -240,7 +243,7 @@ export async function importRepository(repository: string, branch: string, commi
     throw new SourceControlError("The branch changed on GitHub after you reviewed it. Read it again.");
   }
   const files = filesOf(snapshot);
-  if (!files.some((file) => file.path === "agent.ts")) throw new SourceControlError(NOT_EVE);
+  if (!isEveProject(files)) throw new SourceControlError(NOT_EVE);
 
   const id = await createProjectFromFiles(ref.name, files);
   await writeGitState(id, {

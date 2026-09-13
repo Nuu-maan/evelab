@@ -67,7 +67,7 @@ export default async function ProjectLayout({
         </main>
       </div>
 
-      <CommandPalette projectId={id} />
+      <CommandPalette projectId={id} root={project.root} />
     </div>
   );
 }

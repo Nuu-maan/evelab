@@ -34,7 +34,8 @@ export function FileWorkbench({
 
   const initialPath = useMemo(() => {
     if (requested && files.some((file) => file.path === requested)) return requested;
-    return files.find((file) => file.path === "agent.ts")?.path ?? files[0]?.path ?? "";
+    const preferred = ["agent/agent.ts", "agent.ts", "agent/instructions.md", "instructions.md"];
+    return preferred.find((path) => files.some((file) => file.path === path)) ?? files[0]?.path ?? "";
   }, [files, requested]);
 
   const [path, setPath] = useState(initialPath);

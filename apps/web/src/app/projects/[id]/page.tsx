@@ -6,7 +6,7 @@ import {
   IconMinusCircle,
   IconRoute,
 } from "@/components/icons";
-import { getCanvasGraph } from "@evelab/eve-project";
+import { agentPath, getCanvasGraph, skillFilePath } from "@evelab/eve-project";
 import { GraphPreview } from "@/components/graph-preview";
 import { Icon } from "@/components/icon";
 import { KINDS, KindTile } from "@/components/kinds";
@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { readLayout } from "@/lib/layout";
-import { readProject, validateProject } from "@/lib/workspace";
+import { modelLabel, readProject, validateProject } from "@/lib/workspace";
 import "@/app/overview.css";
 
 export const dynamic = "force-dynamic";
@@ -32,18 +32,21 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
   const base = `/projects/${id}`;
   const fileHref = (path: string) => `${base}/files?path=${encodeURIComponent(path)}`;
   const instructionLines = project.agent.instructions.split("\n").filter((line) => line.trim()).length;
+  const root = project.root ? `${project.root}/` : "";
+  const instructionsPath = agentPath(project.root, "instructions.md");
+  const configPath = agentPath(project.root, "agent.ts");
 
   const details = [
     {
       label: "Model",
-      value: <span className="mono">{project.agent.model.id || "Not set"}</span>,
+      value: <span className="mono">{modelLabel(project) || "Not set"}</span>,
       href: `${base}/agent/model`,
     },
     {
       label: "Instructions",
       value: (
         <>
-          <span className="mono">{project.agent.instructionsPath}</span>
+          <span className="mono">{instructionsPath}</span>
           <span className="overview-detail-hint">
             {instructionLines} {instructionLines === 1 ? "line" : "lines"}
           </span>
@@ -77,9 +80,9 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
       empty: "No tools yet. Add one to let the agent act.",
       items: project.tools.map((tool) => ({
         id: tool.id,
-        name: tool.name,
-        detail: tool.description || tool.origin,
-        path: `tools/${tool.id}.ts`,
+        name: tool.id,
+        detail: tool.description || tool.kind,
+        path: `${root}tools/${tool.file}`,
       })),
     },
     {
@@ -88,9 +91,9 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
       empty: "No skills yet. Import one from GitHub.",
       items: project.skills.map((skill) => ({
         id: skill.id,
-        name: skill.name,
-        detail: skill.description || `skills/${skill.id}`,
-        path: `skills/${skill.id}/SKILL.md`,
+        name: skill.id,
+        detail: skill.description || skill.format,
+        path: skillFilePath(root, skill),
       })),
     },
     {
@@ -99,9 +102,20 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
       empty: "No subagents yet. Create one for specialised work.",
       items: project.subagents.map((subagent) => ({
         id: subagent.id,
-        name: subagent.name,
-        detail: subagent.description || subagent.model?.id || "Inherits model",
-        path: `subagents/${subagent.id}.md`,
+        name: subagent.id,
+        detail: subagent.description || subagent.model?.id || "Default model",
+        path: subagent.kind === "local" ? `${root}subagents/${subagent.id}/agent.ts` : `${root}subagents/${subagent.id}.ts`,
+      })),
+    },
+    {
+      kind: "connection" as const,
+      href: `${base}/connections`,
+      empty: "No connections yet. Add an MCP server or OpenAPI service.",
+      items: project.connections.map((connection) => ({
+        id: connection.id,
+        name: connection.id,
+        detail: connection.description || connection.url || connection.spec || connection.kind,
+        path: `${root}connections/${connection.file}`,
       })),
     },
   ];
@@ -109,37 +123,43 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
   const steps: { label: string; detail: string; href?: string; state: "done" | "todo" | "unavailable" }[] = [
     {
       label: "Choose a model",
-      detail: "agent.ts",
+      detail: configPath,
       href: `${base}/agent/model`,
-      state: project.agent.model.id ? "done" : "todo",
+      state: project.agent.model ? "done" : "todo",
     },
     {
       label: "Write instructions",
-      detail: project.agent.instructionsPath,
+      detail: instructionsPath,
       href: `${base}/agent/instructions`,
       state: instructionLines > 0 ? "done" : "todo",
     },
     {
       label: "Add a tool",
-      detail: "tools/",
+      detail: `${root}tools/`,
       href: `${base}/tools`,
       state: project.tools.length > 0 ? "done" : "todo",
     },
     {
       label: "Import a skill",
-      detail: "skills/",
+      detail: `${root}skills/`,
       href: `${base}/skills`,
       state: project.skills.length > 0 ? "done" : "todo",
     },
     {
       label: "Create a subagent",
-      detail: "subagents/",
+      detail: `${root}subagents/`,
       href: `${base}/subagents`,
       state: project.subagents.length > 0 ? "done" : "todo",
     },
+    {
+      label: "Add a connection",
+      detail: `${root}connections/`,
+      href: `${base}/connections`,
+      state: project.connections.length > 0 ? "done" : "todo",
+    },
     { label: "Connect GitHub", detail: "Source control", href: `${base}/source`, state: "todo" },
-    { label: "Run the agent", detail: "Not built yet", state: "unavailable" },
-    { label: "Deploy", detail: "Not built yet", state: "unavailable" },
+    { label: "Run the agent", detail: "eve dev", href: `${base}/runs`, state: "todo" },
+    { label: "Deploy", detail: "Vercel", href: `${base}/deployments`, state: "todo" },
   ];
   const done = steps.filter((step) => step.state === "done").length;
 
@@ -158,7 +178,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
           </div>
           <div className="page-actions">
             <Button asChild variant="outline">
-              <Link href={fileHref("agent.ts")}>View agent.ts</Link>
+              <Link href={fileHref(configPath)}>View agent.ts</Link>
             </Button>
             <Button asChild>
               <Link href={`${base}/canvas`}>Open canvas</Link>
@@ -216,7 +236,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
       <Reveal delay={0.08}>
         <section className="section">
           <h2 className="section-title">Capabilities</h2>
-          <div className="grid-3">
+          <div className="grid-2">
             {columns.map((column) => (
               <Card className="overview-column gap-0 py-0" key={column.kind}>
                 <div className="overview-column-head">

@@ -18,8 +18,8 @@ export default async function AgentLayout({
             <h1 className="page-title">Agent</h1>
             <p className="page-description">
               How your agent behaves. Everything here writes to{" "}
-              <code className="mono">agent.ts</code> and <code className="mono">instructions.md</code>
-              ; nothing is stored only in EveLab.
+              <code className="mono">agent/agent.ts</code> and{" "}
+              <code className="mono">agent/instructions.md</code>; nothing is stored only in EveLab.
             </p>
           </div>
         </header>

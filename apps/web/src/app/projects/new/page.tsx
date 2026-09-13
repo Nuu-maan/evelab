@@ -7,7 +7,7 @@ import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createProjectAction } from "@/lib/actions";
-import { listModels } from "@/lib/models";
+import { DEFAULT_MODEL_ID, listModels } from "@/lib/models";
 import { requireAccount } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -56,7 +56,7 @@ export default async function NewProjectPage() {
 
                     <Field>
                       <FieldLabel htmlFor="modelId">Model</FieldLabel>
-                      <Select name="modelId" defaultValue={models[0]?.id}>
+                      <Select name="modelId" defaultValue={models.some((model) => model.id === DEFAULT_MODEL_ID) ? DEFAULT_MODEL_ID : models[0]?.id}>
                         <SelectTrigger id="modelId" className="w-full">
                           <SelectValue placeholder="Choose a model" />
                         </SelectTrigger>
@@ -68,7 +68,7 @@ export default async function NewProjectPage() {
                           ))}
                         </SelectContent>
                       </Select>
-                      <FieldDescription>Written to agent.ts as the model id. Change it any time.</FieldDescription>
+                      <FieldDescription>Written to agent/agent.ts, the same file eve init creates. Change it any time.</FieldDescription>
                     </Field>
                   </FieldGroup>
                 </CardContent>

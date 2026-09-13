@@ -373,6 +373,10 @@
     --kind: var(--kind-subagent);
   }
 
+  .react-flow__edge.edge-connection {
+    --kind: var(--kind-connection);
+  }
+
   .react-flow__edge-path {
     fill: none;
     stroke: color-mix(in srgb, var(--kind) 50%, var(--border-strong));
