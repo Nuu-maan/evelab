@@ -105,6 +105,22 @@ hover, sitting over React Flow's reconnect anchor, and handles grow a ring
 rather than scaling, because a scaled handle covers the anchor and turns a drag
 meant for the edge into a new connection.
 
+**Sign-in is all or nothing.** Better Auth with GitHub turns on only when
+`DATABASE_URL`, the OAuth client id and secret, and `BETTER_AUTH_SECRET` are all
+set. Anything less is local mode, where every check is a no-op and the app
+behaves exactly as it did before sign-in existed.
+
+**The database says who owns a directory, not what is in it.** A project row
+maps a workspace directory (its slug) to an owner through `project_members`.
+Directories on disk with no row, such as projects created before sign-in was
+turned on, are invisible when sign-in is on.
+
+**A project you cannot open does not exist.** Project pages answer 404 to
+signed-out visitors and to other accounts alike, and server actions throw the
+same "Project not found." Every action checks access itself, after validating
+its input and before touching the project, because a server action can be
+called without the page that renders it.
+
 **Single user.** One user, many projects. `project_members` exists in the schema
 so sharing can be added without rewriting ownership.
 
