@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { CommandPalette } from "@/components/command-palette";
 import { ProjectHeader } from "@/components/project-header";
+import { QuickOpen } from "@/components/quick-open";
 import { Sidebar } from "@/components/sidebar";
 import { getSourceSummary } from "@/lib/git";
 import { paneStyle } from "@/lib/panes";
@@ -68,6 +69,7 @@ export default async function ProjectLayout({
       </div>
 
       <CommandPalette projectId={id} root={project.root} />
+      <QuickOpen projectId={id} paths={project.files.map((file) => file.path)} />
     </div>
   );
 }

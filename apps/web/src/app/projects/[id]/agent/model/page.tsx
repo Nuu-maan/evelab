@@ -5,7 +5,7 @@ import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { updateModelAction } from "@/lib/actions";
-import { listModels } from "@/lib/models";
+import { describeModel, listModels } from "@/lib/models";
 import { readProject } from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
@@ -26,7 +26,9 @@ export default async function ModelPage({ params }: { params: Promise<{ id: stri
   const { model, reasoning } = project.agent;
   const configPath = agentPath(project.root, "agent.ts");
   const configHref = `/projects/${id}/files?path=${encodeURIComponent(configPath)}`;
-  const known = !model?.id || models.some((candidate) => candidate.id === model.id);
+  const current = models.find((candidate) => candidate.id === model?.id);
+  const known = !model?.id || Boolean(current);
+  const details = current ? describeModel(current) : undefined;
 
   if (model?.expression) {
     return (
@@ -67,7 +69,7 @@ export default async function ModelPage({ params }: { params: Promise<{ id: stri
           </datalist>
           <FieldDescription>
             {known
-              ? `An AI Gateway model id, written to ${configPath}. ${models.length} models in the catalog.`
+              ? `${details ? `${current?.label}: ${details}. ` : ""}An AI Gateway model id, written to ${configPath}.`
               : "Not in the AI Gateway catalog. It is still written verbatim, so check the id."}
           </FieldDescription>
         </Field>
