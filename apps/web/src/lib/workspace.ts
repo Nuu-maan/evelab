@@ -6,6 +6,8 @@ import {
   generateProject,
   parseProject,
   renderProjectScaffold,
+  type ModelProvider,
+  type Reasoning,
   validateProject,
   type EveProject,
   type ProjectFile,
@@ -211,6 +213,8 @@ export interface CreateProjectInput {
   name: string;
   description?: string;
   modelId: string;
+  provider?: ModelProvider;
+  reasoning?: Reasoning;
 }
 
 /**
@@ -227,6 +231,8 @@ export async function createProject(input: CreateProjectInput): Promise<string> 
   const scaffold = renderProjectScaffold({
     packageName: id,
     model: input.modelId,
+    provider: input.provider,
+    reasoning: input.reasoning,
     instructions: `# Identity\n\n${identity}\n`,
   });
   const { project } = parseProject(scaffold, { fallbackName: id });

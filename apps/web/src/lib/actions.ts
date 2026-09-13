@@ -115,6 +115,8 @@ const createSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(80),
   description: z.string().trim().max(280).optional(),
   modelId: z.string().trim().min(1, "Choose a model"),
+  provider: z.enum(["ai-gateway-project", "ai-gateway-key", "chatgpt", "anthropic", "openai"]).default("ai-gateway-project"),
+  reasoning: reasoningSchema.optional(),
 });
 
 export async function createProjectAction(formData: FormData) {
@@ -122,6 +124,8 @@ export async function createProjectAction(formData: FormData) {
     name: formData.get("name"),
     description: formData.get("description") || undefined,
     modelId: formData.get("modelId"),
+    provider: formData.get("provider") || undefined,
+    reasoning: formData.get("reasoning") || undefined,
   });
   await requireSignedIn();
   const id = await createProject(input);
