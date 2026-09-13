@@ -37,7 +37,7 @@ function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card-title"
       className={cn(
-        "text-base leading-snug font-medium group-data-[size=sm]/card:text-sm",
+        "text-base leading-snug font-medium group-data-[size=sm]/card:text-sm @max-md/card-header:col-span-2",
         className
       )}
       {...props}
@@ -49,7 +49,7 @@ function CardDescription({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-description"
-      className={cn("text-sm text-muted-foreground", className)}
+      className={cn("text-sm text-muted-foreground @max-md/card-header:col-span-2", className)}
       {...props}
     />
   )
@@ -60,7 +60,8 @@ function CardAction({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card-action"
       className={cn(
-        "col-start-2 row-span-2 row-start-1 self-start justify-self-end",
+        // In a narrow card the actions drop under the title and description instead of squeezing them.
+        "col-start-2 row-span-2 row-start-1 self-start justify-self-end @max-md/card-header:col-span-2 @max-md/card-header:col-start-1 @max-md/card-header:row-span-1 @max-md/card-header:row-start-3 @max-md/card-header:mt-2 @max-md/card-header:justify-self-start",
         className
       )}
       {...props}

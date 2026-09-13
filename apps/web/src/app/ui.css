@@ -16,7 +16,8 @@
     width: 100%;
     max-width: var(--content-width);
     margin-inline: auto;
-    padding: var(--space-8) var(--space-8) var(--space-16);
+    padding-block: var(--space-8) var(--space-16);
+    padding-inline: var(--space-8);
     display: flex;
     flex-direction: column;
     gap: var(--space-8);
@@ -49,8 +50,18 @@
 
   .page-actions {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: var(--space-2);
+  }
+
+  /* On a phone the page keeps a 16px margin, not the desktop 32px. */
+  @media (max-width: 560px) {
+    .page {
+      padding-block: var(--space-6) var(--space-12);
+      padding-inline: var(--space-4);
+      gap: var(--space-6);
+    }
   }
 
   .page-eyebrow {
@@ -248,14 +259,23 @@
     font-size: var(--text-compact);
   }
 
+  /* Tabs scroll sideways rather than wrap or clip; the cut-off tab at the edge shows there are more. */
   .tabs {
     display: flex;
     gap: var(--space-1);
+    overflow-x: auto;
     border-bottom: 1px solid var(--border);
+    scrollbar-width: none;
+  }
+
+  .tabs::-webkit-scrollbar {
+    display: none;
   }
 
   .tab {
     position: relative;
+    flex: none;
+    white-space: nowrap;
     display: inline-flex;
     align-items: center;
     height: 40px;
@@ -663,6 +683,7 @@
   /* ---------- Settings cards ---------- */
 
   .settings-stack {
+    container: settings / inline-size;
     display: flex;
     flex-direction: column;
     gap: var(--space-4);
@@ -695,6 +716,7 @@
 
   .setting-card-footer {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: var(--space-3);
@@ -746,18 +768,26 @@
   }
 
   /* The agent at a glance: six readings, each a way into the setting behind it. */
+  /* Hairlines come from the 1px gap over the border colour, so any column count stays ruled correctly. */
   .agent-stats {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1px;
     overflow: hidden;
     border: 1px solid var(--border);
     border-radius: 12px;
-    background: var(--surface);
+    background: var(--border);
   }
 
-  @media (max-width: 720px) {
+  @container settings (max-width: 560px) {
     .agent-stats {
       grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @container settings (max-width: 340px) {
+    .agent-stats {
+      grid-template-columns: minmax(0, 1fr);
     }
   }
 
@@ -766,17 +796,8 @@
     gap: 4px;
     min-width: 0;
     padding: 14px 18px;
-    border-inline-end: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
+    background: var(--surface);
     transition: background-color var(--duration-hover) ease;
-  }
-
-  .agent-stat:nth-child(3n) {
-    border-inline-end: none;
-  }
-
-  .agent-stat:nth-last-child(-n + 3) {
-    border-bottom: none;
   }
 
   @media (hover: hover) and (pointer: fine) {
