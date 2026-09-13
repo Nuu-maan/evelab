@@ -1,220 +1,142 @@
 import type { IconData } from "@/components/icon";
 
 /**
- * Geist icons by Vercel, vendored as plain data from vercel-geist-icons (MIT).
- * Add an icon by copying its shapes from the Geist set into the same shape.
+ * Lucide icons (ISC), the set shadcn/ui uses, vendored as plain data so an icon
+ * can be chosen on the server and drawn by a client component. Every icon is
+ * the same 24px grid and stroke; regenerate from the `lucide` package rather
+ * than hand-drawing one.
  */
 
-export const IconAcronymJs: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "M0 2.5A2.5 2.5 0 0 1 2.5 0h11A2.5 2.5 0 0 1 16 2.5v11a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 0 13.5zM7.5 8v4.125a.375.375 0 0 1-.75 0v-.375h-1.5v.375a1.875 1.875 0 1 0 3.75 0V8zm4.25 1.875c0-.207.168-.375.375-.375H13.5V8h-1.375a1.875 1.875 0 1 0 0 3.75.375.375 0 0 1 0 .75H10.5V14h1.625a1.875 1.875 0 1 0 0-3.75.375.375 0 0 1-.375-.375",clipRule: "evenodd"}],
-];
+export const IconAcronymJs: IconData = { nodes: [["path",{"d":"M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"}],["path",{"d":"M14 2v5a1 1 0 0 0 1 1h5"}],["path",{"d":"M10 12.5 8 15l2 2.5"}],["path",{"d":"m14 12.5 2 2.5-2 2.5"}]] };
 
-export const IconAcronymTs: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "M0 2.5A2.5 2.5 0 0 1 2.5 0h11A2.5 2.5 0 0 1 16 2.5v11a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 0 13.5zm12.125 7a.375.375 0 0 0 0 .75 1.875 1.875 0 1 1 0 3.75H10.5v-1.5h1.625a.375.375 0 0 0 0-.75 1.875 1.875 0 1 1 0-3.75H13.5v1.5zM5 9.5h1.25V14h1.5V9.5H9V8H5z",clipRule: "evenodd"}],
-];
+export const IconAcronymTs: IconData = { nodes: [["path",{"d":"M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"}],["path",{"d":"M14 2v5a1 1 0 0 0 1 1h5"}],["path",{"d":"M10 12.5 8 15l2 2.5"}],["path",{"d":"m14 12.5 2 2.5-2 2.5"}]] };
 
-export const IconAlignmentLeft: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "M1.75 2H1v1.5h14V2zM1 7h9v1.5H1zm0 5h11v1.5H1z",clipRule: "evenodd"}],
-];
+export const IconAlignmentLeft: IconData = { nodes: [["path",{"d":"M21 5H3"}],["path",{"d":"M15 12H3"}],["path",{"d":"M17 19H3"}]] };
 
-export const IconArrowDown: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "M8.75 1.75V1h-1.5v11.44L3.28 8.47l-.53-.53L1.69 9l.53.53 5.073 5.074a1 1 0 0 0 1.414 0L13.78 9.53l.53-.53-1.06-1.06-.53.53-3.97 3.97z",clipRule: "evenodd"}],
-];
+export const IconArrowDown: IconData = { nodes: [["path",{"d":"M12 5v14"}],["path",{"d":"m19 12-7 7-7-7"}]] };
 
-export const IconArrowUp: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "M8.707 1.396a1 1 0 0 0-1.414 0L2.22 6.47 1.69 7l1.06 1.06.53-.53 3.97-3.97V15h1.5V3.56l3.97 3.97.53.53L14.31 7l-.53-.53z",clipRule: "evenodd"}],
-];
+export const IconArrowUp: IconData = { nodes: [["path",{"d":"m5 12 7-7 7 7"}],["path",{"d":"M12 19V5"}]] };
 
-export const IconChevronUpDown: IconData = [
-  ["path", { d: "M5 6l3-3 3 3M5 10l3 3 3-3", stroke: "currentColor", strokeWidth: "1.5", strokeLinecap: "round", strokeLinejoin: "round" }],
-];
+export const IconChevronUpDown: IconData = { nodes: [["path",{"d":"m7 15 5 5 5-5"}],["path",{"d":"m7 9 5-5 5 5"}]] };
 
-export const IconArrowUpRight: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "M5.75 2H5v1.5h6.44l-9.22 9.22-.53.53 1.06 1.06.53-.53 9.22-9.218V11H14V3a1 1 0 0 0-1-1z",clipRule: "evenodd"}],
-];
+export const IconArrowUpRight: IconData = { nodes: [["path",{"d":"M7 7h10v10"}],["path",{"d":"M7 17 17 7"}]] };
 
-export const IconBookOpen: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "M0 1h5c1.227 0 2.316.589 3 1.5A3.74 3.74 0 0 1 11 1h5v12.75h-5.257a2.25 2.25 0 0 0-1.591.659l-.622.621H7.47l-.622-.621a2.25 2.25 0 0 0-1.59-.659H0zm7.25 3.75A2.25 2.25 0 0 0 5 2.5H1.5v9.75h3.757c.71 0 1.4.202 1.993.573zm1.5 8.073V4.75A2.25 2.25 0 0 1 11 2.5h3.5v9.75h-3.757c-.71 0-1.4.202-1.993.573",clipRule: "evenodd"}],
-];
+export const IconBookOpen: IconData = { nodes: [["path",{"d":"M12 5v16"}],["path",{"d":"M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z"}]] };
 
-export const IconChartActivity: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "m5.513 3.624-1.75 4.723A1 1 0 0 1 2.827 9H0V7.5h2.478l2.089-5.64c.32-.864 1.54-.872 1.87-.011l4.077 10.597L12.24 8.13a1 1 0 0 1 .928-.629H16V9h-2.492l-2.075 5.187c-.338.844-1.535.836-1.862-.013z",clipRule: "evenodd"}],
-];
+export const IconChartActivity: IconData = { nodes: [["path",{"d":"M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"}]] };
 
-export const IconCheck: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "m15.56 4-.53.53-8.793 8.793a1.75 1.75 0 0 1-2.474 0L.97 10.53.44 10 1.5 8.94l.53.53 2.793 2.793a.25.25 0 0 0 .354 0L13.97 3.47l.53-.53z",clipRule: "evenodd"}],
-];
+export const IconCheck: IconData = { nodes: [["path",{"d":"M20 6 9 17l-5-5"}]] };
 
-export const IconCheckCircle: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "M14.5 8a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0M16 8A8 8 0 1 1-.001 8 8 8 0 0 1 16 8m-4.47-1.47.53-.53L11 4.94l-.53.53L6.5 9.44l-.97-.97L5 7.94 3.94 9l.53.53 1.5 1.5a.75.75 0 0 0 1.06 0z",clipRule: "evenodd"}],
-];
+export const IconCheckCircle: IconData = { nodes: [["circle",{"cx":"12","cy":"12","r":"10"}],["path",{"d":"m16 9-5.5 5.5L8 12"}]] };
 
-export const IconChevronDoubleUp: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "M8.707 3.146a1 1 0 0 0-1.414 0L3.47 6.97l-.53.53L4 8.56l.53-.53L8 4.56l3.47 3.47.53.53 1.06-1.06-.53-.53zm0 5a1 1 0 0 0-1.414 0L3.47 11.97l-.53.53L4 13.56l.53-.53L8 9.56l3.47 3.47.53.53 1.06-1.06-.53-.53z",clipRule: "evenodd"}],
-];
+export const IconChevronDoubleUp: IconData = { nodes: [["path",{"d":"m17 11-5-5-5 5"}],["path",{"d":"m17 18-5-5-5 5"}]] };
 
-export const IconChevronDown: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "m14.06 5.5-.53.53-4.823 4.824a1 1 0 0 1-1.414 0L2.47 6.03l-.53-.53L3 4.44l.53.53L8 9.44l4.47-4.47.53-.53z",clipRule: "evenodd"}],
-];
+export const IconChevronDown: IconData = { nodes: [["path",{"d":"m6 9 6 6 6-6"}]] };
 
-export const IconChevronRight: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "m5.5 1.94.53.53 4.824 4.823a1 1 0 0 1 0 1.414L6.03 13.53l-.53.53L4.44 13l.53-.53L9.44 8 4.97 3.53 4.44 3z",clipRule: "evenodd"}],
-];
+export const IconChevronRight: IconData = { nodes: [["path",{"d":"m9 18 6-6-6-6"}]] };
 
-export const IconChevronUp: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "m1.94 10.5.53-.53 4.823-4.824a1 1 0 0 1 1.414 0L13.53 9.97l.53.53L13 11.56l-.53-.53L8 6.56l-4.47 4.47-.53.53z",clipRule: "evenodd"}],
-];
+export const IconChevronUp: IconData = { nodes: [["path",{"d":"m18 15-6-6-6 6"}]] };
 
-export const IconCircle: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "M14.5 8a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0M16 8A8 8 0 1 1-.001 8 8 8 0 0 1 16 8",clipRule: "evenodd"}],
-];
+export const IconCircle: IconData = { nodes: [["circle",{"cx":"12","cy":"12","r":"10"}]] };
 
-export const IconCloudUpload: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "M1.5 4.875a3.375 3.375 0 0 1 6.401-1.497c.29.584.894 1.122 1.7 1.122h2.649a2.25 2.25 0 0 1 1.478 3.947l-.566.493.986 1.13.565-.492A3.75 3.75 0 0 0 12.25 3H9.601c-.09 0-.248-.07-.356-.288A4.875 4.875 0 0 0 0 4.875v1.529a4.09 4.09 0 0 0 1.53 3.193l.584.47.94-1.169-.584-.47a2.59 2.59 0 0 1-.97-2.024zm5.793 2.521a1 1 0 0 1 1.414 0l3.073 3.074.53.53-1.06 1.06-.53-.53-1.97-1.97V16h-1.5V9.56l-1.97 1.97-.53.53L3.69 11l.53-.53z",clipRule: "evenodd"}],
-];
+export const IconCloudUpload: IconData = { nodes: [["path",{"d":"M12 13v8"}],["path",{"d":"M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"}],["path",{"d":"m8 17 4-4 4 4"}]] };
 
-export const IconCodeBracket: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "M2.5 3.5a1 1 0 0 1 1-1h.75V1H3.5A2.5 2.5 0 0 0 1 3.5v2.794c0 .356-.118.575-.262.71-.15.14-.393.246-.738.246v1.5c.345 0 .588.107.738.247.144.134.262.353.262.708V12.5A2.5 2.5 0 0 0 3.5 15h.75v-1.5H3.5a1 1 0 0 1-1-1V9.705c0-.67-.221-1.264-.638-1.705.417-.441.638-1.035.638-1.706zm10-2.5h-.75v1.5h.75a1 1 0 0 1 1 1v2.794c0 .67.221 1.265.638 1.706-.417.441-.638 1.035-.638 1.705V12.5a1 1 0 0 1-1 1h-.75V15h.75a2.5 2.5 0 0 0 2.5-2.5V9.705c0-.355.118-.574.262-.708.15-.14.394-.247.738-.247v-1.5c-.344 0-.588-.107-.738-.247-.144-.134-.262-.353-.262-.709V3.5A2.5 2.5 0 0 0 12.5 1m-3.75 9.25V9.5h-1.5v3.099c0 .44-.13.87-.374 1.235l-.416.624 1.248.832.416-.624a3.73 3.73 0 0 0 .626-2.067zM8 7a1.25 1.25 0 1 0 0-2.5A1.25 1.25 0 0 0 8 7",clipRule: "evenodd"}],
-];
+export const IconCodeBracket: IconData = { nodes: [["path",{"d":"m16 18 6-6-6-6"}],["path",{"d":"m8 6-6 6 6 6"}]] };
 
-export const IconCross: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "m12.47 13.53.53.53L14.06 13l-.53-.53L9.06 8l4.47-4.47.53-.53L13 1.94l-.53.53L8 6.94 3.53 2.47 3 1.94 1.94 3l.53.53L6.94 8l-4.47 4.47-.53.53L3 14.06l.53-.53L8 9.06z",clipRule: "evenodd"}],
-];
+export const IconCross: IconData = { nodes: [["path",{"d":"M18 6 6 18"}],["path",{"d":"m6 6 12 12"}]] };
 
-export const IconCrossCircle: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "M14.5 8a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0M16 8A8 8 0 1 1-.001 8 8 8 0 0 1 16 8M5.5 11.56l.53-.53L8 9.06l1.97 1.97.53.53 1.06-1.06-.53-.53L9.06 8l1.97-1.97.53-.53-1.06-1.06-.53.53L8 6.94 6.03 4.97l-.53-.53L4.44 5.5l.53.53L6.94 8 4.97 9.97l-.53.53z",clipRule: "evenodd"}],
-];
+export const IconCrossCircle: IconData = { nodes: [["circle",{"cx":"12","cy":"12","r":"10"}],["path",{"d":"m15 9-6 6"}],["path",{"d":"m9 9 6 6"}]] };
 
-export const IconDatabase: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "M3.302.786C4.542.29 6.203 0 8 0s3.458.29 4.698.786c.618.247 1.168.56 1.576.946.41.387.726.9.726 1.518v9.5c0 .618-.316 1.13-.726 1.518-.408.386-.958.699-1.576.946C11.458 15.71 9.797 16 8 16s-3.458-.29-4.698-.786c-.618-.247-1.168-.56-1.576-.946-.41-.387-.726-.9-.726-1.518v-9.5c0-.618.316-1.13.726-1.518.408-.386.958-.699 1.576-.946M2.5 5.33V8c0 .072.034.217.256.428.225.212.59.438 1.103.643 1.022.41 2.486.679 4.141.679s3.119-.27 4.14-.679c.514-.205.88-.43 1.103-.643.223-.21.257-.356.257-.428V5.33c-.248.143-.518.27-.802.384C11.458 6.21 9.797 6.5 8 6.5s-3.458-.29-4.698-.786A6.4 6.4 0 0 1 2.5 5.33m11-2.081c0 .072-.034.217-.257.428-.224.212-.589.438-1.102.643C11.119 4.731 9.655 5 8 5s-3.119-.27-4.14-.679c-.514-.205-.88-.43-1.104-.643-.222-.21-.256-.356-.256-.428s.034-.217.256-.428c.225-.212.59-.438 1.103-.643C4.881 1.769 6.345 1.5 8 1.5s3.119.27 4.14.679c.514.205.88.43 1.103.643.223.21.257.355.257.427m0 6.83c-.248.143-.518.27-.802.384-1.24.496-2.901.786-4.698.786s-3.458-.29-4.698-.786a6.4 6.4 0 0 1-.802-.383v2.669c0 .072.034.217.256.428.225.212.59.438 1.103.643 1.022.41 2.486.679 4.141.679s3.119-.27 4.14-.679c.514-.205.88-.43 1.103-.643.223-.21.257-.356.257-.428z",clipRule: "evenodd"}],
-];
+export const IconDatabase: IconData = { nodes: [["ellipse",{"cx":"12","cy":"5","rx":"9","ry":"3"}],["path",{"d":"M3 5V19A9 3 0 0 0 21 19V5"}],["path",{"d":"M3 12A9 3 0 0 0 21 12"}]] };
 
-export const IconFile: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "M14.5 6.5v7A2.5 2.5 0 0 1 12 16H4a2.5 2.5 0 0 1-2.5-2.5V0h7.586a1 1 0 0 1 .707.293l4.414 4.414a1 1 0 0 1 .293.707zm-1.5 0v7a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-12h5v5zM9.5 2.121V5h2.879z",clipRule: "evenodd"}],
-];
+export const IconFile: IconData = { nodes: [["path",{"d":"M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"}],["path",{"d":"M14 2v5a1 1 0 0 0 1 1h5"}]] };
 
-export const IconFileText: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "M14.5 13.5V5.414a1 1 0 0 0-.293-.707L9.793.293A1 1 0 0 0 9.086 0H1.5v13.5A2.5 2.5 0 0 0 4 16h8a2.5 2.5 0 0 0 2.5-2.5m-1.5 0v-7H8v-5H3v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1M9.5 5V2.121L12.379 5zM5.13 5h-.625v1.25h2.12V5zm-.625 3h7.12v1.25h-7.12zm.625 3h-.625v1.25h7.12V11z",clipRule: "evenodd"}],
-];
+export const IconFileText: IconData = { nodes: [["path",{"d":"M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"}],["path",{"d":"M14 2v5a1 1 0 0 0 1 1h5"}],["path",{"d":"M10 9H8"}],["path",{"d":"M16 13H8"}],["path",{"d":"M16 17H8"}]] };
 
-export const IconFolderClosed: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "M14.5 7.5v5a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1v-5zm0-1.5V4H8.833a2.5 2.5 0 0 1-1.5-.5L6 2.5H1.5V6zM0 1h6.167a1 1 0 0 1 .6.2l1.466 1.1a1 1 0 0 0 .6.2H16v10a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 0 12.5z",clipRule: "evenodd"}],
-];
+export const IconFolderClosed: IconData = { nodes: [["path",{"d":"M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"}]] };
 
-export const IconFolderOpen: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "M13.5 4v2h-11V2.5H6l1.333 1c.433.325.96.5 1.5.5zM1 6V1h5.167a1 1 0 0 1 .6.2l1.466 1.1a1 1 0 0 0 .6.2H15V6h1l-.167 1.5-.586 5.276A2.5 2.5 0 0 1 12.762 15H3.238a2.5 2.5 0 0 1-2.485-2.224L.167 7.5 0 6zm13 1.5H1.676l.568 5.11a1 1 0 0 0 .994.89h9.524a1 1 0 0 0 .994-.89l.568-5.11z",clipRule: "evenodd"}],
-];
+export const IconFolderOpen: IconData = { nodes: [["path",{"d":"m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"}]] };
 
-export const IconFullscreen: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "M1 5.25V6h1.5V2.5H6V1H2a1 1 0 0 0-1 1zM5.25 15H6v-1.5H2.5V10H1v4a1 1 0 0 0 1 1zM15 10v4a1 1 0 0 1-1 1h-4v-1.5h3.5V10zm-4.25-9H10v1.5h3.5V6H15V2a1 1 0 0 0-1-1z",clipRule: "evenodd"}],
-];
+export const IconFullscreen: IconData = { nodes: [["path",{"d":"M8 3H5a2 2 0 0 0-2 2v3"}],["path",{"d":"M21 8V5a2 2 0 0 0-2-2h-3"}],["path",{"d":"M3 16v3a2 2 0 0 0 2 2h3"}],["path",{"d":"M16 21h3a2 2 0 0 0 2-2v-3"}]] };
 
-export const IconGitBranch: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "M4.75 1.75V1h-1.5v8.095a3.001 3.001 0 1 0 3.671 3.592 6.75 6.75 0 0 0 5.766-5.766 3.001 3.001 0 1 0-1.512-.036 5.25 5.25 0 0 1-4.29 4.29 3 3 0 0 0-2.135-2.08zM13.5 4a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0M4 13.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3",clipRule: "evenodd"}],
-];
+export const IconGitBranch: IconData = { nodes: [["path",{"d":"M15 6a9 9 0 0 0-9 9V3"}],["circle",{"cx":"18","cy":"6","r":"3"}],["circle",{"cx":"6","cy":"18","r":"3"}]] };
 
-export const IconGridSquare: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "M2.5 5.5v-3h3v3zM1 2a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1zm1.5 11.5v-3h3v3zM1 10a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1zm9.5-7.5v3h3v-3zM10 1a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zm.5 12.5v-3h3v3zM9 10a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1z",clipRule: "evenodd"}],
-];
+export const IconGridSquare: IconData = { nodes: [["rect",{"width":"7","height":"7","x":"3","y":"3","rx":"1"}],["rect",{"width":"7","height":"7","x":"14","y":"3","rx":"1"}],["rect",{"width":"7","height":"7","x":"14","y":"14","rx":"1"}],["rect",{"width":"7","height":"7","x":"3","y":"14","rx":"1"}]] };
 
-export const IconHash: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "m7.24 1.869.12-.741L5.877.89l-.119.74L5.22 5H1.75v1.5h3.23L4.42 10H1.75v1.5h2.43l-.42 2.632-.12.74 1.482.237.119-.74L5.7 11.5h3.48l-.42 2.632-.12.74 1.482.237.119-.74.459-2.869h3.55V10h-3.31l.56-3.5h2.75V5h-2.51l.5-3.131.12-.741L10.877.89l-.119.74L10.22 5H6.74zM9.98 6.5H6.5L5.94 10h3.48z",clipRule: "evenodd"}],
-];
+export const IconHash: IconData = { nodes: [["line",{"x1":"4","x2":"20","y1":"9","y2":"9"}],["line",{"x1":"4","x2":"20","y1":"15","y2":"15"}],["line",{"x1":"10","x2":"8","y1":"3","y2":"21"}],["line",{"x1":"16","x2":"14","y1":"3","y2":"21"}]] };
 
-export const IconImage: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "M14.5 2.5h-13v6.69l1.47-1.47.22-.22h3.75l.03-.03 3.5-3.5h1.06l2.97 2.97zM8 8.56l1.53 1.53.53.53L9 11.68l-.53-.53L6.32 9H3.81l-2.28 2.28-.03.03v1.19a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1V9.06L11 5.56 8.03 8.53zm-8 2.25v1.69A2.5 2.5 0 0 0 2.5 15h11a2.5 2.5 0 0 0 2.5-2.5V9.56l.56-.56-.53-.53-.03-.03V1H0v9.69l-.06.06z",clipRule: "evenodd"}],
-];
+export const IconImage: IconData = { nodes: [["rect",{"width":"18","height":"18","x":"3","y":"3","rx":"2","ry":"2"}],["circle",{"cx":"9","cy":"9","r":"2"}],["path",{"d":"m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"}]] };
 
-export const IconInformation: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "M8 14.5a6.5 6.5 0 1 0 0-13 6.5 6.5 0 0 0 0 13M8 16A8 8 0 1 0 8-.001 8 8 0 0 0 8 16M6.25 7h1.5a1 1 0 0 1 1 1v4.25h-1.5V8.5h-1zM8 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2",clipRule: "evenodd"}],
-];
+export const IconInformation: IconData = { nodes: [["circle",{"cx":"12","cy":"12","r":"10"}],["path",{"d":"M12 16v-4"}],["path",{"d":"M12 8h.01"}]] };
 
-export const IconKey: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "M6.5 5.5a4 4 0 1 1 2.716 3.79l-.117-.04H7.25v3H5v2.25H1.5v-2.918l4.88-4.437.327-.297-.101-.43c-.07-.3-.106-.609-.106-.918m4-5.5a5.5 5.5 0 0 0-5.44 6.318L.245 10.695 0 10.918V16h6.5v-2.25h2.25v-3h.106A5.5 5.5 0 1 0 10.5 0m0 6.5a1 1 0 1 0 0-2 1 1 0 0 0 0 2",clipRule: "evenodd"}],
-];
+export const IconKey: IconData = { nodes: [["path",{"d":"M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"}],["circle",{"cx":"16.5","cy":"7.5","r":".5","fill":"currentColor"}]] };
 
-export const IconLink: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "M8.47 1.47a4.285 4.285 0 1 1 6.06 6.06l-2.5 2.5-1.06-1.06 2.5-2.5a2.786 2.786 0 1 0-3.94-3.94l-2.5 2.5-1.06-1.06zm3.06 4.06-6 6-1.06-1.06 6-6zm-10.06 9a4.284 4.284 0 0 0 6.06 0l2.5-2.5-1.06-1.06-2.5 2.5a2.786 2.786 0 1 1-3.94-3.94l2.5-2.5-1.06-1.06-2.5 2.5a4.285 4.285 0 0 0 0 6.06",clipRule: "evenodd"}],
-];
+export const IconLink: IconData = { nodes: [["path",{"d":"M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"}],["path",{"d":"M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"}]] };
 
-export const IconLockClosed: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "M10 4.5V6H6V4.5a2 2 0 1 1 4 0M4.5 6V4.5a3.5 3.5 0 1 1 7 0V6H14v6.5a2.5 2.5 0 0 1-2.5 2.5h-7A2.5 2.5 0 0 1 2 12.5V6zm7 1.5h-8v5a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1v-5z",clipRule: "evenodd"}],
-];
+export const IconLockClosed: IconData = { nodes: [["rect",{"width":"18","height":"11","x":"3","y":"11","rx":"2","ry":"2"}],["path",{"d":"M7 11V7a5 5 0 0 1 10 0v4"}]] };
 
-export const IconLogoGithub: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "M8 0a7.997 7.997 0 0 0-2.53 15.585c.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.939-.82-1.129-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.949 0-.87.31-1.589.82-2.149-.08-.2-.36-1.02.08-2.12 0 0 .67-.209 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.039 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.068-1.87 3.748-3.65 3.948.29.25.54.73.54 1.48 0 1.07-.01 1.929-.01 2.199 0 .21.15.46.55.38a8.01 8.01 0 0 0 4.841-10.65A8 8 0 0 0 8 0",clipRule: "evenodd"}],
-];
+export const IconMagnifyingGlass: IconData = { nodes: [["path",{"d":"m21 21-4.34-4.34"}],["circle",{"cx":"11","cy":"11","r":"8"}]] };
 
-export const IconMagnifyingGlass: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "M1.5 6.5a5 5 0 1 1 10 0 5 5 0 0 1-10 0m5-6.5a6.5 6.5 0 1 0 4.035 11.596l3.435 3.434.53.53 1.06-1.06-.53-.53-3.434-3.435A6.5 6.5 0 0 0 6.5 0",clipRule: "evenodd"}],
-];
+export const IconMessage: IconData = { nodes: [["path",{"d":"M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"}]] };
 
-export const IconMessage: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "m2.891 10.403.092.229c.246.613.517 1.473.517 2.368 0 .359-.044.713-.112 1.05a7.2 7.2 0 0 0 2.322-1.297l.515-.43.663.097q.541.079 1.112.08c3.784 0 6.5-2.644 6.5-5.5S11.784 1.5 8 1.5 1.5 4.144 1.5 7c0 1.182.442 2.293 1.231 3.215zm-.078 5.362C1.761 16 1 16 1 16s.433-.69.73-1.563C1.882 13.983 2 13.48 2 13c0-.617-.193-1.27-.409-1.81C.591 10.022 0 8.572 0 7c0-3.866 3.582-7 8-7s8 3.134 8 7-3.582 7-8 7q-.68 0-1.33-.096A8.7 8.7 0 0 1 5 15c-.695.343-1.43.6-2.187.765",clipRule: "evenodd"}],
-];
+export const IconMinus: IconData = { nodes: [["path",{"d":"M5 12h14"}]] };
 
-export const IconMinus: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "M2 7.25h12v1.5H2z",clipRule: "evenodd"}],
-];
+export const IconMinusCircle: IconData = { nodes: [["circle",{"cx":"12","cy":"12","r":"10"}],["path",{"d":"M8 12h8"}]] };
 
-export const IconMinusCircle: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "M14.5 8a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0M16 8A8 8 0 1 1-.001 8 8 8 0 0 1 16 8M5 7.25h-.75v1.5h7.5v-1.5z",clipRule: "evenodd"}],
-];
+export const IconMoreVertical: IconData = { nodes: [["circle",{"cx":"12","cy":"12","r":"1"}],["circle",{"cx":"12","cy":"5","r":"1"}],["circle",{"cx":"12","cy":"19","r":"1"}]] };
 
-export const IconMoreVertical: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "M8 4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m0 5.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m-1.5 4a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0",clipRule: "evenodd"}],
-];
+export const IconPlay: IconData = { nodes: [["path",{"d":"M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"}]] };
 
-export const IconPlay: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "m13.455 7.227-.132-.066L2.5 1.75l-.042-.02-.649-.325-.447-.224A.25.25 0 0 0 1 1.405v13.191a.25.25 0 0 0 .362.223l.447-.224.65-.324.041-.021 10.823-5.411.132-.066.8-.4.298-.15a.25.25 0 0 0 0-.447l-.298-.149zM11.645 8 2.5 3.427v9.146z",clipRule: "evenodd"}],
-];
+export const IconPlus: IconData = { nodes: [["path",{"d":"M5 12h14"}],["path",{"d":"M12 5v14"}]] };
 
-export const IconPlus: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "M8.75 1.75V1h-1.5v5.75H1.5v1.5h5.75V14h1.5V8.25h5.75v-1.5H8.75z",clipRule: "evenodd"}],
-];
+export const IconRobot: IconData = { nodes: [["path",{"d":"M12 8V4H8"}],["rect",{"width":"16","height":"12","x":"4","y":"8","rx":"2"}],["path",{"d":"M2 14h2"}],["path",{"d":"M20 14h2"}],["path",{"d":"M15 13v2"}],["path",{"d":"M9 13v2"}]] };
 
-export const IconRobot: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "M8.75 2.8a1.5 1.5 0 1 0-1.5 0V5H7a6 6 0 0 0-5.917 5H0v3h1v3h14v-3h1v-3h-1.083A6 6 0 0 0 9 5h-.25zM7 6.5A4.5 4.5 0 0 0 2.5 11v3.5h11V11A4.5 4.5 0 0 0 9 6.5zm.25 4.75a1.75 1.75 0 1 1-3.5 0 1.75 1.75 0 0 1 3.5 0M10.5 13a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5",clipRule: "evenodd"}],
-];
+export const IconRotateCounterClockwise: IconData = { nodes: [["path",{"d":"M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"}],["path",{"d":"M3 3v5h5"}]] };
 
-export const IconRotateCounterClockwise: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "M13.5 8c0-3.034-2.474-5.5-5.535-5.5a5.53 5.53 0 0 0-5.328 4H6V8H.75A.75.75 0 0 1 0 7.25V2h1.5v3.233A7.04 7.04 0 0 1 7.965 1C11.846 1 15 4.13 15 8s-3.154 7-7.035 7a7.04 7.04 0 0 1-5.695-2.888l-.442-.605 1.211-.885.443.605A5.54 5.54 0 0 0 7.965 13.5c3.06 0 5.535-2.466 5.535-5.5",clipRule: "evenodd"}],
-];
+export const IconRoute: IconData = { nodes: [["rect",{"width":"8","height":"8","x":"3","y":"3","rx":"2"}],["path",{"d":"M7 11v4a2 2 0 0 0 2 2h4"}],["rect",{"width":"8","height":"8","x":"13","y":"13","rx":"2"}]] };
 
-export const IconRoute: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "M7.53.72 7 .19 5.94 1.25l.53.53.22.22H3.374a3.375 3.375 0 1 0 0 6.75h9.25a1.875 1.875 0 0 1 0 3.75h-7.74a2.501 2.501 0 1 0 0 1.5h7.74a3.375 3.375 0 0 0 0-6.75h-9.25a1.875 1.875 0 1 1 0-3.75h3.314l-.22.22-.53.53L7 5.31l.53-.53 1.324-1.323a1 1 0 0 0 0-1.414zM2.5 14.25a1 1 0 1 0 0-2 1 1 0 0 0 0 2m12-11.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0m1.5 0a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0",clipRule: "evenodd"}],
-];
+export const IconSettingsGear: IconData = { nodes: [["path",{"d":"M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"}],["circle",{"cx":"12","cy":"12","r":"3"}]] };
 
-export const IconSettingsGear: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "m7.7 1.736.045-.236h.51l.044.236a2.02 2.02 0 0 0 1.334 1.536q.285.1.554.23c.618.301 1.398.29 2.03-.143l.199-.136.36.361-.135.199a2.02 2.02 0 0 0-.143 2.03q.13.269.23.554c.224.65.783 1.192 1.536 1.334l.236.044v.51l-.236.044a2.02 2.02 0 0 0-1.536 1.334q-.098.285-.23.554a2.03 2.03 0 0 0 .143 2.03l.136.199-.361.36-.199-.135a2.02 2.02 0 0 0-2.03-.143q-.27.132-.554.23a2.02 2.02 0 0 0-1.334 1.536l-.044.236h-.51l-.044-.236a2.02 2.02 0 0 0-1.334-1.536 5 5 0 0 1-.554-.23 2.03 2.03 0 0 0-2.03.143l-.199.136-.36-.361.135-.199a2.02 2.02 0 0 0 .143-2.03 5 5 0 0 1-.23-.554 2.02 2.02 0 0 0-1.536-1.334L1.5 8.255v-.51l.236-.044a2.02 2.02 0 0 0 1.536-1.334 5 5 0 0 1 .23-.554 2.02 2.02 0 0 0-.143-2.03l-.136-.199.361-.36.199.135a2.02 2.02 0 0 0 2.03.143q.269-.13.554-.23a2.02 2.02 0 0 0 1.334-1.536zM6.5 0h3l.274 1.46a.52.52 0 0 0 .348.394q.373.129.722.3c.17.082.37.074.526-.033l1.226-.839 2.121 2.122-.838 1.226a.52.52 0 0 0-.033.526q.171.35.3.722c.061.177.21.314.394.348L16 6.5v3l-1.46.274a.52.52 0 0 0-.394.348 7 7 0 0 1-.3.722.52.52 0 0 0 .033.526l.838 1.226-2.12 2.121-1.227-.838a.52.52 0 0 0-.526-.033 7 7 0 0 1-.722.3.52.52 0 0 0-.348.394L9.5 16h-3l-.274-1.46a.52.52 0 0 0-.348-.394 7 7 0 0 1-.722-.3.52.52 0 0 0-.526.033l-1.226.838-2.122-2.12.84-1.227a.52.52 0 0 0 .032-.526 7 7 0 0 1-.3-.722.52.52 0 0 0-.394-.348L0 9.5v-3l1.46-.274a.52.52 0 0 0 .394-.348q.129-.373.3-.722a.52.52 0 0 0-.033-.526l-.839-1.226 2.122-2.122 1.226.84a.52.52 0 0 0 .526.032 7 7 0 0 1 .722-.3.52.52 0 0 0 .348-.394zm3 8a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0M11 8a3 3 0 1 1-6 0 3 3 0 0 1 6 0",clipRule: "evenodd"}],
-];
+export const IconSettingsSliders: IconData = { nodes: [["path",{"d":"M10 5H3"}],["path",{"d":"M12 19H3"}],["path",{"d":"M14 3v4"}],["path",{"d":"M16 17v4"}],["path",{"d":"M21 12h-9"}],["path",{"d":"M21 19h-5"}],["path",{"d":"M21 5h-7"}],["path",{"d":"M8 10v4"}],["path",{"d":"M8 12H3"}]] };
 
-export const IconSettingsSliders: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "M10.75 5.5a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5m0-4.75A3 3 0 0 1 13.655 3H16v1.5h-2.345a3 3 0 0 1-5.81 0H0V3h7.845A3 3 0 0 1 10.75.75M15.25 13H16v-1.5H8.155a3 3 0 0 0-5.81 0H0V13h2.345a3.001 3.001 0 0 0 5.81 0zM7 12.251zv-.001a1.75 1.75 0 1 0 0 .002",clipRule: "evenodd"}],
-];
+export const IconSidebarLeft: IconData = { nodes: [["rect",{"width":"18","height":"18","x":"3","y":"3","rx":"2"}],["path",{"d":"M9 3v18"}]] };
 
-export const IconSidebarLeft: IconData = [
-  ["rect", { x: "1.75", y: "2.75", width: "12.5", height: "10.5", rx: "2.25", stroke: "currentColor", strokeWidth: "1.5", strokeLinecap: "round", strokeLinejoin: "round" }],
-  ["path", { d: "M6.25 2.75v10.5", stroke: "currentColor", strokeWidth: "1.5", strokeLinecap: "round", strokeLinejoin: "round" }],
-];
+export const IconTerminal: IconData = { nodes: [["path",{"d":"M12 19h8"}],["path",{"d":"m4 17 6-6-6-6"}]] };
 
-export const IconTerminal: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "m1.53 12.78-.53.53-1.06-1.06.53-.53L4.19 8 .47 4.28l-.53-.53L1 2.69l.53.53 4.074 4.073a1 1 0 0 1 0 1.414zm7.22-.28H8V14h8v-1.5z",clipRule: "evenodd"}],
-];
+export const IconUsers: IconData = { nodes: [["path",{"d":"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"}],["path",{"d":"M16 3.128a4 4 0 0 1 0 7.744"}],["path",{"d":"M22 21v-2a4 4 0 0 0-3-3.87"}],["circle",{"cx":"9","cy":"7","r":"4"}]] };
 
-export const IconUsers: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "M2.5 3.25A3.25 3.25 0 0 1 5.75 0h.5A3.25 3.25 0 0 1 9.5 3.25v.5A3.25 3.25 0 0 1 6.25 7h-.5A3.25 3.25 0 0 1 2.5 3.75zM5.75 1.5A1.75 1.75 0 0 0 4 3.25v.5c0 .966.784 1.75 1.75 1.75h.5A1.75 1.75 0 0 0 8 3.75v-.5A1.75 1.75 0 0 0 6.25 1.5zm-4.25 13v-1.33a4.84 4.84 0 0 1 4.33-2.67h.34a4.84 4.84 0 0 1 4.33 2.67v1.33zM5.83 9a6.34 6.34 0 0 0-5.761 3.686l-.069.15V16h12v-3.165l-.069-.15A6.35 6.35 0 0 0 6.171 9zm10.101 3.686a6.34 6.34 0 0 0-2.587-2.835l-.75 1.298a4.84 4.84 0 0 1 1.906 2.022V14.5h-1V16H16v-3.165zM11.25 0h-.75v1.5h.75c.966 0 1.75.784 1.75 1.75v.5a1.75 1.75 0 0 1-1.75 1.75h-.75V7h.75a3.25 3.25 0 0 0 3.25-3.25v-.5A3.25 3.25 0 0 0 11.25 0",clipRule: "evenodd"}],
-];
+export const IconWarning: IconData = { nodes: [["path",{"d":"m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"}],["path",{"d":"M12 9v4"}],["path",{"d":"M12 17h.01"}]] };
 
-export const IconWarning: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "M8.558 2H7.441L1.89 13.5h12.22zm1.351-.652A1.5 1.5 0 0 0 8.56.5H7.44a1.5 1.5 0 0 0-1.35.848L.193 13.565a1 1 0 0 0 .9 1.435h13.814a1 1 0 0 0 .9-1.435zM8.75 4.75v4h-1.5v-4zM8 12a1 1 0 1 0 0-2 1 1 0 0 0 0 2",clipRule: "evenodd"}],
-];
+export const IconWrench: IconData = { nodes: [["path",{"d":"M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z"}]] };
 
-export const IconWrench: IconData = [
-  ["path", {fill: "currentColor",d: "m12.798 1.242.53.53.729-.728-.917-.47zm-2.84 2.84-.531-.53zM6.583 6.957l.53.53.354-.353-.19-.462zm2.518 2.481.275-.697-.457-.18-.348.347zm5.684-6.183.672-.333-.464-.936-.739.739zM12.267.712l-2.84 2.84 1.06 1.061 2.841-2.84zM10.75 1.5c.616 0 1.195.148 1.706.41L13.14.574A5.2 5.2 0 0 0 10.75 0zM7 5.25a3.75 3.75 0 0 1 3.75-3.75V0A5.25 5.25 0 0 0 5.5 5.25zm.278 1.421A3.7 3.7 0 0 1 7 5.25H5.5c0 .703.138 1.375.39 1.99zm-1.224-.246L.97 11.51l1.06 1.06 5.085-5.084-1.06-1.06zM.97 11.51a2.52 2.52 0 0 0 0 3.56l1.06-1.06a1.02 1.02 0 0 1 0-1.44zm0 3.56a2.52 2.52 0 0 0 3.56 0l-1.06-1.06a1.02 1.02 0 0 1-1.44 0zm3.56 0 5.102-5.1-1.06-1.06-5.102 5.1zM10.75 9c-.486 0-.95-.092-1.374-.26l-.55 1.396a5.2 5.2 0 0 0 1.924.364zm3.75-3.75A3.75 3.75 0 0 1 10.75 9v1.5c2.9 0 5.25-2.35 5.25-5.25zm-.387-1.662c.247.5.387 1.064.387 1.662H16c0-.834-.195-1.625-.543-2.328zm-1.626 3.025 2.828-2.827-1.06-1.061-2.828 2.828zm-2.475 0a1.75 1.75 0 0 0 2.475 0l-1.06-1.06a.25.25 0 0 1-.354 0zm-.585-.586.585.586 1.061-1.06-.586-.586zm0-2.475a1.75 1.75 0 0 0 0 2.475l1.06-1.06a.25.25 0 0 1 0-.354z"}],
-];
+export const IconClock: IconData = { nodes: [["circle",{"cx":"12","cy":"12","r":"10"}],["path",{"d":"M12 6v6l4 2"}]] };
 
-export const IconClock: IconData = [
-  ["circle", { cx: "8", cy: "8", r: "6.25", stroke: "currentColor", strokeWidth: "1.5" }],
-  ["path", { d: "M8 4.75V8l2.25 1.5", stroke: "currentColor", strokeWidth: "1.5", strokeLinecap: "square" }],
-];
+export const IconUndo: IconData = { nodes: [["path",{"d":"M9 14 4 9l5-5"}],["path",{"d":"M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"}]] };
+
+export const IconRedo: IconData = { nodes: [["path",{"d":"m15 14 5-5-5-5"}],["path",{"d":"M20 9H9.5A5.5 5.5 0 0 0 4 14.5A5.5 5.5 0 0 0 9.5 20H13"}]] };
+
+export const IconPlug: IconData = { nodes: [["path",{"d":"M12 22v-5"}],["path",{"d":"M15 8V2"}],["path",{"d":"M17 8a1 1 0 0 1 1 1v4a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1z"}],["path",{"d":"M9 8V2"}]] };
+
+export const IconShare: IconData = { nodes: [["circle",{"cx":"18","cy":"5","r":"3"}],["circle",{"cx":"6","cy":"12","r":"3"}],["circle",{"cx":"18","cy":"19","r":"3"}],["line",{"x1":"8.59","x2":"15.42","y1":"13.51","y2":"17.49"}],["line",{"x1":"15.41","x2":"8.59","y1":"6.51","y2":"10.49"}]] };
+
+export const IconFocus: IconData = { nodes: [["circle",{"cx":"12","cy":"12","r":"3"}],["path",{"d":"M3 7V5a2 2 0 0 1 2-2h2"}],["path",{"d":"M17 3h2a2 2 0 0 1 2 2v2"}],["path",{"d":"M21 17v2a2 2 0 0 1-2 2h-2"}],["path",{"d":"M7 21H5a2 2 0 0 1-2-2v-2"}]] };
+
+export const IconExternalLink: IconData = { nodes: [["path",{"d":"M15 3h6v6"}],["path",{"d":"M10 14 21 3"}],["path",{"d":"M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"}]] };
+
+export const IconCopy: IconData = { nodes: [["rect",{"width":"14","height":"14","x":"8","y":"8","rx":"2","ry":"2"}],["path",{"d":"M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"}]] };
+
+export const IconTrash: IconData = { nodes: [["path",{"d":"M10 11v6"}],["path",{"d":"M14 11v6"}],["path",{"d":"M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"}],["path",{"d":"M3 6h18"}],["path",{"d":"M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"}]] };
+
+export const IconLayers: IconData = { nodes: [["path",{"d":"M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"}],["path",{"d":"M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"}],["path",{"d":"M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"}]] };
+
+export const IconSparkles: IconData = { nodes: [["path",{"d":"M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"}],["path",{"d":"M20 2v4"}],["path",{"d":"M22 4h-4"}],["circle",{"cx":"4","cy":"20","r":"2"}]] };
+
+export const IconGlobe: IconData = { nodes: [["circle",{"cx":"12","cy":"12","r":"10"}],["path",{"d":"M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"}],["path",{"d":"M2 12h20"}]] };
+
+export const IconZap: IconData = { nodes: [["path",{"d":"M15.914 4a1.5 1.5 0 00-2.474-1.561l-9 9A1.5 1.5 0 005.5 14h4.002a.5.5 0 01.471.666L8.086 20a1.5 1.5 0 002.475 1.56l9-9A1.5 1.5 0 0018.5 10h-3.997a.5.5 0 01-.472-.667z"}]] };
+
+/** Brand marks keep their own filled shape. */
+export const IconLogoGithub: IconData = {
+  filled: true,
+  nodes: [["path", { d: "M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" }]],
+};

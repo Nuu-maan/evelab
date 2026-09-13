@@ -186,7 +186,7 @@ export function NewProjectWizard({ models, defaultModel }: { models: GatewayMode
           return (
             <li key={entry.id} className="wizard-step" data-state={state}>
               <span className="wizard-marker" aria-hidden="true">
-                {state === "done" ? <Icon icon={IconCheck} size={12} /> : index + 1}
+                {state === "done" ? <Icon icon={IconCheck} size={14} /> : index + 1}
               </span>
 
               <div className="wizard-body">
