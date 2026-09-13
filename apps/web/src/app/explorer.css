@@ -107,12 +107,22 @@
     background: var(--border);
   }
 
+  /*
+   * A centered box, so rotating the chevron turns it in place. As an inline
+   * SVG on the text baseline it sat low and drifted when it rotated.
+   */
   .tree-chevron {
+    display: grid;
+    place-items: center;
     flex: none;
     width: 16px;
     height: 16px;
     color: var(--foreground-tertiary);
     transition: transform 150ms var(--ease-out);
+  }
+
+  .tree-chevron svg {
+    display: block;
   }
 
   .tree-chevron[data-open] {
