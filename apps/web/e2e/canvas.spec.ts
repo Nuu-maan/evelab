@@ -10,7 +10,7 @@ const FILES: Record<string, string> = {
   "package.json": `${JSON.stringify({ name: "demo-agent", type: "module" }, null, 2)}\n`,
   "agent/agent.ts": `import { defineAgent } from "eve";\n\nexport default defineAgent({\n  model: "openai/gpt-5.6-luna-fast",\n  description: "A project fixture for the end to end suite.",\n});\n`,
   "agent/instructions.md": "# Identity\n\nBe useful.\n",
-  "agent/subagents/researcher/agent.ts": `import { defineAgent } from "eve";\n\nexport default defineAgent({\n  description: "Gathers sources.",\n});\n`,
+  "agent/subagents/researcher/agent.ts": `import { defineAgent } from "eve";\n\nexport default defineAgent({\n  description: "Gathers sources.",\n  model: "openai/gpt-5.6-luna-fast",\n});\n`,
   "agent/subagents/researcher/instructions.md": "Collect three sources.\n",
   "agent/skills/notes/SKILL.md": "---\nname: notes\ndescription: Keeps notes while working.\n---\n\nWrite things down.\n",
 };
@@ -31,7 +31,8 @@ test.beforeAll(async () => {
 });
 
 const rootSkill = join(PROJECT, "agent", "skills", "notes", "SKILL.md");
-const researcherSkill = join(PROJECT, "agent", "subagents", "researcher", "skills", "notes", "SKILL.md");
+const sharedSkill = join(PROJECT, "agent", "lib", "skills", "notes.ts");
+const researcherReexport = join(PROJECT, "agent", "subagents", "researcher", "skills", "notes.ts");
 
 /** Drags from one point to another in small steps, the way React Flow expects a pointer to move. */
 async function drag(page: Page, from: { x: number; y: number }, to: { x: number; y: number }) {
@@ -47,36 +48,35 @@ async function center(locator: Locator) {
   return { x: box!.x + box!.width / 2, y: box!.y + box!.height / 2 };
 }
 
-test("the canvas shows every capability and the file behind it", async ({ page }) => {
+test("the canvas shows every node and the file behind it", async ({ page }) => {
   await page.goto("/projects/demo-agent/canvas");
 
   await expect(page.getByTestId("rf__node-agent")).toContainText("demo-agent");
-  await expect(page.getByTestId("rf__node-subagent:researcher")).toContainText("researcher");
-  await expect(page.getByText("agent/subagents/researcher/agent.ts")).toBeVisible();
+  await expect(page.getByTestId("rf__node-subagent:researcher")).toContainText("agent/subagents/researcher/agent.ts");
   await expect(page.getByTestId("rf__node-skill:notes")).toContainText("agent/skills/notes/SKILL.md");
+  await expect(page.getByRole("complementary", { name: "Resources" }).getByText("notes")).toBeVisible();
 });
 
-test("the zoom controls are visible and work", async ({ page }) => {
+test("the toolbar zooms", async ({ page }) => {
   await page.goto("/projects/demo-agent/canvas");
-  const controls = page.getByRole("toolbar", { name: "Canvas view" });
-  const zoom = controls.getByRole("button", { name: /Reset zoom/ });
+  const toolbar = page.getByRole("toolbar", { name: "Canvas" });
+  const zoom = toolbar.getByRole("button", { name: /Reset zoom/ });
   await expect(page.getByTestId("rf__node-agent")).toBeVisible();
   const before = await zoom.textContent();
-  // The initial fitView can land after an early click and reset the zoom, so retry the click.
+  // The first fit can land after an early click and reset the zoom, so retry the click.
   await expect(async () => {
-    await controls.getByRole("button", { name: "Zoom in" }).click();
+    await toolbar.getByRole("button", { name: "Zoom in" }).click();
     await expect(zoom).not.toHaveText(before ?? "", { timeout: 1000 });
   }).toPass();
 });
 
-test("selecting a node opens its file in the inspector and saves edits", async ({ page }) => {
+test("selecting a node shows its source and saves edits", async ({ page }) => {
   await page.goto("/projects/demo-agent/canvas");
 
   await page.getByTestId("rf__node-skill:notes").click();
-
   const inspector = page.getByRole("complementary", { name: /notes inspector/ });
   await expect(inspector).toBeVisible();
-  await expect(inspector.getByText("agent/skills/notes/SKILL.md")).toBeVisible();
+  await inspector.getByRole("tab", { name: "Source" }).click();
   // Monaco loads on first use, which can take a while on a busy machine.
   await expect(inspector.getByText("Write things down.")).toBeVisible({ timeout: 20_000 });
 
@@ -84,62 +84,50 @@ test("selecting a node opens its file in the inspector and saves edits", async (
   await inspector.getByText("Write things down.").click();
   await page.keyboard.press("End");
   await page.keyboard.insertText(" Cite the source.");
-
-  await expect(inspector.getByRole("status")).toHaveText("Unsaved changes");
+  await expect(page.getByRole("toolbar", { name: "Canvas" })).toContainText("Unsaved");
   await inspector.getByRole("button", { name: "Save", exact: true }).click();
-  await expect(inspector.getByRole("status")).toHaveText("Saved");
 
-  const onDisk = await readFile(rootSkill, "utf8");
-  expect(onDisk).toContain("Cite the source.");
+  await expect.poll(() => readFile(rootSkill, "utf8")).toContain("Cite the source.");
   // The rest of the file, including its frontmatter, is untouched.
-  expect(onDisk).toContain("description: Keeps notes while working.");
-
-  await inspector.getByRole("button", { name: "Close" }).click();
-  await expect(inspector).toBeHidden();
+  expect(await readFile(rootSkill, "utf8")).toContain("description: Keeps notes while working.");
 });
 
-test("dragging an edge moves a skill into a subagent, and dropping it moves it back", async ({ page }) => {
+test("attaching a skill to a subagent shares one definition, and detaching keeps it", async ({ page }) => {
   await page.goto("/projects/demo-agent/canvas");
 
-  const edge = page.getByTestId("rf__edge-agent->skill:notes");
-  await expect(edge).toBeVisible();
+  await page.getByTestId("rf__node-skill:notes").click();
+  await page.getByRole("button", { name: "Attach to agent" }).click();
+  await page.getByRole("menuitem", { name: "researcher" }).click();
 
-  // The source end sits on the agent's handle; grab the edge just below it.
-  const agentHandle = page.getByTestId("rf__node-agent").locator(".react-flow__handle.source");
-  const start = await center(agentHandle);
-  const researcherHandle = page
-    .getByTestId("rf__node-subagent:researcher")
-    .locator(".react-flow__handle.source");
-  await drag(page, { x: start.x, y: start.y + 9 }, await center(researcherHandle));
-
-  // A subagent inherits nothing in Eve, so the skill's directory moves.
-  await expect.poll(() => exists(researcherSkill)).toBe(true);
+  // Eve gives a subagent nothing from its parent, so both agents re-export one module in lib/.
+  await expect.poll(() => exists(sharedSkill)).toBe(true);
+  expect(await readFile(researcherReexport, "utf8")).toBe('export { default } from "../../../lib/skills/notes.ts";\n');
   expect(await exists(rootSkill)).toBe(false);
-  await expect(page.getByTestId("rf__edge-subagent:researcher->skill:researcher/notes")).toBeVisible();
+  const node = page.getByTestId("rf__node-skill:#notes");
+  await expect(node).toContainText("Shared");
+  await expect(page.locator('[data-testid^="rf__node-skill"]')).toHaveCount(1);
 
-  // Drop the same end on empty canvas: it goes back to the agent.
-  const owned = await center(researcherHandle);
-  const pane = await page.locator(".react-flow__pane").boundingBox();
-  await drag(page, { x: owned.x, y: owned.y + 9 }, { x: pane!.x + 40, y: pane!.y + 40 });
+  await node.click();
+  await page.getByRole("button", { name: "Detach researcher" }).click();
+  await expect.poll(() => exists(researcherReexport)).toBe(false);
+  expect(await exists(sharedSkill)).toBe(true);
 
-  await expect.poll(() => exists(rootSkill)).toBe(true);
-  expect(await exists(researcherSkill)).toBe(false);
-  await expect(page.getByTestId("rf__edge-agent->skill:notes")).toBeVisible();
+  await page.keyboard.press("Control+z");
+  await expect.poll(() => exists(researcherReexport)).toBe(true);
 });
 
-test("adding a tool from the palette writes a real file", async ({ page }) => {
+test("adding a tool from the Add menu writes a real file", async ({ page }) => {
   await page.goto("/projects/demo-agent/canvas");
 
-  await page.getByRole("button", { name: /TypeScript tool/ }).click();
+  await page.getByRole("toolbar", { name: "Canvas" }).getByRole("button", { name: "Add" }).click();
+  await page.getByRole("menuitem", { name: /^Tool/ }).click();
 
-  const panel = page.getByRole("complementary", { name: "New tool" });
-  await expect(panel).toBeVisible();
-  await panel.getByLabel("Tool name").fill("search_docs");
+  const panel = page.getByRole("complementary", { name: "Create" });
+  await panel.getByLabel("Name").fill("search_docs");
   await panel.getByLabel("Description").fill("Searches the docs index.");
   await panel.getByRole("button", { name: "Create tool" }).click();
 
-  await expect(page.getByText("agent/tools/search_docs.ts")).toBeVisible();
-
+  await expect(page.getByTestId("rf__node-tool:search_docs")).toBeVisible();
   const source = await readFile(join(PROJECT, "agent", "tools", "search_docs.ts"), "utf8");
   expect(source).toContain('import { defineTool } from "eve/tools";');
   expect(source).toContain("Searches the docs index.");
@@ -148,8 +136,9 @@ test("adding a tool from the palette writes a real file", async ({ page }) => {
 test("adding a connection writes an MCP connection with Vercel Connect auth", async ({ page }) => {
   await page.goto("/projects/demo-agent/canvas");
 
-  await page.getByRole("button", { name: /Connection/ }).click();
-  const panel = page.getByRole("complementary", { name: "New connection" });
+  await page.keyboard.press("a");
+  await page.getByRole("menuitem", { name: /^Connection/ }).click();
+  const panel = page.getByRole("complementary", { name: "Create" });
   await panel.getByLabel("Connection name").fill("linear");
   await panel.getByLabel("URL").fill("https://mcp.linear.app/mcp");
   await panel.getByLabel("Description").fill("Linear issues.");
@@ -165,7 +154,7 @@ test("adding a connection writes an MCP connection with Vercel Connect auth", as
 
 /**
  * A node's position in flow coordinates, read from React Flow's transform.
- * Screen positions are useless here: fitView re-centres the graph on reload.
+ * Screen positions are useless here: the first fit re-centres the graph on reload.
  */
 async function flowX(page: Page, id: string): Promise<number> {
   const transform = await page
@@ -190,7 +179,7 @@ test("node positions survive a reload", async ({ page }) => {
   await page.waitForTimeout(1200);
   await page.reload();
 
-  // 160 screen pixels is at least 160 flow units at any zoom up to 100%.
+  // 160 screen pixels is at least 100 flow units at any zoom the first fit picks.
   expect(await flowX(page, "subagent:researcher")).toBeGreaterThan(before + 100);
 });
 
