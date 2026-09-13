@@ -1,10 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import Link from "next/link";
-import { AnimatePresence, motion } from "motion/react";
-import { Check, ChevronsUpDown, LayoutGrid, Plus } from "lucide-react";
-import { EASE_OUT, EXIT } from "@/components/interaction";
+import { IconArrowUpDown, IconCheck, IconGridSquare, IconPlus } from "@/components/icons";
+import { Icon } from "@/components/icon";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export interface SwitcherProject {
   id: string;
@@ -27,115 +34,44 @@ export function ProjectSwitcher({
   current: SwitcherProject;
   projects: SwitcherProject[];
 }) {
-  const [open, setOpen] = useState(false);
-  const root = useRef<HTMLDivElement>(null);
-  const trigger = useRef<HTMLButtonElement>(null);
-  const menu = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onPointerDown = (event: PointerEvent) => {
-      if (!root.current?.contains(event.target as Node)) setOpen(false);
-    };
-    const onKeyDown = (event: globalThis.KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setOpen(false);
-        trigger.current?.focus();
-      }
-    };
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    menu.current?.querySelector<HTMLElement>('[aria-current="true"], [role="menuitem"]')?.focus();
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [open]);
-
-  const onMenuKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    const items = [...(menu.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [])];
-    const index = items.indexOf(document.activeElement as HTMLElement);
-    const target =
-      event.key === "ArrowDown"
-        ? items[(index + 1) % items.length]
-        : event.key === "ArrowUp"
-          ? items[(index - 1 + items.length) % items.length]
-          : event.key === "Home"
-            ? items[0]
-            : event.key === "End"
-              ? items.at(-1)
-              : undefined;
-    if (event.key === "Tab") setOpen(false);
-    if (!target) return;
-    event.preventDefault();
-    target.focus();
-  };
-
   return (
-    <div className="switcher" ref={root}>
-      <button
-        ref={trigger}
-        className="switcher-trigger"
-        type="button"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        onClick={() => setOpen((value) => !value)}
-        onKeyDown={(event) => {
-          if (event.key === "ArrowDown") {
-            event.preventDefault();
-            setOpen(true);
-          }
-        }}
-      >
-        <Avatar name={current.name} />
-        <span className="switcher-name">{current.name}</span>
-        <ChevronsUpDown className="switcher-chevron" aria-hidden="true" strokeWidth={1.5} />
-      </button>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button className="switcher-trigger" type="button">
+          <Avatar name={current.name} />
+          <span className="switcher-name">{current.name}</span>
+          <Icon icon={IconArrowUpDown} className="switcher-chevron" />
+        </button>
+      </DropdownMenuTrigger>
 
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            ref={menu}
-            className="menu"
-            role="menu"
-            aria-label="Switch project"
-            onKeyDown={onMenuKeyDown}
-            initial={{ opacity: 0, transform: "scale(0.97)" }}
-            animate={{ opacity: 1, transform: "scale(1)", transition: EASE_OUT }}
-            exit={{ opacity: 0, transform: "scale(0.99)", transition: EXIT }}
-          >
-            <p className="menu-label">Projects</p>
-            {projects.map((project) => (
-              <Link
-                key={project.id}
-                className="menu-item"
-                role="menuitem"
-                href={`/projects/${project.id}`}
-                aria-current={project.id === current.id ? "true" : undefined}
-                onClick={() => setOpen(false)}
-              >
+      {/* Radix labels the menu with its trigger; the menu's job is clearer than the project name. */}
+      <DropdownMenuContent aria-label="Switch project" aria-labelledby={undefined} className="min-w-60">
+        <DropdownMenuLabel>Projects</DropdownMenuLabel>
+        <DropdownMenuGroup>
+          {projects.map((project) => (
+            <DropdownMenuItem key={project.id} asChild className="h-8">
+              <Link href={`/projects/${project.id}`}>
                 <Avatar name={project.name} />
-                <span className="menu-item-label">{project.name}</span>
-                {project.id === current.id && <Check aria-hidden="true" strokeWidth={1.5} />}
+                <span className="min-w-0 flex-1 truncate">{project.name}</span>
+                {project.id === current.id && <Icon icon={IconCheck} />}
               </Link>
-            ))}
-            <hr className="menu-separator" />
-            <Link className="menu-item" role="menuitem" href="/projects" onClick={() => setOpen(false)}>
-              <LayoutGrid aria-hidden="true" strokeWidth={1.5} />
-              <span className="menu-item-label">All projects</span>
-            </Link>
-            <Link
-              className="menu-item"
-              role="menuitem"
-              href="/projects/new"
-              onClick={() => setOpen(false)}
-            >
-              <Plus aria-hidden="true" strokeWidth={1.5} />
-              <span className="menu-item-label">New project</span>
-            </Link>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild className="h-8">
+          <Link href="/projects">
+            <Icon icon={IconGridSquare} />
+            All projects
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild className="h-8">
+          <Link href="/projects/new">
+            <Icon icon={IconPlus} />
+            New project
+          </Link>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

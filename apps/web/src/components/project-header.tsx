@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowDown, Play, Rocket } from "lucide-react";
+import { IconArrowDown, IconCloudUpload, IconPlay } from "@/components/icons";
+import { Icon } from "@/components/icon";
+import { Button } from "@/components/ui/button";
 
 const PAGES: Record<string, string> = {
   "": "Overview",
@@ -72,7 +74,7 @@ export function ProjectHeader({
           </Link>
           {git.remoteMoved && (
             <Link className="header-remote" href={`${base}/source`}>
-              <ArrowDown aria-hidden="true" strokeWidth={1.5} />
+              <Icon icon={IconArrowDown} size={14} />
               Remote changes
             </Link>
           )}
@@ -80,14 +82,18 @@ export function ProjectHeader({
       )}
 
       <div className="header-actions">
-        <Link className="button" data-size="small" href={`${base}/runs`}>
-          <Play aria-hidden="true" strokeWidth={1.5} />
-          Run
-        </Link>
-        <Link className="button" data-variant="primary" data-size="small" href={`${base}/deployments`}>
-          <Rocket aria-hidden="true" strokeWidth={1.5} />
-          Deploy
-        </Link>
+        <Button asChild variant="outline" size="sm">
+          <Link href={`${base}/runs`}>
+            <Icon icon={IconPlay} size={14} />
+            Run
+          </Link>
+        </Button>
+        <Button asChild size="sm">
+          <Link href={`${base}/deployments`}>
+            <Icon icon={IconCloudUpload} size={14} />
+            Deploy
+          </Link>
+        </Button>
       </div>
     </header>
   );

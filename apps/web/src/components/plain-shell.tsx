@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Mark } from "@/components/mark";
+import { Button } from "@/components/ui/button";
 
 /**
  * Shell for pages outside a project. Applied per page rather than as a layout,
@@ -17,9 +18,9 @@ export function PlainShell({ children }: { children: React.ReactNode }) {
           EveLab
         </Link>
         <div className="topbar-actions">
-          <Link className="button" data-variant="ghost" data-size="small" href="/projects">
-            Projects
-          </Link>
+          <Button asChild variant="ghost" size="sm">
+            <Link href="/projects">Projects</Link>
+          </Button>
         </div>
       </header>
       {children}

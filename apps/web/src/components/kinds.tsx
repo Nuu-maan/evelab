@@ -1,28 +1,28 @@
-import { BookOpen, Bot, Users, Wrench, type LucideIcon } from "lucide-react";
+import { IconBookOpen, IconRobot, IconUsers, IconWrench } from "@/components/icons";
 import type { CanvasNodeKind } from "@evelab/eve-project";
+import { Icon, type IconData } from "@/components/icon";
 
 /** One icon and colour per capability kind, shared by the canvas, overview and palette. */
-export const KINDS: Record<CanvasNodeKind, { label: string; plural: string; icon: LucideIcon }> = {
-  agent: { label: "Agent", plural: "Agents", icon: Bot },
-  subagent: { label: "Subagent", plural: "Subagents", icon: Users },
-  tool: { label: "Tool", plural: "Tools", icon: Wrench },
-  skill: { label: "Skill", plural: "Skills", icon: BookOpen },
+export const KINDS: Record<CanvasNodeKind, { label: string; plural: string; icon: IconData }> = {
+  agent: { label: "Agent", plural: "Agents", icon: IconRobot },
+  subagent: { label: "Subagent", plural: "Subagents", icon: IconUsers },
+  tool: { label: "Tool", plural: "Tools", icon: IconWrench },
+  skill: { label: "Skill", plural: "Skills", icon: IconBookOpen },
 };
 
 export function KindTile({ kind, size }: { kind: CanvasNodeKind; size?: "large" }) {
-  const Icon = KINDS[kind].icon;
   return (
     <span className="kind-tile" data-kind={kind} data-size={size} aria-hidden="true">
-      <Icon strokeWidth={2} />
+      <Icon icon={KINDS[kind].icon} size={size === "large" ? 16 : 14} />
     </span>
   );
 }
 
 export function KindCount({ kind, count }: { kind: CanvasNodeKind; count: number }) {
-  const { icon: Icon, label, plural } = KINDS[kind];
+  const { icon, label, plural } = KINDS[kind];
   return (
     <span className="kind-count" data-kind={kind}>
-      <Icon aria-hidden="true" strokeWidth={2} />
+      <Icon icon={icon} size={14} />
       {count}
       <span className="visually-hidden">{count === 1 ? label : plural}</span>
     </span>
