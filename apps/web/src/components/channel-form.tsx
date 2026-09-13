@@ -70,7 +70,8 @@ export function ChannelForm({
   const router = useRouter();
   const native = (Object.keys(PLATFORMS) as Platform[]).filter((platform) => !existing.includes(platform));
   const adapters = chatSdkAdapters.filter((adapter) => !existing.includes(adapter.id));
-  const first = native[0] ?? (adapters[0] ? `${CHAT_SDK}${adapters[0].id}` : undefined);
+  // Chat SDK comes first: one adapter model for every platform, with credentials left to the environment.
+  const first = adapters[0] ? `${CHAT_SDK}${adapters[0].id}` : native[0];
   const [choice, setChoice] = useState<string | undefined>(first);
   const [state, setState] = useState(chatSdkStates.find((option) => option.id === "redis")?.id ?? chatSdkStates[0]?.id ?? "");
   const [error, setError] = useState<string>();
@@ -113,17 +114,8 @@ export function ChannelForm({
         <Field>
           <FieldLabel htmlFor="channel-platform">Platform</FieldLabel>
           <select id="channel-platform" className="native-select" value={choice} onChange={(event) => setChoice(event.target.value)}>
-            {native.length > 0 && (
-              <optgroup label="Eve channels">
-                {native.map((value) => (
-                  <option key={value} value={value}>
-                    {PLATFORMS[value].label}
-                  </option>
-                ))}
-              </optgroup>
-            )}
             {adapters.length > 0 && (
-              <optgroup label="Chat SDK adapters">
+              <optgroup label="Vercel Chat SDK">
                 {adapters.map((option) => (
                   <option key={option.id} value={`${CHAT_SDK}${option.id}`}>
                     {option.label}
@@ -131,11 +123,20 @@ export function ChannelForm({
                 ))}
               </optgroup>
             )}
+            {native.length > 0 && (
+              <optgroup label="Eve native channels">
+                {native.map((value) => (
+                  <option key={value} value={value}>
+                    {PLATFORMS[value].label}
+                  </option>
+                ))}
+              </optgroup>
+            )}
           </select>
           {adapter ? (
             <FieldDescription>
-              A Chat SDK adapter behind eve&apos;s chat-sdk channel, served at{" "}
-              <code className="mono">/eve/v1/{adapter.id}</code>. EveLab adds the packages it imports to package.json.
+              Vercel Chat SDK behind eve&apos;s chat-sdk channel, served at <code className="mono">/eve/v1/{adapter.id}</code>.
+              The same bot code works on every platform, and EveLab adds the adapter packages to package.json.
             </FieldDescription>
           ) : (
             info?.setup && <FieldDescription>{info.setup}</FieldDescription>
