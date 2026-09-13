@@ -20,7 +20,7 @@
     position: absolute;
     top: 28px;
     bottom: 4px;
-    left: 11.5px;
+    inset-inline-start: 11.5px;
     width: 1px;
     background: var(--border);
   }
@@ -126,7 +126,7 @@
   }
 
   .wizard-hint {
-    margin-right: auto;
+    margin-inline-end: auto;
     color: var(--foreground-tertiary);
     font-size: 12px;
   }
@@ -145,7 +145,7 @@
     gap: var(--space-3);
     width: 100%;
     padding: 10px var(--space-3);
-    text-align: left;
+    text-align: start;
     transition: background-color var(--duration-hover) ease;
   }
 

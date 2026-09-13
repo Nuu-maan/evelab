@@ -275,8 +275,8 @@
 
   .tab-underline {
     position: absolute;
-    left: var(--space-2);
-    right: var(--space-2);
+    inset-inline-start: var(--space-2);
+    inset-inline-end: var(--space-2);
     bottom: -1px;
     height: 2px;
     background: var(--foreground);
@@ -652,7 +652,7 @@
   }
 
   .topbar-actions {
-    margin-left: auto;
+    margin-inline-start: auto;
     display: flex;
     align-items: center;
     gap: var(--space-2);
@@ -766,13 +766,13 @@
     gap: 4px;
     min-width: 0;
     padding: 14px 18px;
-    border-right: 1px solid var(--border);
+    border-inline-end: 1px solid var(--border);
     border-bottom: 1px solid var(--border);
     transition: background-color var(--duration-hover) ease;
   }
 
   .agent-stat:nth-child(3n) {
-    border-right: none;
+    border-inline-end: none;
   }
 
   .agent-stat:nth-last-child(-n + 3) {

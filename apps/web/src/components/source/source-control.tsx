@@ -188,7 +188,7 @@ export function SourceControl({
           <AlertTitle className="font-normal text-foreground">{notice.text}</AlertTitle>
           {notice.paths && (
             <AlertDescription>
-              <ul className="list-disc pl-4">
+              <ul className="list-disc ps-4">
                 {notice.paths.map((path) => (
                   <li className="mono" key={path}>
                     {path}
