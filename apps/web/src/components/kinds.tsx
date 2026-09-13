@@ -1,4 +1,4 @@
-import { IconBookOpen, IconLink, IconRobot, IconUsers, IconWrench } from "@/components/icons";
+import { IconBookOpen, IconLink, IconMessage, IconRobot, IconUsers, IconWrench } from "@/components/icons";
 import type { CanvasNodeKind } from "@evelab/eve-project";
 import { Icon, type IconData } from "@/components/icon";
 
@@ -9,6 +9,7 @@ export const KINDS: Record<CanvasNodeKind, { label: string; plural: string; icon
   tool: { label: "Tool", plural: "Tools", icon: IconWrench },
   skill: { label: "Skill", plural: "Skills", icon: IconBookOpen },
   connection: { label: "Connection", plural: "Connections", icon: IconLink },
+  channel: { label: "Channel", plural: "Channels", icon: IconMessage },
 };
 
 export function KindTile({ kind, size }: { kind: CanvasNodeKind; size?: "large" }) {

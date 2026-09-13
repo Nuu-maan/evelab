@@ -367,6 +367,10 @@
     --kind: var(--kind-connection);
   }
 
+  [data-kind="channel"] {
+    --kind: var(--kind-channel);
+  }
+
   .platform-list {
     display: grid;
   }

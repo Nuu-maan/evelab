@@ -8,6 +8,8 @@ import { getAuth } from "@evelab/auth";
 import {
   agentPath,
   applyOwnershipChange,
+  attachResource,
+  detachResource,
   OwnershipError,
   reasoningSchema,
   removeEntity,
@@ -67,7 +69,15 @@ const nameSchema = z
   .string()
   .trim()
   .regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/, "Use letters, digits, - and _");
-const entityRefSchema = z.string().regex(/^(tool|skill|connection|subagent):([A-Za-z0-9][A-Za-z0-9_-]*\/)*[A-Za-z0-9][A-Za-z0-9_-]*$/);
+const SEGMENT = "[A-Za-z0-9][A-Za-z0-9_-]*";
+/** A resource on the canvas: "tool:search_docs", "skill:researcher/cite", or shared, "connection:#github". */
+const resourceRefSchema = z.string().regex(new RegExp(`^(tool|skill|connection):(#${SEGMENT}|(${SEGMENT}/)*${SEGMENT})$`));
+const agentRefSchema = z.string().regex(/^(agent|subagent:[A-Za-z0-9][A-Za-z0-9_\-/]*)$/);
+const entityRefSchema = z.union([
+  resourceRefSchema,
+  z.string().regex(new RegExp(`^subagent:(${SEGMENT}/)*${SEGMENT}$`)),
+  z.string().regex(new RegExp(`^channel:${SEGMENT}$`)),
+]);
 
 /** Parses a project id and refuses callers who may not open that project. */
 async function projectFrom(value: unknown): Promise<string> {
@@ -233,9 +243,62 @@ export async function saveLayoutAction(
 
 const ownershipSchema = z.object({
   projectId: idSchema,
-  capability: z.string().regex(/^(tool|skill|connection):([A-Za-z0-9][A-Za-z0-9_-]*\/)*[A-Za-z0-9][A-Za-z0-9_-]*$/),
-  to: z.string().regex(/^(agent|subagent:[A-Za-z0-9][A-Za-z0-9_\-/]*)$/),
+  capability: resourceRefSchema,
+  to: agentRefSchema,
 });
+
+const attachSchema = z.object({ projectId: idSchema, resource: resourceRefSchema, agent: agentRefSchema });
+
+/**
+ * Lets another agent use a tool, skill or connection without copying it. The
+ * definition moves to `lib/` once, and each agent gets a one-line re-export.
+ */
+export async function attachResourceAction(
+  input: z.input<typeof attachSchema>,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const { projectId, resource, agent } = attachSchema.parse(input);
+  await requireProjectAccess(projectId);
+  try {
+    await writeProject(projectId, attachResource(await readProject(projectId), { resource, to: agent }));
+  } catch (error) {
+    if (error instanceof OwnershipError) return { ok: false, message: error.message };
+    throw error;
+  }
+  revalidatePath(`/projects/${projectId}`, "layout");
+  return { ok: true };
+}
+
+/** Stops an agent using a resource. The definition stays in `lib/`, ready to attach again. */
+export async function detachResourceAction(
+  input: z.input<typeof attachSchema>,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const { projectId, resource, agent } = attachSchema.parse(input);
+  await requireProjectAccess(projectId);
+  try {
+    await writeProject(projectId, detachResource(await readProject(projectId), { resource, from: agent }));
+  } catch (error) {
+    if (error instanceof OwnershipError) return { ok: false, message: error.message };
+    throw error;
+  }
+  revalidatePath(`/projects/${projectId}`, "layout");
+  return { ok: true };
+}
+
+/** Removes a node from the canvas by its id, and only its files. Returns instead of throwing, for the canvas. */
+export async function removeNodeAction(input: {
+  projectId: string;
+  ref: string;
+}): Promise<{ ok: true } | { ok: false; message: string }> {
+  const projectId = await projectFrom(input.projectId);
+  const ref = entityRefSchema.parse(input.ref);
+  try {
+    await save(projectId, removeEntity(await readProject(projectId), ref));
+  } catch (error) {
+    if (error instanceof OwnershipError) return { ok: false, message: error.message };
+    throw error;
+  }
+  return { ok: true };
+}
 
 /**
  * Hands a tool, skill or connection to another agent: an edge dragged on the
