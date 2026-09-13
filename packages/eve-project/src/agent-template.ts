@@ -266,3 +266,99 @@ export function renderChannelModule(input: ChannelTemplateInput): string {
   const call = options.length > 0 ? `${template.factory}({\n${options.join("\n")}\n})` : `${template.factory}()`;
   return `${imports.join("\n")}\n\nexport default ${call};\n`;
 }
+
+/**
+ * Chat SDK adapters for services eve has no first-class channel for. Each reads
+ * its credentials from the environment variables listed, so nothing secret is
+ * written into the channel file.
+ */
+export const CHAT_SDK_ADAPTERS = {
+  whatsapp: {
+    label: "WhatsApp",
+    package: "@chat-adapter/whatsapp",
+    factory: "createWhatsAppAdapter",
+    env: ["WHATSAPP_ACCESS_TOKEN", "WHATSAPP_APP_SECRET", "WHATSAPP_PHONE_NUMBER_ID", "WHATSAPP_VERIFY_TOKEN"],
+  },
+  gchat: {
+    label: "Google Chat",
+    package: "@chat-adapter/gchat",
+    factory: "createGoogleChatAdapter",
+    env: ["GOOGLE_CHAT_CREDENTIALS"],
+  },
+  telegram: {
+    label: "Telegram",
+    package: "@chat-adapter/telegram",
+    factory: "createTelegramAdapter",
+    env: ["TELEGRAM_BOT_TOKEN", "TELEGRAM_WEBHOOK_SECRET_TOKEN"],
+  },
+} as const;
+
+/** Where a Chat SDK channel keeps thread subscriptions and dedupe state. */
+export const CHAT_SDK_STATES = {
+  memory: { label: "In memory (development)", package: "@chat-adapter/state-memory", factory: "createMemoryState", env: [] },
+  redis: { label: "Redis (production)", package: "@chat-adapter/state-redis", factory: "createRedisState", env: ["REDIS_URL"] },
+} as const;
+
+export type ChatSdkAdapter = keyof typeof CHAT_SDK_ADAPTERS;
+export type ChatSdkState = keyof typeof CHAT_SDK_STATES;
+
+export const CHAT_SDK_VERSION = "^4.40.0";
+
+/** The npm packages a Chat SDK channel imports, for the project's package.json. */
+export function chatSdkDependencies(adapter: ChatSdkAdapter, state: ChatSdkState): Record<string, string> {
+  return {
+    chat: CHAT_SDK_VERSION,
+    [CHAT_SDK_ADAPTERS[adapter].package]: CHAT_SDK_VERSION,
+    [CHAT_SDK_STATES[state].package]: CHAT_SDK_VERSION,
+  };
+}
+
+/** A Chat SDK channel in the shape Eve's chat-sdk channel docs write it. */
+export function renderChatSdkChannelModule(input: { adapter: ChatSdkAdapter; state: ChatSdkState; userName: string }): string {
+  const adapter = CHAT_SDK_ADAPTERS[input.adapter];
+  const state = CHAT_SDK_STATES[input.state];
+  return [
+    `import { ${adapter.factory} } from "${adapter.package}";`,
+    `import { ${state.factory} } from "${state.package}";`,
+    `import type { Message, Thread } from "chat";`,
+    `import { chatSdkChannel } from "eve/channels/chat-sdk";`,
+    ``,
+    `export const { bot, channel, send } = chatSdkChannel({`,
+    `  userName: ${JSON.stringify(input.userName)},`,
+    `  adapters: {`,
+    `    ${input.adapter}: ${adapter.factory}(),`,
+    `  },`,
+    `  state: ${state.factory}(),`,
+    `});`,
+    ``,
+    `bot.onNewMention(async (thread: Thread, message: Message) => {`,
+    `  await thread.subscribe();`,
+    `  await send(message.text, { thread });`,
+    `});`,
+    ``,
+    `bot.onDirectMessage(async (thread: Thread, message: Message) => {`,
+    `  await thread.subscribe();`,
+    `  await send(message.text, { thread });`,
+    `});`,
+    ``,
+    `bot.onSubscribedMessage(async (thread: Thread, message: Message) => {`,
+    `  await send(message.text, { thread });`,
+    `});`,
+    ``,
+    `export default channel;`,
+    ``,
+  ].join("\n");
+}
+
+/**
+ * Adds dependencies to a package.json without dropping anything else in it.
+ * Versions already present are kept: the project's own pin wins.
+ */
+export function addPackageDependencies(packageJson: string, dependencies: Record<string, string>): string {
+  const parsed = JSON.parse(packageJson) as Record<string, unknown> & { dependencies?: Record<string, string> };
+  const current = parsed.dependencies ?? {};
+  const merged: Record<string, string> = { ...current };
+  for (const [name, version] of Object.entries(dependencies)) merged[name] ??= version;
+  parsed.dependencies = Object.fromEntries(Object.entries(merged).sort(([a], [b]) => a.localeCompare(b)));
+  return `${JSON.stringify(parsed, null, 2)}\n`;
+}

@@ -4,7 +4,10 @@ import {
   parseProject,
   patchAgentSource,
   renderAgentConfig,
+  addPackageDependencies,
+  chatSdkDependencies,
   renderChannelModule,
+  renderChatSdkChannelModule,
   renderProjectScaffold,
   setFrontmatterValue,
   type ProjectFile,
@@ -129,6 +132,30 @@ describe("renderChannelModule", () => {
     expect(renderChannelModule({ kind: "slack" })).toContain("export default slackChannel();");
     expect(renderChannelModule({ kind: "teams" })).toContain("export default teamsChannel();");
     expect(() => renderChannelModule({ kind: "discord" })).toThrow(/connector/);
+  });
+});
+
+describe("Chat SDK channels", () => {
+  it("writes a channel that parses back as a Chat SDK channel, with credentials left to the environment", () => {
+    const source = renderChatSdkChannelModule({ adapter: "whatsapp", state: "redis", userName: "support-triage" });
+    expect(source).toContain('import { createWhatsAppAdapter } from "@chat-adapter/whatsapp";');
+    expect(source).toContain("    whatsapp: createWhatsAppAdapter(),");
+    expect(source).toContain("  state: createRedisState(),");
+    expect(source).not.toMatch(/process\.env|TOKEN/);
+    const { project } = parseProject([...loadFixture("basic-agent"), { path: "agent/channels/whatsapp.ts", content: source }]);
+    expect(project.channels.find((channel) => channel.id === "whatsapp")?.kind).toBe("chat-sdk");
+  });
+
+  it("adds the packages it imports without overriding the project's own versions", () => {
+    const packageJson = `${JSON.stringify({ name: "demo", dependencies: { zod: "4.5.4", chat: "4.1.0" } }, null, 2)}\n`;
+    const next = JSON.parse(addPackageDependencies(packageJson, chatSdkDependencies("gchat", "memory")));
+    expect(next.name).toBe("demo");
+    expect(next.dependencies).toEqual({
+      "@chat-adapter/gchat": "^4.40.0",
+      "@chat-adapter/state-memory": "^4.40.0",
+      chat: "4.1.0",
+      zod: "4.5.4",
+    });
   });
 });
 
