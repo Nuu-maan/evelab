@@ -11,6 +11,7 @@
     /* Floating chrome adapts to the canvas's own width, not the window's. */
     container: canvas / inline-size;
     --canvas-grid: color-mix(in srgb, var(--foreground) 5%, transparent);
+    --canvas-dot-color: color-mix(in srgb, var(--foreground) 24%, transparent);
     --canvas-edge: color-mix(in srgb, var(--foreground) 38%, transparent);
     --float-gap: 12px;
     --browser-width: var(--pane-palette, 248px);
@@ -228,8 +229,18 @@
     white-space: nowrap;
   }
 
-  /* Labels go first as the canvas narrows; the counts, icons and Add stay. */
+  /* Labels go first as the free space narrows; the counts, icons and Add stay. The open panel takes 260px of it. */
   @container canvas (max-width: 1240px) {
+    .canvas-layout[data-panel] .canvas-stat-label {
+      display: none;
+    }
+
+    .canvas-layout[data-panel] .canvas-stat {
+      padding-inline: 8px;
+    }
+  }
+
+  @container canvas (max-width: 990px) {
     .canvas-stat-label {
       display: none;
     }
@@ -267,6 +278,39 @@
 
     .canvas-stats-separator {
       display: none;
+    }
+  }
+
+  /*
+   * A phone-width canvas stacks the chrome: the title shrinks to leave the view
+   * menu room, and the stats bar drops to its own row so Add is never squeezed out.
+   */
+  @container canvas (max-width: 560px) {
+    .canvas-layout .canvas-title {
+      width: calc(100% - 76px - var(--float-gap) * 3);
+    }
+
+    .canvas-layout .canvas-stats {
+      top: calc(52px + var(--float-gap) * 2);
+      inset-inline: var(--float-gap);
+      width: auto;
+      max-width: none;
+      margin-inline: 0;
+      justify-content: space-between;
+    }
+
+    .canvas-layout .canvas-browser {
+      top: calc(52px * 2 + var(--float-gap) * 3);
+      width: calc(100% - var(--float-gap) * 2);
+    }
+
+    .canvas-layout .canvas-inspector {
+      top: calc(52px * 2 + var(--float-gap) * 3);
+      width: calc(100% - var(--float-gap) * 2);
+    }
+
+    .canvas-layout[data-panel] .canvas-bottom-left {
+      inset-inline-start: var(--float-gap);
     }
   }
 
