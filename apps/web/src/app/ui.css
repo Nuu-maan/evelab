@@ -380,6 +380,11 @@
     font-size: var(--text-body);
   }
 
+  .form-error {
+    color: var(--destructive, var(--red, currentColor));
+    font-size: var(--text-body);
+  }
+
   .native-select:focus-visible {
     outline: 2px solid var(--focus, var(--blue));
     outline-offset: 1px;

@@ -4,6 +4,7 @@ import {
   parseProject,
   patchAgentSource,
   renderAgentConfig,
+  renderChannelModule,
   renderProjectScaffold,
   setFrontmatterValue,
   type ProjectFile,
@@ -111,6 +112,23 @@ describe("generateProject", () => {
     const output = generateProject(project);
     expect(contentOf(output, "instructions.md")).toBe("You are a precise assistant.\n");
     expect(output.some((file) => file.path.startsWith("agent/"))).toBe(false);
+  });
+});
+
+describe("renderChannelModule", () => {
+  it("writes the Slack channel eve add creates with Vercel Connect, and it parses back as Slack", () => {
+    const source = renderChannelModule({ kind: "slack", connector: "slack/my-agent" });
+    expect(source).toBe(
+      'import { connectSlackCredentials } from "@vercel/connect/eve";\nimport { slackChannel } from "eve/channels/slack";\n\nexport default slackChannel({\n  credentials: connectSlackCredentials("slack/my-agent"),\n});\n',
+    );
+    const { project } = parseProject([...loadFixture("basic-agent"), { path: "agent/channels/slack.ts", content: source }]);
+    expect(project.channels.find((channel) => channel.id === "slack")?.kind).toBe("slack");
+  });
+
+  it("falls back to environment credentials only where Eve reads them", () => {
+    expect(renderChannelModule({ kind: "slack" })).toContain("export default slackChannel();");
+    expect(renderChannelModule({ kind: "teams" })).toContain("export default teamsChannel();");
+    expect(() => renderChannelModule({ kind: "discord" })).toThrow(/connector/);
   });
 });
 

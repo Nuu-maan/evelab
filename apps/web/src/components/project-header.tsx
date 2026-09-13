@@ -15,6 +15,7 @@ const PAGES: Record<string, string> = {
   files: "Files",
   source: "Source control",
   tools: "Tools",
+  schedules: "Schedules",
   skills: "Skills",
   subagents: "Subagents",
   connections: "Connections",

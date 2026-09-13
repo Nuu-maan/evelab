@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   IconChartActivity,
+  IconClock,
   IconCloudUpload,
   IconDatabase,
   IconFileText,
@@ -62,6 +63,7 @@ export function Sidebar({
       { label: "Subagents", segment: "subagents", icon: KINDS.subagent.icon, count: counts.subagents },
       { label: "Connections", segment: "connections", icon: IconLink },
       { label: "Channels", segment: "channels", icon: IconMessage },
+      { label: "Schedules", segment: "schedules", icon: IconClock },
     ],
     [
       { label: "Runs", segment: "runs", icon: IconChartActivity },
