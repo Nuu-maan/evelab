@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { IconArrowUpDown, IconCheck, IconGridSquare, IconPlus } from "@/components/icons";
+import { IconCheck, IconChevronUpDown, IconGridSquare, IconPlus } from "@/components/icons";
 import { Icon } from "@/components/icon";
 import {
   DropdownMenu,
@@ -40,7 +40,7 @@ export function ProjectSwitcher({
         <button className="switcher-trigger" type="button">
           <Avatar name={current.name} />
           <span className="switcher-name">{current.name}</span>
-          <Icon icon={IconArrowUpDown} className="switcher-chevron" />
+          <Icon icon={IconChevronUpDown} className="switcher-chevron" />
         </button>
       </DropdownMenuTrigger>
 

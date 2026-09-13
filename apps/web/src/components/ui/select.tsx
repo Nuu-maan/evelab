@@ -3,7 +3,7 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
 import { Select as SelectPrimitive } from "radix-ui"
-import { IconArrowUpDown, IconCheck, IconChevronDown, IconChevronUp } from "@/components/icons"
+import { IconCheck, IconChevronDown, IconChevronUp, IconChevronUpDown } from "@/components/icons"
 import { Icon } from "@/components/icon"
 
 function Select({
@@ -51,7 +51,7 @@ function SelectTrigger({
     >
       {children}
       <SelectPrimitive.Icon asChild>
-        <Icon icon={IconArrowUpDown} className="pointer-events-none size-4 text-muted-foreground" />
+        <Icon icon={IconChevronUpDown} className="pointer-events-none size-4 text-muted-foreground" />
       </SelectPrimitive.Icon>
     </SelectPrimitive.Trigger>
   )
