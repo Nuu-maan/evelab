@@ -1,4 +1,4 @@
-import { index, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { boolean, index, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
 /**
  * Metadata only.
@@ -8,31 +8,92 @@ import { index, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-cor
  * deliberately not duplicated here.
  */
 
-export const users = pgTable("users", {
+const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull().defaultNow();
+const updatedAt = () => timestamp("updated_at", { withTimezone: true }).notNull().defaultNow();
+
+/*
+ * Accounts. These four tables are Better Auth's core schema; the TypeScript
+ * keys are the field names it expects, the columns are snake case.
+ */
+
+export const user = pgTable("users", {
   id: text("id").primaryKey(),
-  name: text("name"),
-  email: text("email").notNull(),
-  emailVerified: timestamp("email_verified", { withTimezone: true }),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  emailVerified: boolean("email_verified").notNull().default(false),
   image: text("image"),
-  githubLogin: text("github_login"),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
 });
+
+export const session = pgTable(
+  "sessions",
+  {
+    id: text("id").primaryKey(),
+    token: text("token").notNull().unique(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [index("sessions_user_idx").on(table.userId)],
+);
+
+/** A sign-in method for a user. Only GitHub today; tokens stay here, server side. */
+export const account = pgTable(
+  "accounts",
+  {
+    id: text("id").primaryKey(),
+    accountId: text("account_id").notNull(),
+    providerId: text("provider_id").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    accessToken: text("access_token"),
+    refreshToken: text("refresh_token"),
+    idToken: text("id_token"),
+    accessTokenExpiresAt: timestamp("access_token_expires_at", { withTimezone: true }),
+    refreshTokenExpiresAt: timestamp("refresh_token_expires_at", { withTimezone: true }),
+    scope: text("scope"),
+    password: text("password"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [index("accounts_user_idx").on(table.userId)],
+);
+
+/** Short-lived values such as OAuth state. */
+export const verification = pgTable(
+  "verifications",
+  {
+    id: text("id").primaryKey(),
+    identifier: text("identifier").notNull(),
+    value: text("value").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [index("verifications_identifier_idx").on(table.identifier)],
+);
 
 export const projects = pgTable(
   "projects",
   {
     id: text("id").primaryKey(),
-    /** Workspace directory name; also the URL segment. */
+    /** Workspace directory name; also the URL segment. Directories are unique on disk, so slugs are too. */
     slug: text("slug").notNull(),
     name: text("name").notNull(),
     ownerId: text("owner_id")
       .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
   },
-  (table) => [uniqueIndex("projects_owner_slug_idx").on(table.ownerId, table.slug)],
+  (table) => [uniqueIndex("projects_slug_idx").on(table.slug)],
 );
 
 /**
@@ -47,11 +108,14 @@ export const projectMembers = pgTable(
       .references(() => projects.id, { onDelete: "cascade" }),
     userId: text("user_id")
       .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+      .references(() => user.id, { onDelete: "cascade" }),
     role: text("role").notNull().default("owner"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: createdAt(),
   },
-  (table) => [uniqueIndex("project_members_idx").on(table.projectId, table.userId)],
+  (table) => [
+    uniqueIndex("project_members_idx").on(table.projectId, table.userId),
+    index("project_members_user_idx").on(table.userId),
+  ],
 );
 
 export const gitRepositories = pgTable("git_repositories", {
@@ -65,7 +129,7 @@ export const gitRepositories = pgTable("git_repositories", {
   /** GitHub App installation id; no tokens are stored here. */
   installationId: text("installation_id"),
   lastSyncedSha: text("last_synced_sha"),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: createdAt(),
 });
 
 export const deployments = pgTable(
@@ -79,7 +143,7 @@ export const deployments = pgTable(
     status: text("status").notNull(),
     url: text("url"),
     commitSha: text("commit_sha"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: createdAt(),
   },
   (table) => [index("deployments_project_idx").on(table.projectId, table.createdAt)],
 );
