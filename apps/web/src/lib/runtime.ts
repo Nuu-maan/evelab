@@ -226,6 +226,14 @@ async function waitForHealth(entry: RuntimeEntry, url: string): Promise<void> {
   throw new Error("eve dev did not answer its health check in time. See the log.");
 }
 
+/**
+ * Reads the status through a call, so TypeScript does not keep a narrowing from
+ * before an await: stop can arrive from another request while a boot step runs.
+ */
+function currentStatus(entry: RuntimeEntry): RuntimeStatus {
+  return entry.status;
+}
+
 async function bootLocal(projectId: string, entry: RuntimeEntry): Promise<void> {
   await step(entry, "install", async (current) => {
     if (eveCommand(projectId, [])) {
@@ -238,7 +246,7 @@ async function bootLocal(projectId: string, entry: RuntimeEntry): Promise<void> 
       throw new Error("Installing dependencies failed, so eve is not available. See the log.");
     }
   });
-  if (entry.status === "stopped") return;
+  if (currentStatus(entry) === "stopped") return;
 
   entry.status = "starting";
   const port = await freePort();
@@ -257,14 +265,14 @@ async function bootLocal(projectId: string, entry: RuntimeEntry): Promise<void> 
     child.on("exit", (code, signal) => {
       if (entry.child !== child) return;
       entry.child = undefined;
-      if (entry.status === "stopped") return;
+      if (currentStatus(entry) === "stopped") return;
       entry.status = "failed";
       entry.url = undefined;
       entry.message = `eve dev exited (${signal ?? `code ${code}`}).`;
     });
   });
   await step(entry, "ready", () => waitForHealth(entry, url));
-  if (entry.status !== "starting") return;
+  if (currentStatus(entry) !== "starting") return;
   entry.url = url;
 }
 
@@ -294,7 +302,7 @@ async function bootSandbox(projectId: string, entry: RuntimeEntry): Promise<void
   entry.sandbox = sandbox;
   entry.sandboxId = sandbox.name;
   entry.expiresAt = new Date(Date.now() + SANDBOX_TIMEOUT_MS).toISOString();
-  if (entry.status === "stopped") return void sandbox.stop().catch(() => undefined);
+  if (currentStatus(entry) === "stopped") return void sandbox.stop().catch(() => undefined);
 
   await step(entry, "upload", async (current) => {
     const files = (await readProjectFiles(projectId)).filter((file) => !isIgnoredPath(file.path));
@@ -312,7 +320,7 @@ async function bootSandbox(projectId: string, entry: RuntimeEntry): Promise<void
     });
     if (install.exitCode !== 0) throw new Error("npm install failed in the sandbox. See the log.");
   });
-  if (entry.status === "stopped") return;
+  if (currentStatus(entry) === "stopped") return;
 
   entry.status = "starting";
   await step(entry, "start", async (current) => {
@@ -339,7 +347,7 @@ async function bootSandbox(projectId: string, entry: RuntimeEntry): Promise<void
     current.detail = url.replace(/^https?:\/\//, "");
     await waitForHealth(entry, url);
   });
-  if (entry.status !== "starting") return;
+  if (currentStatus(entry) !== "starting") return;
   entry.url = url;
 }
 
