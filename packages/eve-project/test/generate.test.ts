@@ -185,3 +185,21 @@ describe("setFrontmatterValue", () => {
     expect(setFrontmatterValue(added, "description", undefined)).toBe("Body.\n");
   });
 });
+
+describe("renderAgentConfigFor", () => {
+  it("writes each provider the way eve init does", async () => {
+    const { renderAgentConfigFor, renderProjectScaffold, parseProject } = await import("../src/index.js");
+    expect(renderAgentConfigFor("ai-gateway-key", "anthropic/claude-opus-4.8", "high")).toBe(
+      'import { defineAgent } from "eve";\n\nexport default defineAgent({\n  model: "anthropic/claude-opus-4.8",\n  reasoning: "high",\n});\n',
+    );
+    expect(renderAgentConfigFor("chatgpt", "gpt-5.6-sol")).toContain('model: chatgpt("gpt-5.6-sol"),');
+    const direct = renderAgentConfigFor("anthropic", "anthropic/claude-opus-4.8");
+    expect(direct).toContain('import { anthropic } from "@ai-sdk/anthropic";');
+    expect(direct).toContain('model: anthropic("claude-opus-4.8"),');
+
+    const scaffold = renderProjectScaffold({ packageName: "direct", model: "anthropic/claude-opus-4.8", provider: "anthropic" });
+    expect(JSON.parse(scaffold.find((file) => file.path === "package.json")!.content).dependencies).toHaveProperty("@ai-sdk/anthropic");
+    const { project } = parseProject(scaffold);
+    expect(project.agent.model?.expression).toBe('anthropic("claude-opus-4.8")');
+  });
+});

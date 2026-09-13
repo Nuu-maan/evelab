@@ -15,6 +15,35 @@ export function renderAgentConfig(model: string, reasoning?: Reasoning): string 
   return `import { defineAgent } from "eve";\n\nexport default defineAgent({\n  model: ${JSON.stringify(model)},\n${reasoningLine(reasoning)}});\n`;
 }
 
+/**
+ * How the agent reaches its model, as `eve init` asks it: through AI Gateway
+ * (a linked Vercel project or AI_GATEWAY_API_KEY), a ChatGPT subscription, or
+ * a provider's own SDK and key.
+ */
+export type ModelProvider = "ai-gateway-project" | "ai-gateway-key" | "chatgpt" | "anthropic" | "openai";
+
+export const DIRECT_PROVIDERS = {
+  anthropic: { package: "@ai-sdk/anthropic", factory: "anthropic", env: "ANTHROPIC_API_KEY", version: "^4.0.0" },
+  openai: { package: "@ai-sdk/openai", factory: "openai", env: "OPENAI_API_KEY", version: "^4.0.0" },
+} as const;
+
+/** The model id without its gateway prefix: "anthropic/claude-opus-4.8" to "claude-opus-4.8". */
+function bareModelId(model: string): string {
+  return model.slice(model.indexOf("/") + 1);
+}
+
+/** `agent/agent.ts` for a provider. Gateway projects get the plain model string, as `eve init` writes. */
+export function renderAgentConfigFor(provider: ModelProvider, model: string, reasoning?: Reasoning): string {
+  if (provider === "chatgpt") {
+    return `import { defineAgent } from "eve";\nimport { chatgpt } from "eve/models/openai";\n\nexport default defineAgent({\n  model: chatgpt(${JSON.stringify(bareModelId(model))}),\n${reasoningLine(reasoning)}});\n`;
+  }
+  if (provider === "anthropic" || provider === "openai") {
+    const direct = DIRECT_PROVIDERS[provider];
+    return `import { ${direct.factory} } from "${direct.package}";\nimport { defineAgent } from "eve";\n\nexport default defineAgent({\n  model: ${direct.factory}(${JSON.stringify(bareModelId(model))}),\n${reasoningLine(reasoning)}});\n`;
+  }
+  return renderAgentConfig(model, reasoning);
+}
+
 /** What `eve init` picks when no model is chosen. */
 export const DEFAULT_AGENT_MODEL_ID = "openai/gpt-5.6-luna-fast";
 
@@ -113,6 +142,9 @@ export interface ProjectScaffoldInput {
   /** npm package name, which Eve uses as the agent's name. */
   packageName: string;
   model: string;
+  /** Defaults to AI Gateway, which is what `eve init` recommends. */
+  provider?: ModelProvider;
+  reasoning?: Reasoning;
   instructions?: string;
 }
 
@@ -235,7 +267,15 @@ export function renderProjectScaffold(input: ProjectScaffoldInput): ProjectFile[
       start: "eve start",
       typecheck: "tsc",
     },
-    dependencies: { "@vercel/connect": "1.0.0", ai: "^7.0.93", eve: "^0.54.3", zod: "4.5.4" },
+    dependencies: {
+      "@vercel/connect": "1.0.0",
+      ai: "^7.0.93",
+      eve: "^0.54.3",
+      zod: "4.5.4",
+      ...(input.provider === "anthropic" || input.provider === "openai"
+        ? { [DIRECT_PROVIDERS[input.provider].package]: DIRECT_PROVIDERS[input.provider].version }
+        : {}),
+    },
     devDependencies: { "@types/node": "24.x", typescript: "7.0.2" },
     engines: { node: "24.x" },
   };
@@ -243,7 +283,7 @@ export function renderProjectScaffold(input: ProjectScaffoldInput): ProjectFile[
     { path: ".gitignore", content: SCAFFOLD_GITIGNORE },
     { path: "AGENTS.md", content: SCAFFOLD_AGENTS_MD },
     { path: "CLAUDE.md", content: "@AGENTS.md\n" },
-    { path: "agent/agent.ts", content: renderAgentConfig(input.model) },
+    { path: "agent/agent.ts", content: renderAgentConfigFor(input.provider ?? "ai-gateway-project", input.model, input.reasoning) },
     { path: "agent/channels/eve.ts", content: SCAFFOLD_EVE_CHANNEL },
     { path: "agent/instructions.md", content: input.instructions ?? "# Identity\n\nYou are a helpful assistant.\n" },
     { path: "package.json", content: `${JSON.stringify(packageJson, null, 2)}\n` },
