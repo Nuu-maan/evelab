@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ConfirmSubmit } from "@/components/confirm";
+import { VercelPlatformCard } from "@/components/vercel-platform-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { deleteProjectAction, disconnectRepositoryAction } from "@/lib/actions";
@@ -17,9 +18,11 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
       <header className="page-header">
         <div className="page-heading">
           <h1 className="page-title">Settings</h1>
-          <p className="page-description">Where this project lives, and how to remove it.</p>
+          <p className="page-description">The Vercel products this project runs on, where it lives, and how to remove it.</p>
         </div>
       </header>
+
+      <VercelPlatformCard />
 
       <Card>
         <CardHeader>

@@ -25,6 +25,102 @@
     background: var(--surface);
   }
 
+  .runtime-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+  }
+
+  .runtime-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 0;
+  }
+
+  .runtime-target {
+    font-size: var(--text-compact);
+    font-weight: var(--weight-medium);
+  }
+
+  .runtime-steps {
+    display: grid;
+    gap: 2px;
+  }
+
+  .runtime-step {
+    display: grid;
+    grid-template-columns: 16px minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: var(--space-2);
+    padding: 3px 0;
+    color: var(--foreground-secondary);
+    font-size: var(--text-label);
+  }
+
+  .runtime-step[data-status="pending"],
+  .runtime-step[data-status="skipped"] {
+    color: var(--foreground-tertiary);
+  }
+
+  .runtime-step[data-status="active"] {
+    color: var(--foreground);
+  }
+
+  .runtime-step[data-status="done"] .runtime-step-icon {
+    color: var(--success);
+  }
+
+  .runtime-step[data-status="failed"] {
+    color: var(--danger);
+  }
+
+  .runtime-step-icon {
+    display: grid;
+    place-items: center;
+    width: 16px;
+    height: 16px;
+  }
+
+  .runtime-step-detail {
+    grid-column: 2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--foreground-tertiary);
+    font-size: 11px;
+  }
+
+  .runtime-step-time {
+    grid-column: 3;
+    grid-row: 1;
+    color: var(--foreground-tertiary);
+    font-size: 11px;
+  }
+
+  /* A spinner that is a ring, not a gradient: one arc in the text colour. */
+  .runtime-spinner {
+    width: 12px;
+    height: 12px;
+    border: 1.5px solid var(--border-strong);
+    border-top-color: var(--foreground);
+    border-radius: 50%;
+    animation: runtime-spin 700ms linear infinite;
+  }
+
+  @keyframes runtime-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .runtime-spinner {
+      animation-duration: 1600ms;
+    }
+  }
+
   .runtime-log {
     max-height: 240px;
     overflow: auto;

@@ -367,6 +367,64 @@
     --kind: var(--kind-connection);
   }
 
+  .platform-list {
+    display: grid;
+  }
+
+  .platform-item {
+    display: grid;
+    grid-template-columns: 16px minmax(0, 1fr) auto;
+    align-items: start;
+    column-gap: var(--space-3);
+    padding: var(--space-3) 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .platform-item:first-child {
+    border-top: 0;
+    padding-top: 0;
+  }
+
+  .platform-icon {
+    margin-top: 2px;
+    color: var(--foreground-tertiary);
+  }
+
+  .platform-item[data-configured] .platform-icon {
+    color: var(--success);
+  }
+
+  .platform-name {
+    font-size: var(--text-body);
+    font-weight: var(--weight-medium);
+  }
+
+  .platform-role,
+  .platform-env {
+    color: var(--foreground-secondary);
+    font-size: var(--text-compact);
+    text-wrap: pretty;
+  }
+
+  .platform-env {
+    margin-top: 2px;
+    color: var(--foreground-tertiary);
+  }
+
+  .platform-docs {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius);
+    color: var(--foreground-tertiary);
+  }
+
+  .platform-docs:hover {
+    background: var(--surface-hover);
+    color: var(--foreground);
+  }
+
   /* A plain select that matches Input, for short fixed choices inside panels. */
   .native-select {
     width: 100%;
