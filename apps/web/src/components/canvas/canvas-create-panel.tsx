@@ -1,10 +1,14 @@
 "use client";
 
 import { motion } from "motion/react";
-import { X } from "lucide-react";
+import { IconCross } from "@/components/icons";
 import { PANEL_MOTION } from "@/components/canvas/canvas-inspector";
+import { Icon } from "@/components/icon";
 import { KindTile } from "@/components/kinds";
 import { ResizeHandle } from "@/components/resize-handle";
+import { Button } from "@/components/ui/button";
+import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import { createSubagentAction, createToolAction } from "@/lib/actions";
 
 export type DraftKind = "tool" | "subagent";
@@ -49,21 +53,14 @@ export function CanvasCreatePanel({
               : "Writes one markdown file under subagents/."}
           </p>
         </div>
-        <button
-          className="button"
-          data-variant="ghost"
-          data-size="icon"
-          type="button"
-          aria-label="Close"
-          onClick={onClose}
-        >
-          <X aria-hidden="true" strokeWidth={1.5} />
-        </button>
+        <Button variant="ghost" size="icon" type="button" aria-label="Close" onClick={onClose}>
+          <Icon icon={IconCross} />
+        </Button>
       </div>
 
       <form
         action={isTool ? createToolAction : createSubagentAction}
-        className="modal-body"
+        className="inspector-form"
         onSubmit={(event) => {
           const form = new FormData(event.currentTarget);
           const id = String(form.get(isTool ? "toolId" : "subagentId") ?? "");
@@ -72,62 +69,54 @@ export function CanvasCreatePanel({
       >
         <input type="hidden" name="projectId" value={projectId} />
 
-        <div className="field">
-          <label className="label" htmlFor="draft-id">
-            {isTool ? "Tool name" : "Subagent id"}
-          </label>
-          <input
-            className="input mono"
-            id="draft-id"
-            name={isTool ? "toolId" : "subagentId"}
-            placeholder={isTool ? "search-docs" : "researcher"}
-            pattern="[a-z0-9][a-z0-9-]*"
-            required
-            autoFocus
-          />
-          <p className="helper">
-            Lowercase and dashes. Becomes {isTool ? "tools/<name>.ts" : "subagents/<id>.md"}.
-          </p>
-        </div>
+        <FieldGroup>
+          <Field>
+            <FieldLabel htmlFor="draft-id">{isTool ? "Tool name" : "Subagent id"}</FieldLabel>
+            <Input
+              className="font-mono"
+              id="draft-id"
+              name={isTool ? "toolId" : "subagentId"}
+              placeholder={isTool ? "search-docs" : "researcher"}
+              pattern="[a-z0-9][a-z0-9-]*"
+              required
+              autoFocus
+            />
+            <FieldDescription>
+              Lowercase and dashes. Becomes {isTool ? "tools/<name>.ts" : "subagents/<id>.md"}.
+            </FieldDescription>
+          </Field>
 
-        {!isTool && (
-          <div className="field">
-            <label className="label" htmlFor="draft-name">
-              Name
-            </label>
-            <input className="input" id="draft-name" name="name" placeholder="Researcher" required />
-          </div>
-        )}
+          {!isTool && (
+            <Field>
+              <FieldLabel htmlFor="draft-name">Name</FieldLabel>
+              <Input id="draft-name" name="name" placeholder="Researcher" required />
+            </Field>
+          )}
 
-        <div className="field">
-          <label className="label" htmlFor="draft-description">
-            Description
-          </label>
-          <input className="input" id="draft-description" name="description" maxLength={280} />
-          <p className="helper">
-            {isTool
-              ? "The model reads this to decide when to call the tool."
-              : "The parent agent reads this to decide when to delegate."}
-          </p>
-        </div>
+          <Field>
+            <FieldLabel htmlFor="draft-description">Description</FieldLabel>
+            <Input id="draft-description" name="description" maxLength={280} />
+            <FieldDescription>
+              {isTool
+                ? "The model reads this to decide when to call the tool."
+                : "The parent agent reads this to decide when to delegate."}
+            </FieldDescription>
+          </Field>
 
-        {!isTool && (
-          <div className="field">
-            <label className="label" htmlFor="draft-model">
-              Model
-            </label>
-            <input className="input mono" id="draft-model" name="modelId" placeholder={defaultModel} />
-            <p className="helper">Leave empty to inherit the main agent&apos;s model.</p>
-          </div>
-        )}
+          {!isTool && (
+            <Field>
+              <FieldLabel htmlFor="draft-model">Model</FieldLabel>
+              <Input className="font-mono" id="draft-model" name="modelId" placeholder={defaultModel} />
+              <FieldDescription>Leave empty to inherit the main agent&apos;s model.</FieldDescription>
+            </Field>
+          )}
+        </FieldGroup>
 
         <div className="row">
-          <button className="button" data-variant="primary" type="submit">
-            Create {kind}
-          </button>
-          <button className="button" data-variant="ghost" type="button" onClick={onClose}>
+          <Button type="submit">Create {kind}</Button>
+          <Button variant="ghost" type="button" onClick={onClose}>
             Cancel
-          </button>
+          </Button>
         </div>
       </form>
     </motion.aside>

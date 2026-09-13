@@ -61,9 +61,13 @@ test("the zoom controls are visible and work", async ({ page }) => {
   await page.goto("/projects/demo-agent/canvas");
   const controls = page.getByRole("toolbar", { name: "Canvas view" });
   const zoom = controls.getByRole("button", { name: /Reset zoom/ });
+  await expect(page.getByTestId("rf__node-agent")).toBeVisible();
   const before = await zoom.textContent();
-  await controls.getByRole("button", { name: "Zoom in" }).click();
-  await expect(zoom).not.toHaveText(before ?? "");
+  // The initial fitView can land after an early click and reset the zoom, so retry the click.
+  await expect(async () => {
+    await controls.getByRole("button", { name: "Zoom in" }).click();
+    await expect(zoom).not.toHaveText(before ?? "", { timeout: 1000 });
+  }).toPass();
 });
 
 test("selecting a node opens its file in the inspector and saves edits", async ({ page }) => {

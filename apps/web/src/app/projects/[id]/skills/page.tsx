@@ -1,6 +1,12 @@
 import Link from "next/link";
+import { IconBookOpen } from "@/components/icons";
+import { ConfirmSubmit } from "@/components/confirm";
+import { EmptyState } from "@/components/empty-state";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
 import { SkillImportButton } from "@/components/skill-import-button";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { deleteSkillAction } from "@/lib/actions";
 import { readProject } from "@/lib/workspace";
 
@@ -34,56 +40,49 @@ export default async function SkillsPage({ params }: { params: Promise<{ id: str
 
       {project.skills.length === 0 ? (
         <Reveal delay={0.06}>
-          <div className="empty">
-            <p className="empty-title">No skills yet.</p>
-            <p className="empty-body">
-              Paste a GitHub link to a directory containing SKILL.md. EveLab reads it, flags files
-              that can run code, and installs only after you confirm.
-            </p>
-            <SkillImportButton projectId={id} label="Import your first skill" />
-          </div>
+          <EmptyState
+            icon={IconBookOpen}
+            title="No skills yet."
+            action={<SkillImportButton projectId={id} label="Import your first skill" variant="ghost" />}
+          >
+            Paste a GitHub link to a directory containing SKILL.md. EveLab reads it, flags files that
+            can run code, and installs only after you confirm.
+          </EmptyState>
         </Reveal>
       ) : (
         <Stagger className="section">
           {project.skills.map((skill) => (
             <StaggerItem key={skill.id}>
-              <div className="card" data-interactive="true">
-                <div className="row-between">
-                  <div>
-                    <p className="card-title">{skill.name}</p>
-                    <p className="card-detail">{skill.description || "No description"}</p>
-                  </div>
-                  <div className="row">
-                    <Link
-                      className="button"
-                      data-variant="ghost"
-                      href={`/projects/${id}/files?path=skills/${skill.id}/SKILL.md`}
-                    >
-                      Edit
-                    </Link>
+              <Card size="sm">
+                <CardHeader>
+                  <CardTitle>{skill.name}</CardTitle>
+                  <CardDescription>{skill.description || "No description"}</CardDescription>
+                  <CardAction className="flex items-center gap-2">
+                    <Button asChild variant="ghost">
+                      <Link href={`/projects/${id}/files?path=skills/${skill.id}/SKILL.md`}>Edit</Link>
+                    </Button>
                     <form action={deleteSkillAction}>
                       <input type="hidden" name="projectId" value={id} />
                       <input type="hidden" name="skillId" value={skill.id} />
-                      <button className="button" data-variant="danger" type="submit">
+                      <ConfirmSubmit
+                        title={`Remove ${skill.name}?`}
+                        description={`Deletes skills/${skill.id}/ and every file in it.`}
+                        confirmLabel="Remove"
+                      >
                         Remove
-                      </button>
+                      </ConfirmSubmit>
                     </form>
-                  </div>
-                </div>
-                <div className="row">
-                  <span className="badge">{plural(skill.files.length + 1, "file")}</span>
+                  </CardAction>
+                </CardHeader>
+                <CardContent className="flex items-center gap-2">
+                  <Badge variant="secondary">{plural(skill.files.length + 1, "file")}</Badge>
                   {skill.source && (
-                    <a
-                      className="palette-hint mono"
-                      href={skill.source}
-                      target="_blank"
-                      rel="noreferrer noopener"
-                    >
+                    <a className="hint mono truncate" href={skill.source} target="_blank" rel="noreferrer noopener">
                       {skill.source}
                     </a>
                   )}
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             </StaggerItem>
           ))}
         </Stagger>

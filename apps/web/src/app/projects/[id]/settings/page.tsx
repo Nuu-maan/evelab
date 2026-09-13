@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { ConfirmSubmit } from "@/components/confirm";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { deleteProjectAction, disconnectRepositoryAction } from "@/lib/actions";
 import { readGitState } from "@/lib/git";
 import { readProject, workspaceRoot } from "@/lib/workspace";
@@ -18,81 +21,78 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
         </div>
       </header>
 
-      <section className="panel">
-        <div className="modal-body">
-          <div className="section">
-            <h2 className="section-title">On disk</h2>
-            <p className="page-description">
-              The project is a normal directory. Open it in your editor, run Eve against it, or put
-              it under version control without EveLab.
-            </p>
-          </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>On disk</CardTitle>
+          <CardDescription>
+            The project is a normal directory. Open it in your editor, run Eve against it, or put it
+            under version control without EveLab.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
           <pre className="code mono">{`${workspaceRoot()}/${id}`}</pre>
-        </div>
-        <div className="modal-foot" style={{ justifyContent: "flex-start" }}>
-          <p className="helper">
+        </CardContent>
+        <CardFooter>
+          <p className="text-xs text-muted-foreground">
             {project.files.length} files. Set EVELAB_WORKSPACE to store projects elsewhere.
           </p>
-        </div>
-      </section>
+        </CardFooter>
+      </Card>
 
-      <section className="panel">
-        <div className="modal-body">
-          <div className="section">
-            <h2 className="section-title">Repository</h2>
+      <Card>
+        <CardHeader>
+          <CardTitle>Repository</CardTitle>
+          <CardDescription>
             {git ? (
-              <p className="page-description">
+              <>
                 Connected to{" "}
-                <a className="mono" href={git.url} target="_blank" rel="noreferrer noopener">
+                <a className="mono text-foreground underline-offset-4 hover:underline" href={git.url} target="_blank" rel="noreferrer noopener">
                   {git.repository}
                 </a>{" "}
                 on <span className="mono">{git.branch}</span>. Disconnecting only forgets the link:
                 nothing changes on GitHub or in the project files.
-              </p>
+              </>
             ) : (
-              <p className="page-description">
-                Not connected. Connect an existing repository or create one from Source control.
-              </p>
+              "Not connected. Connect an existing repository or create one from Source control."
             )}
-          </div>
-        </div>
-        <div className="modal-foot">
+          </CardDescription>
+        </CardHeader>
+        <CardFooter className="justify-end">
           {git ? (
             <form action={disconnectRepositoryAction}>
               <input type="hidden" name="projectId" value={id} />
-              <button className="button" data-variant="danger" type="submit">
+              <Button variant="outline" type="submit">
                 Disconnect repository
-              </button>
+              </Button>
             </form>
           ) : (
-            <Link className="button" href={`/projects/${id}/source`}>
-              Open source control
-            </Link>
+            <Button asChild variant="outline">
+              <Link href={`/projects/${id}/source`}>Open source control</Link>
+            </Button>
           )}
-        </div>
-      </section>
+        </CardFooter>
+      </Card>
 
-      <section
-        className="panel"
-        style={{ borderColor: "color-mix(in srgb, var(--danger) 30%, var(--border))" }}
-      >
-        <div className="modal-body">
-          <div className="section">
-            <h2 className="section-title">Delete project</h2>
-            <p className="page-description">
-              Deletes the directory and everything in it. There is no undo and no copy elsewhere.
-            </p>
-          </div>
-        </div>
-        <div className="modal-foot">
+      <Card className="border-destructive/30">
+        <CardHeader>
+          <CardTitle>Delete project</CardTitle>
+          <CardDescription>
+            Deletes the directory and everything in it. There is no undo and no copy elsewhere.
+          </CardDescription>
+        </CardHeader>
+        <CardFooter className="justify-end">
           <form action={deleteProjectAction}>
             <input type="hidden" name="id" value={id} />
-            <button className="button" data-variant="danger" type="submit">
+            <ConfirmSubmit
+              title={`Delete ${project.agent.name}?`}
+              description={`This deletes ${workspaceRoot()}/${id} and all ${project.files.length} files in it. It cannot be undone.`}
+              confirmLabel="Delete project"
+            >
               Delete {project.agent.name}
-            </button>
+            </ConfirmSubmit>
           </form>
-        </div>
-      </section>
+        </CardFooter>
+      </Card>
     </div>
   );
 }

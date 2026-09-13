@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
+import { IconMoreVertical } from "@/components/icons";
+import { Icon } from "@/components/icon";
 import { PANES, paneCookie, type PaneName } from "@/lib/pane-config";
 
 /**
  * Drag handle on a pane edge.
  *
  * The width lives in a CSS custom property on the nearest `[data-panes]`
- * element, so dragging never re-renders React, and in a cookie, so the server
+ * element, so dragging never re-renders the pane, and in a cookie, so the server
  * renders the same width next time. `edge="end"` sits on the right of a
  * left-hand pane; `edge="start"` on the left of a right-hand pane, where
  * dragging left makes it wider.
@@ -40,6 +42,7 @@ export function ResizeHandle({
     ref.current
       ?.closest<HTMLElement>("[data-panes]")
       ?.style.setProperty(`--pane-${pane}`, `${clamped}px`);
+    setWidth(clamped);
     return clamped;
   };
 
@@ -91,6 +94,8 @@ export function ResizeHandle({
     commit();
   };
 
+  const atLimit = width !== undefined && (width <= bounds.min || width >= bounds.max);
+
   return (
     <div
       ref={ref}
@@ -102,8 +107,10 @@ export function ResizeHandle({
       aria-valuemax={bounds.max}
       aria-valuenow={width}
       tabIndex={0}
+      title="Drag to resize, double-click to reset"
       data-edge={edge}
       data-dragging={dragging || undefined}
+      data-limit={(dragging && atLimit) || undefined}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerEnd}
@@ -113,6 +120,16 @@ export function ResizeHandle({
         apply(bounds.initial);
         commit();
       }}
-    />
+    >
+      <span className="resize-handle-line" aria-hidden="true" />
+      <span className="resize-handle-grip" aria-hidden="true">
+        <Icon icon={IconMoreVertical} size={12} />
+      </span>
+      {dragging && width !== undefined && (
+        <span className="resize-handle-value" aria-hidden="true">
+          {width}px
+        </span>
+      )}
+    </div>
   );
 }

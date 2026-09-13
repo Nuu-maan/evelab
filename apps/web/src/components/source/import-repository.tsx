@@ -2,7 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { IconWarning } from "@/components/icons";
 import { FileIcon } from "@/components/files/file-icon";
+import { Icon } from "@/components/icon";
+import { Alert, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import { importRepositoryAction, previewImportAction } from "@/lib/actions";
 import type { ImportPreview, RepositoryOption } from "@/lib/source-types";
 import "@/app/source.css";
@@ -61,81 +68,79 @@ export function ImportRepository({
 
   return (
     <div className="section" style={{ gap: "var(--space-4)" }}>
-      <form
-        className="panel"
-        onSubmit={(event) => {
-          event.preventDefault();
-          void read();
-        }}
-      >
-        <div className="modal-body">
-          <div className="grid-2">
-            <div className="field">
-              <label className="label" htmlFor="import-repository">
-                Repository
-              </label>
-              <input
-                className="input mono"
-                id="import-repository"
-                list="import-repository-options"
-                placeholder="owner/name"
-                value={repository}
-                onChange={(event) => {
-                  setRepository(event.target.value);
-                  setPreview(undefined);
-                }}
-                required
-                autoFocus
-              />
-              <datalist id="import-repository-options">
-                {repositories.map((option) => (
-                  <option key={option.fullName} value={option.fullName} />
-                ))}
-              </datalist>
-              {listError && <p className="error-text">{listError}</p>}
+      <Card>
+        <form
+          className="contents"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void read();
+          }}
+        >
+          <CardContent className="flex flex-col gap-4">
+            <div className="grid-2">
+              <Field>
+                <FieldLabel htmlFor="import-repository">Repository</FieldLabel>
+                <Input
+                  className="font-mono"
+                  id="import-repository"
+                  list="import-repository-options"
+                  placeholder="owner/name"
+                  value={repository}
+                  onChange={(event) => {
+                    setRepository(event.target.value);
+                    setPreview(undefined);
+                  }}
+                  required
+                  autoFocus
+                />
+                <datalist id="import-repository-options">
+                  {repositories.map((option) => (
+                    <option key={option.fullName} value={option.fullName} />
+                  ))}
+                </datalist>
+                {listError && <FieldError>{listError}</FieldError>}
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="import-branch">Branch</FieldLabel>
+                <Input
+                  className="font-mono"
+                  id="import-branch"
+                  placeholder="Default branch"
+                  value={branch}
+                  onChange={(event) => {
+                    setBranch(event.target.value);
+                    setPreview(undefined);
+                  }}
+                />
+              </Field>
             </div>
-            <div className="field">
-              <label className="label" htmlFor="import-branch">
-                Branch
-              </label>
-              <input
-                className="input mono"
-                id="import-branch"
-                placeholder="Default branch"
-                value={branch}
-                onChange={(event) => {
-                  setBranch(event.target.value);
-                  setPreview(undefined);
-                }}
-              />
-            </div>
-          </div>
-          <p className="helper">
-            EveLab reads the branch and shows what it found. Nothing is written until you import.
-          </p>
-          {error && <p className="error-text">{error}</p>}
-        </div>
-        <div className="modal-foot">
-          <button className="button" data-variant={preview ? undefined : "primary"} type="submit" disabled={!repository || Boolean(busy)}>
-            {busy === "read" ? "Reading" : "Read repository"}
-          </button>
-        </div>
-      </form>
+            <FieldDescription>
+              EveLab reads the branch and shows what it found. Nothing is written until you import.
+            </FieldDescription>
+            {error && <FieldError>{error}</FieldError>}
+          </CardContent>
+          <CardFooter className="justify-end">
+            <Button variant={preview ? "outline" : "default"} type="submit" disabled={!repository || Boolean(busy)}>
+              {busy === "read" ? "Reading" : "Read repository"}
+            </Button>
+          </CardFooter>
+        </form>
+      </Card>
 
       {preview && (
-        <section className="panel import-review" aria-label="Review import">
-          <div className="modal-body">
-            <div className="section">
-              <h2 className="section-title">{preview.agentName ?? preview.repository}</h2>
-              <p className="page-description">
-                <span className="mono">{preview.repository}</span> on{" "}
-                <span className="mono">{preview.branch}</span> at{" "}
-                <span className="mono">{preview.commit.slice(0, 7)}</span>, {preview.files.length}{" "}
-                {preview.files.length === 1 ? "file" : "files"}.
-              </p>
-            </div>
+        <Card role="region" aria-label="Review import" className="import-review">
+          <CardHeader>
+            <CardTitle>{preview.agentName ?? preview.repository}</CardTitle>
+            <CardDescription>
+              <span className="mono">{preview.repository}</span> on{" "}
+              <span className="mono">{preview.branch}</span> at{" "}
+              <span className="mono">{preview.commit.slice(0, 7)}</span>, {preview.files.length}{" "}
+              {preview.files.length === 1 ? "file" : "files"}.
+            </CardDescription>
+          </CardHeader>
 
-            {preview.blocker && <p className="error-text">{preview.blocker}</p>}
+          <CardContent className="flex flex-col gap-5">
+            {preview.blocker && <FieldError>{preview.blocker}</FieldError>}
 
             {errors.length + warnings.length + preview.parseWarnings.length > 0 && (
               <div className="section">
@@ -146,13 +151,13 @@ export function ImportRepository({
                       <span className={issue.level === "error" ? "error-text" : "list-item-detail"}>
                         {issue.message}
                       </span>
-                      <code className="mono palette-hint">{issue.at}</code>
+                      <code className="mono hint">{issue.at}</code>
                     </li>
                   ))}
                   {preview.parseWarnings.map((warning, index) => (
                     <li className="list-item" key={`${warning.path}-${index}`}>
                       <span className="list-item-detail">{warning.message}</span>
-                      <code className="mono palette-hint">{warning.path}</code>
+                      <code className="mono hint">{warning.path}</code>
                     </li>
                   ))}
                 </ul>
@@ -162,19 +167,18 @@ export function ImportRepository({
             {preview.warnings.length > 0 && (
               <div className="section">
                 <p className="label">Not imported</p>
-                <ul className="list">
-                  {preview.warnings.map((warning) => (
-                    <li className="notice" key={warning}>
-                      {warning}
-                    </li>
-                  ))}
-                </ul>
+                {preview.warnings.map((warning) => (
+                  <Alert key={warning}>
+                    <Icon icon={IconWarning} className="text-warning" />
+                    <AlertTitle className="font-normal">{warning}</AlertTitle>
+                  </Alert>
+                ))}
               </div>
             )}
 
             <div className="section">
               <p className="label">Files</p>
-              <ul className="panel import-files">
+              <ul className="import-files">
                 {preview.files.map((file) => (
                   <li className="import-file" key={file.path}>
                     <FileIcon name={file.path} />
@@ -184,19 +188,18 @@ export function ImportRepository({
                 ))}
               </ul>
             </div>
-          </div>
-          <div className="modal-foot">
-            <button
-              className="button"
-              data-variant="primary"
+          </CardContent>
+
+          <CardFooter className="justify-end">
+            <Button
               type="button"
               disabled={Boolean(preview.blocker) || Boolean(busy)}
               onClick={() => void importProject()}
             >
               {busy === "import" ? "Importing" : "Import project"}
-            </button>
-          </div>
-        </section>
+            </Button>
+          </CardFooter>
+        </Card>
       )}
     </div>
   );

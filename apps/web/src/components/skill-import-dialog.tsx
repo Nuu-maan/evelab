@@ -3,10 +3,23 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
+import { IconWarning } from "@/components/icons";
 import type { SkillCandidate } from "@/lib/skill-types";
 import { installSkillAction, previewSkillAction } from "@/lib/actions";
-import { X } from "lucide-react";
-import { EASE_OUT, EXIT } from "@/components/interaction";
+import { Icon } from "@/components/icon";
+import { EASE_OUT } from "@/components/interaction";
+import { Alert, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 
 /**
  * Import is two steps on purpose: read the source, then install.
@@ -37,14 +50,6 @@ export function SkillImportDialog({
     setError(undefined);
     setBusy(false);
   }, [open]);
-
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
 
   const preview = async () => {
     setBusy(true);
@@ -78,173 +83,112 @@ export function SkillImportDialog({
   };
 
   return (
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          className="overlay overlay-centered"
-          role="presentation"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1, transition: EASE_OUT }}
-          exit={{ opacity: 0, transition: EXIT }}
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) onClose();
-          }}
-        >
-          <motion.div
-            className="modal"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Import skill"
-            // A modal is not anchored to a trigger, so it scales from its own centre.
-            initial={{ opacity: 0, transform: "scale(0.96)" }}
-            animate={{ opacity: 1, transform: "scale(1)", transition: { duration: 0.25, ease: [0.23, 1, 0.32, 1] } }}
-            exit={{ opacity: 0, transform: "scale(0.96)", transition: EXIT }}
-          >
-            <div className="modal-head">
-              <div>
-                <h2 className="section-title">Import skill</h2>
-                <p className="list-item-detail">
-                  Paste a GitHub link to a directory containing SKILL.md.
-                </p>
-              </div>
-              <button
-                className="button"
-                data-variant="ghost"
-                data-size="icon"
-                type="button"
-                aria-label="Close"
-                onClick={onClose}
-              >
-                <X aria-hidden="true" strokeWidth={1.5} />
-              </button>
-            </div>
+    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="flex max-h-[82vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
+        <DialogHeader className="p-5 pb-4">
+          <DialogTitle>Import skill</DialogTitle>
+          <DialogDescription>Paste a GitHub link to a directory containing SKILL.md.</DialogDescription>
+        </DialogHeader>
 
-            <div className="modal-body">
-              <div className="field">
-                <label className="label" htmlFor="skill-url">
-                  Source
-                </label>
-                <input
-                  className="input mono"
-                  id="skill-url"
-                  value={url}
-                  placeholder="https://github.com/owner/repo/tree/main/skills/web-research"
-                  onChange={(event) => {
-                    setUrl(event.target.value);
-                    setCandidate(undefined);
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" && url && !busy) void preview();
-                  }}
-                  autoFocus
-                />
-                <p className="helper">
-                  EveLab reads the directory and shows you what it found. It installs nothing yet.
-                </p>
+        <div className="flex min-h-0 flex-col gap-5 overflow-y-auto px-5 pb-5">
+          <Field>
+            <FieldLabel htmlFor="skill-url">Source</FieldLabel>
+            <Input
+              className="font-mono"
+              id="skill-url"
+              value={url}
+              placeholder="https://github.com/owner/repo/tree/main/skills/web-research"
+              onChange={(event) => {
+                setUrl(event.target.value);
+                setCandidate(undefined);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && url && !busy) void preview();
+              }}
+              autoFocus
+            />
+            <FieldDescription>
+              EveLab reads the directory and shows you what it found. It installs nothing yet.
+            </FieldDescription>
+            {error && <FieldError>{error}</FieldError>}
+          </Field>
+
+          {candidate && (
+            <>
+              <div className="grid-2">
+                <div className="stat">
+                  <span className="stat-label">Name</span>
+                  <span className="stat-value">{candidate.name}</span>
+                </div>
+                <div className="stat">
+                  <span className="stat-label">Installs as</span>
+                  <span className="stat-value mono">skills/{candidate.id}/</span>
+                </div>
               </div>
 
-              {error && <p className="error-text">{error}</p>}
+              {candidate.description && <p>{candidate.description}</p>}
 
-              {candidate && (
-                <>
-                  <div className="grid-2">
-                    <div className="stat">
-                      <span className="stat-label">Name</span>
-                      <span className="stat-value">{candidate.name}</span>
-                    </div>
-                    <div className="stat">
-                      <span className="stat-label">Installs as</span>
-                      <span className="stat-value mono">skills/{candidate.id}/</span>
-                    </div>
-                  </div>
+              {candidate.warnings.map((warning) => (
+                <Alert key={warning}>
+                  <Icon icon={IconWarning} className="text-warning" />
+                  <AlertTitle className="font-normal">{warning}</AlertTitle>
+                </Alert>
+              ))}
 
-                  {candidate.description && <p>{candidate.description}</p>}
-
-                  {candidate.warnings.length > 0 && (
-                    <ul className="list">
-                      {candidate.warnings.map((warning) => (
-                        <li className="notice" key={warning}>
-                          {warning}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-
-                  <div className="section">
-                    <p className="label">{candidate.files.length} files</p>
-                    {candidate.files.map((file) => (
-                      <div key={file.path}>
-                        <button
-                          className="file-chip"
-                          data-flagged={file.executable}
-                          type="button"
-                          onClick={() =>
-                            setOpenFile(openFile === file.path ? undefined : file.path)
-                          }
+              <div className="section">
+                <p className="label">{candidate.files.length} files</p>
+                {candidate.files.map((file) => (
+                  <div key={file.path}>
+                    <button
+                      className="file-chip"
+                      data-flagged={file.executable}
+                      type="button"
+                      onClick={() => setOpenFile(openFile === file.path ? undefined : file.path)}
+                    >
+                      <span>{file.path}</span>
+                      <span className="hint">
+                        {file.executable ? "can run code · " : ""}
+                        {openFile === file.path ? "hide" : "read"}
+                      </span>
+                    </button>
+                    <AnimatePresence>
+                      {openFile === file.path && (
+                        <motion.pre
+                          className="code"
+                          style={{ marginTop: "var(--space-2)", maxHeight: 260 }}
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={EASE_OUT}
                         >
-                          <span>{file.path}</span>
-                          <span className="palette-hint">
-                            {file.executable ? "can run code · " : ""}
-                            {openFile === file.path ? "hide" : "read"}
-                          </span>
-                        </button>
-                        <AnimatePresence>
-                          {openFile === file.path && (
-                            <motion.pre
-                              className="code"
-                              style={{ marginTop: "var(--space-2)", maxHeight: 260 }}
-                              initial={{ opacity: 0, height: 0 }}
-                              animate={{ opacity: 1, height: "auto" }}
-                              exit={{ opacity: 0, height: 0 }}
-                              transition={EASE_OUT}
-                            >
-                              {file.content.slice(0, 8000)}
-                            </motion.pre>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    ))}
+                          {file.content.slice(0, 8000)}
+                        </motion.pre>
+                      )}
+                    </AnimatePresence>
                   </div>
-                </>
-              )}
-            </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
 
-            <div className="modal-foot">
-              {!candidate ? (
-                <button
-                  className="button"
-                  data-variant="primary"
-                  type="button"
-                  disabled={!url || busy}
-                  onClick={() => void preview()}
-                >
-                  {busy ? "Reading" : "Read source"}
-                </button>
-              ) : (
-                <>
-                  <button
-                    className="button"
-                    data-variant="ghost"
-                    type="button"
-                    onClick={() => setCandidate(undefined)}
-                  >
-                    Back
-                  </button>
-                  <button
-                    className="button"
-                    data-variant="primary"
-                    type="button"
-                    disabled={busy}
-                    onClick={() => void install()}
-                  >
-                    {busy ? "Installing" : `Install ${candidate.files.length} files`}
-                  </button>
-                </>
-              )}
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+        <DialogFooter className="m-0 px-5 py-3">
+          {!candidate ? (
+            <Button type="button" disabled={!url || busy} onClick={() => void preview()}>
+              {busy ? "Reading" : "Read source"}
+            </Button>
+          ) : (
+            <>
+              <Button variant="ghost" type="button" onClick={() => setCandidate(undefined)}>
+                Back
+              </Button>
+              <Button type="button" disabled={busy} onClick={() => void install()}>
+                {busy ? "Installing" : `Install ${candidate.files.length} files`}
+              </Button>
+            </>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

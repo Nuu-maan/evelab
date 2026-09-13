@@ -1,9 +1,13 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { IconGridSquare, IconLogoGithub, IconPlus } from "@/components/icons";
+import { EmptyState } from "@/components/empty-state";
+import { Icon } from "@/components/icon";
 import { KindCount } from "@/components/kinds";
 import { PlainShell } from "@/components/plain-shell";
 import { Avatar } from "@/components/project-switcher";
 import { Reveal, Stagger } from "@/components/motion";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { listProjects } from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
@@ -24,48 +28,59 @@ export default async function ProjectsPage() {
                 </p>
               </div>
               <div className="page-actions">
-                <Link className="button" href="/projects/import">
-                  Import from GitHub
-                </Link>
-                <Link className="button" data-variant="primary" href="/projects/new">
-                  <Plus aria-hidden="true" strokeWidth={1.5} />
-                  New project
-                </Link>
+                <Button asChild variant="outline">
+                  <Link href="/projects/import">
+                    <Icon icon={IconLogoGithub} />
+                    Import from GitHub
+                  </Link>
+                </Button>
+                <Button asChild>
+                  <Link href="/projects/new">
+                    <Icon icon={IconPlus} />
+                    New project
+                  </Link>
+                </Button>
               </div>
             </header>
           </Reveal>
 
           {projects.length === 0 ? (
             <Reveal delay={0.08}>
-              <div className="empty">
-                <p className="empty-title">No projects yet.</p>
-                <p className="empty-body">
-                  Creating one writes agent.ts and instructions.md, then gets out of your way.
-                </p>
-                <Link className="button" href="/projects/new">
-                  Create your first project
-                </Link>
-              </div>
+              <EmptyState
+                icon={IconGridSquare}
+                title="No projects yet."
+                action={
+                  <Button asChild variant="outline">
+                    <Link href="/projects/new">Create your first project</Link>
+                  </Button>
+                }
+              >
+                Creating one writes agent.ts and instructions.md, then gets out of your way.
+              </EmptyState>
             </Reveal>
           ) : (
             <Stagger className="grid-fluid">
               {projects.map((project) => (
-                <Link className="card" href={`/projects/${project.id}`} key={project.id}>
-                  <div className="row" style={{ gap: "var(--space-3)" }}>
-                    <Avatar name={project.name} size="large" />
-                    <div className="page-heading">
-                      <span className="card-title">{project.name}</span>
-                      <span className="card-detail mono">{project.model || "No model set"}</span>
-                    </div>
-                  </div>
-                  <div className="row" style={{ gap: "var(--space-4)", marginTop: "var(--space-3)" }}>
-                    <KindCount kind="tool" count={project.toolCount} />
-                    <KindCount kind="skill" count={project.skillCount} />
-                    <KindCount kind="subagent" count={project.subagentCount} />
-                    <span className="palette-hint mono" style={{ marginLeft: "auto" }}>
-                      {project.id}
-                    </span>
-                  </div>
+                <Link className="group block rounded-xl" href={`/projects/${project.id}`} key={project.id}>
+                  <Card className="h-full transition-colors duration-150 group-hover:border-(--border-strong)">
+                    <CardContent className="flex flex-col gap-4">
+                      <div className="row" style={{ gap: "var(--space-3)" }}>
+                        <Avatar name={project.name} size="large" />
+                        <div className="page-heading">
+                          <span className="card-title">{project.name}</span>
+                          <span className="card-detail mono">{project.model || "No model set"}</span>
+                        </div>
+                      </div>
+                      <div className="row" style={{ gap: "var(--space-4)" }}>
+                        <KindCount kind="tool" count={project.toolCount} />
+                        <KindCount kind="skill" count={project.skillCount} />
+                        <KindCount kind="subagent" count={project.subagentCount} />
+                        <span className="hint mono" style={{ marginLeft: "auto" }}>
+                          {project.id}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </Link>
               ))}
             </Stagger>

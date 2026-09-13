@@ -2,10 +2,27 @@
 
 import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowDown, ArrowUp, ArrowUpRight, GitBranch, Undo2 } from "lucide-react";
+import {
+  IconArrowDown,
+  IconArrowUp,
+  IconArrowUpRight,
+  IconCheckCircle,
+  IconCrossCircle,
+  IconGitBranch,
+  IconInformation,
+  IconRotateCounterClockwise,
+} from "@/components/icons";
+import { ConfirmDialog } from "@/components/confirm";
 import { CodeDiffEditor, languageFor } from "@/components/editor";
 import { FileIcon } from "@/components/files/file-icon";
+import { Icon } from "@/components/icon";
 import { Shortcut } from "@/components/shortcut";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { commitAction, discardChangeAction, pullAction } from "@/lib/actions";
 import type { ChangeKind, SourceSummary } from "@/lib/source-types";
 import "@/app/source.css";
@@ -42,6 +59,7 @@ export function SourceControl({
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState<string | undefined>();
   const [notice, setNotice] = useState<Notice | undefined>();
+  const [discarding, setDiscarding] = useState<{ path: string; kind: ChangeKind } | undefined>();
 
   useEffect(() => {
     if (!changes.some((change) => change.path === selectedPath)) setSelectedPath(changes[0]?.path);
@@ -96,12 +114,7 @@ export function SourceControl({
     router.refresh();
   };
 
-  const discard = async (path: string, kind: ChangeKind) => {
-    const question =
-      kind === "added"
-        ? `Delete ${path}? It is not on GitHub, so this cannot be undone.`
-        : `Discard your changes to ${path}?`;
-    if (!confirm(question)) return;
+  const discard = async (path: string) => {
     setBusy(path);
     const result = await discardChangeAction({ projectId, path });
     setBusy(undefined);
@@ -118,17 +131,19 @@ export function SourceControl({
 
   return (
     <div className="source">
-      <section className="panel source-repo" aria-label="Repository">
+      <Card role="region" aria-label="Repository" className="source-repo flex-row items-center gap-3 p-4">
         <span className="source-repo-icon" aria-hidden="true">
-          <GitBranch strokeWidth={1.5} />
+          <Icon icon={IconGitBranch} size={18} />
         </span>
         <div className="source-repo-text">
           <a className="source-repo-name" href={summary.url} target="_blank" rel="noreferrer noopener">
             {summary.repository}
-            <ArrowUpRight aria-hidden="true" strokeWidth={1.5} />
+            <Icon icon={IconArrowUpRight} size={14} />
           </a>
           <p className="source-repo-meta">
-            <span className="badge">{summary.branch}</span>
+            <Badge variant="secondary" className="font-mono">
+              {summary.branch}
+            </Badge>
             <span className="mono">{summary.commit ? summary.commit.slice(0, 7) : "No commits yet"}</span>
             <span suppressHydrationWarning>Synced {since(summary.syncedAt)}</span>
           </p>
@@ -147,41 +162,45 @@ export function SourceControl({
               Up to date with GitHub
             </span>
           ) : null}
-          <button
-            className="button"
-            type="button"
-            onClick={() => void pull()}
-            disabled={!configured || Boolean(busy)}
-          >
-            <ArrowDown aria-hidden="true" strokeWidth={1.5} />
+          <Button variant="outline" type="button" onClick={() => void pull()} disabled={!configured || Boolean(busy)}>
+            <Icon icon={IconArrowDown} />
             {busy === "pull" ? "Pulling" : "Pull"}
-          </button>
+          </Button>
         </div>
-      </section>
+      </Card>
 
       {!configured && (
-        <p className="notice">
-          GitHub is not configured, so EveLab can show changes but cannot commit or pull. Set
-          GITHUB_TOKEN and restart.
-        </p>
+        <Alert>
+          <Icon icon={IconInformation} />
+          <AlertTitle className="font-normal">
+            GitHub is not configured, so EveLab can show changes but cannot commit or pull. Set
+            GITHUB_TOKEN and restart.
+          </AlertTitle>
+        </Alert>
       )}
 
       {notice && (
-        <div className="source-notice" data-tone={notice.tone} role="status">
-          <p>{notice.text}</p>
+        <Alert role="status" variant={notice.tone === "error" ? "destructive" : "default"}>
+          <Icon
+            icon={notice.tone === "error" ? IconCrossCircle : IconCheckCircle}
+            className={notice.tone === "error" ? undefined : "text-success"}
+          />
+          <AlertTitle className="font-normal text-foreground">{notice.text}</AlertTitle>
           {notice.paths && (
-            <ul>
-              {notice.paths.map((path) => (
-                <li className="mono" key={path}>
-                  {path}
-                </li>
-              ))}
-            </ul>
+            <AlertDescription>
+              <ul className="list-disc pl-4">
+                {notice.paths.map((path) => (
+                  <li className="mono" key={path}>
+                    {path}
+                  </li>
+                ))}
+              </ul>
+            </AlertDescription>
           )}
-        </div>
+        </Alert>
       )}
 
-      <section className="panel source-workbench">
+      <Card className="source-workbench grid gap-0 py-0">
         <div className="source-side">
           <form
             className="source-commit"
@@ -190,8 +209,8 @@ export function SourceControl({
               void commit();
             }}
           >
-            <textarea
-              className="textarea"
+            <Textarea
+              className="min-h-[76px] resize-y bg-surface"
               aria-label="Commit message"
               placeholder="Describe what changed"
               rows={3}
@@ -200,18 +219,22 @@ export function SourceControl({
               onKeyDown={onMessageKey}
             />
             <div className="row">
-              <button className="button" data-variant="primary" type="submit" disabled={!canCommit}>
-                <ArrowUp aria-hidden="true" strokeWidth={1.5} />
+              <Button type="submit" disabled={!canCommit} className="flex-1">
+                <Icon icon={IconArrowUp} />
                 {busy === "commit" ? "Committing" : "Commit and push"}
-              </button>
+              </Button>
               <Shortcut keys="Enter" />
             </div>
-            {blockedByRemote && <p className="helper">Pull first: GitHub has commits this project does not.</p>}
+            {blockedByRemote && (
+              <p className="text-xs text-muted-foreground">Pull first: GitHub has commits this project does not.</p>
+            )}
           </form>
 
           <div className="source-changes-head">
             <span>Changes</span>
-            <span className="badge">{changes.length}</span>
+            <Badge variant="secondary" className="tabular-nums">
+              {changes.length}
+            </Badge>
           </div>
 
           {changes.length === 0 ? (
@@ -239,18 +262,22 @@ export function SourceControl({
                       </span>
                       <span className="source-row-directory">{directory}</span>
                     </button>
-                    <button
-                      className="button source-row-discard"
-                      data-variant="ghost"
-                      data-size="icon-small"
-                      type="button"
-                      aria-label={`Discard changes to ${change.path}`}
-                      title="Discard changes"
-                      disabled={Boolean(busy)}
-                      onClick={() => void discard(change.path, change.kind)}
-                    >
-                      <Undo2 aria-hidden="true" strokeWidth={1.5} />
-                    </button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          className="source-row-discard"
+                          variant="ghost"
+                          size="icon-xs"
+                          type="button"
+                          aria-label={`Discard changes to ${change.path}`}
+                          disabled={Boolean(busy)}
+                          onClick={() => setDiscarding({ path: change.path, kind: change.kind })}
+                        >
+                          <Icon icon={IconRotateCounterClockwise} size={14} />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Discard changes</TooltipContent>
+                    </Tooltip>
                     <span className="source-letter" data-change={change.kind} title={change.kind}>
                       {LETTER[change.kind]}
                     </span>
@@ -285,7 +312,29 @@ export function SourceControl({
             <p className="source-diff-empty">Select a change to see what is different from GitHub.</p>
           )}
         </div>
-      </section>
+      </Card>
+
+      <ConfirmDialog
+        open={discarding !== undefined}
+        onOpenChange={(open) => !open && setDiscarding(undefined)}
+        title={discarding?.kind === "added" ? "Delete this file?" : "Discard your changes?"}
+        description={
+          discarding?.kind === "added" ? (
+            <>
+              <span className="mono">{discarding.path}</span> is not on GitHub, so this cannot be undone.
+            </>
+          ) : (
+            <>
+              <span className="mono">{discarding?.path}</span> goes back to the version on GitHub.
+            </>
+          )
+        }
+        confirmLabel={discarding?.kind === "added" ? "Delete file" : "Discard"}
+        onConfirm={() => {
+          if (discarding) void discard(discarding.path);
+          setDiscarding(undefined);
+        }}
+      />
     </div>
   );
 }

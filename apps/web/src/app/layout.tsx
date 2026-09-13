@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { MotionProvider } from "@/components/motion-provider";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 import "./ui.css";
 
@@ -16,7 +17,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${sans.variable} ${mono.variable}`}>
       <body>
-        <MotionProvider>{children}</MotionProvider>
+        <MotionProvider>
+          <TooltipProvider delayDuration={400}>{children}</TooltipProvider>
+        </MotionProvider>
       </body>
     </html>
   );

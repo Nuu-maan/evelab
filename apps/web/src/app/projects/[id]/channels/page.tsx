@@ -1,3 +1,6 @@
+import { IconMessage } from "@/components/icons";
+import { EmptyState } from "@/components/empty-state";
+
 export const dynamic = "force-dynamic";
 
 export default function ChannelsPage() {
@@ -9,14 +12,11 @@ export default function ChannelsPage() {
           <p className="page-description">How people reach the agent.</p>
         </div>
       </header>
-      <div className="empty">
-        <p className="empty-title">No channels configured.</p>
-        <p className="empty-body">
+      <EmptyState icon={IconMessage} title="No channels configured.">
           Channel setup writes to <code className="mono">channels/</code>. It is not implemented yet:
           the file layout needs confirming against Eve first so an EveLab-written channel matches a
           hand-written one exactly.
-        </p>
-      </div>
+      </EmptyState>
     </div>
   );
 }

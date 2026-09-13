@@ -4,14 +4,17 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { X } from "lucide-react";
+import { IconCross } from "@/components/icons";
 import type { CanvasNode } from "@evelab/eve-project";
+import { ConfirmSubmit } from "@/components/confirm";
 import { CodeEditor, languageFor } from "@/components/editor";
+import { Icon } from "@/components/icon";
 import { DRAWER, EXIT } from "@/components/interaction";
 import { KINDS, KindTile } from "@/components/kinds";
 import { ResizeHandle } from "@/components/resize-handle";
 import { SaveIndicator, type SaveState } from "@/components/save-state";
 import { Shortcut } from "@/components/shortcut";
+import { Button } from "@/components/ui/button";
 import { deleteSkillAction, deleteToolAction, deleteSubagentAction, saveFileAction } from "@/lib/actions";
 
 /** Panels slide in from the edge they live on, and leave the same way, faster. */
@@ -20,6 +23,11 @@ export const PANEL_MOTION = {
   animate: { opacity: 1, transform: "translateX(0px)", transition: DRAWER },
   exit: { opacity: 0, transform: "translateX(16px)", transition: EXIT },
 };
+
+/** Escape belongs to an open dialog before it belongs to the panel behind it. */
+export function dialogIsOpen(): boolean {
+  return document.querySelector('[role="alertdialog"], [role="dialog"]') !== null;
+}
 
 /**
  * The right-hand panel. Selecting a node opens the file that defines it, so
@@ -67,7 +75,7 @@ export function CanvasInspector({
         event.preventDefault();
         void save();
       }
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape" && !dialogIsOpen()) onClose();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
@@ -96,20 +104,13 @@ export function CanvasInspector({
           <h2 className="section-title">{node.name}</h2>
           <p className="list-item-detail">{node.detail}</p>
         </div>
-        <button
-          className="button"
-          data-variant="ghost"
-          data-size="icon"
-          type="button"
-          aria-label="Close"
-          onClick={onClose}
-        >
-          <X aria-hidden="true" strokeWidth={1.5} />
-        </button>
+        <Button variant="ghost" size="icon" type="button" aria-label="Close" onClick={onClose}>
+          <Icon icon={IconCross} />
+        </Button>
       </div>
 
       <div className="inspector-meta">
-        <code className="mono palette-hint">{node.filePath}</code>
+        <code className="mono hint">{node.filePath}</code>
         <SaveIndicator state={state} />
       </div>
 
@@ -129,38 +130,34 @@ export function CanvasInspector({
 
       <div className="inspector-foot">
         <div className="row">
-          <button
-            className="button"
-            data-variant="primary"
-            type="button"
-            onClick={() => void save()}
-            disabled={state === "saved" || state === "saving"}
-          >
+          <Button type="button" onClick={() => void save()} disabled={state === "saved" || state === "saving"}>
             Save
-          </button>
+          </Button>
           <Shortcut keys="S" />
-          <Link
-            className="button"
-            data-variant="ghost"
-            href={`/projects/${projectId}/files?path=${encodeURIComponent(node.filePath)}`}
-          >
-            Open in Files
-          </Link>
+          <Button asChild variant="ghost">
+            <Link href={`/projects/${projectId}/files?path=${encodeURIComponent(node.filePath)}`}>
+              Open in Files
+            </Link>
+          </Button>
         </div>
 
         {removal && entityId && (
-          <form
-            action={removal.action}
-            onSubmit={(event) => {
-              if (!confirm(`Delete ${node.name}? This removes its files.`)) event.preventDefault();
-              else onClose();
-            }}
-          >
+          <form action={removal.action}>
             <input type="hidden" name="projectId" value={projectId} />
             <input type="hidden" name={removal.field} value={entityId} />
-            <button className="button" data-variant="danger" type="submit">
+            <ConfirmSubmit
+              title={`Delete ${node.name}?`}
+              description={
+                <>
+                  This removes <span className="mono">{node.filePath}</span> from the project. Commit
+                  first if you might want it back.
+                </>
+              }
+              confirmLabel="Delete"
+              onConfirmed={onClose}
+            >
               Delete
-            </button>
+            </ConfirmSubmit>
           </form>
         )}
       </div>

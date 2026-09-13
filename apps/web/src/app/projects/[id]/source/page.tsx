@@ -1,3 +1,5 @@
+import { IconLogoGithub } from "@/components/icons";
+import { EmptyState } from "@/components/empty-state";
 import { ConnectRepository } from "@/components/source/connect-repository";
 import { SourceControl } from "@/components/source/source-control";
 import {
@@ -31,13 +33,10 @@ export default async function SourcePage({ params }: { params: Promise<{ id: str
     return (
       <div className="page">
         {header}
-        <div className="empty">
-          <p className="empty-title">GitHub is not configured.</p>
-          <p className="empty-body">
-            Set GITHUB_TOKEN to a token with read and write access to repository contents, then
-            restart EveLab. The token is read on the server only and never stored.
-          </p>
-        </div>
+        <EmptyState icon={IconLogoGithub} title="GitHub is not configured.">
+          Set GITHUB_TOKEN to a token with read and write access to repository contents, then restart
+          EveLab. The token is read on the server only and never stored.
+        </EmptyState>
       </div>
     );
   }

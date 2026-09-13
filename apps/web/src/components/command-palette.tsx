@@ -1,30 +1,37 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Activity,
-  ArrowUpRight,
-  BookOpen,
-  Bot,
-  File,
-  Files,
-  FileText,
-  GitBranch,
-  LayoutGrid,
-  Rocket,
-  Settings,
-  Users,
-  Workflow,
-  Wrench,
-  type LucideIcon,
-} from "lucide-react";
+  IconAlignmentLeft,
+  IconArrowUpRight,
+  IconChartActivity,
+  IconCloudUpload,
+  IconFile,
+  IconFileText,
+  IconGitBranch,
+  IconGridSquare,
+  IconRoute,
+  IconSettingsGear,
+} from "@/components/icons";
+import { Icon, type IconData } from "@/components/icon";
+import { KINDS } from "@/components/kinds";
+import {
+  Command,
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandShortcut,
+} from "@/components/ui/command";
 
-interface Command {
+interface Entry {
   label: string;
   hint: string;
   href: string;
-  icon: LucideIcon;
+  icon: IconData;
 }
 
 const OPEN_EVENT = "evelab:command-palette";
@@ -41,43 +48,41 @@ export function openCommandPalette() {
 export function CommandPalette({ projectId }: { projectId: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const [active, setActive] = useState(0);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const returnFocus = useRef<HTMLElement | null>(null);
 
-  const commands = useMemo<Command[]>(() => {
+  const groups = useMemo<{ heading: string; entries: Entry[] }[]>(() => {
     const base = `/projects/${projectId}`;
     return [
-      { label: "Open canvas", hint: "Visual editor", href: `${base}/canvas`, icon: Workflow },
-      { label: "Open overview", hint: "Project", href: base, icon: LayoutGrid },
       {
-        label: "Edit instructions",
-        hint: "instructions.md",
-        href: `${base}/agent/instructions`,
-        icon: FileText,
+        heading: "Go to",
+        entries: [
+          { label: "Open canvas", hint: "Visual editor", href: `${base}/canvas`, icon: IconRoute },
+          { label: "Open overview", hint: "Project", href: base, icon: IconGridSquare },
+          { label: "Browse files", hint: "Files", href: `${base}/files`, icon: IconFileText },
+          { label: "Source control", hint: "GitHub", href: `${base}/source`, icon: IconGitBranch },
+          { label: "View runs", hint: "Observe", href: `${base}/runs`, icon: IconChartActivity },
+          { label: "View deployments", hint: "Deploy", href: `${base}/deployments`, icon: IconCloudUpload },
+          { label: "Project settings", hint: "Settings", href: `${base}/settings`, icon: IconSettingsGear },
+          { label: "All projects", hint: "Switch", href: "/projects", icon: IconArrowUpRight },
+        ],
       },
-      { label: "Configure model", hint: "agent.ts", href: `${base}/agent/model`, icon: Bot },
-      { label: "Add tool", hint: "tools/", href: `${base}/tools`, icon: Wrench },
-      { label: "Import skill", hint: "skills/", href: `${base}/skills`, icon: BookOpen },
-      { label: "Create subagent", hint: "subagents/", href: `${base}/subagents`, icon: Users },
-      { label: "Open agent.ts", hint: "Files", href: `${base}/files?path=agent.ts`, icon: File },
-      { label: "Browse files", hint: "Files", href: `${base}/files`, icon: Files },
-      { label: "Source control", hint: "GitHub", href: `${base}/source`, icon: GitBranch },
-      { label: "View runs", hint: "Observe", href: `${base}/runs`, icon: Activity },
-      { label: "View deployments", hint: "Deploy", href: `${base}/deployments`, icon: Rocket },
-      { label: "Project settings", hint: "Settings", href: `${base}/settings`, icon: Settings },
-      { label: "All projects", hint: "Switch", href: "/projects", icon: ArrowUpRight },
+      {
+        heading: "Build",
+        entries: [
+          {
+            label: "Edit instructions",
+            hint: "instructions.md",
+            href: `${base}/agent/instructions`,
+            icon: IconAlignmentLeft,
+          },
+          { label: "Configure model", hint: "agent.ts", href: `${base}/agent/model`, icon: KINDS.agent.icon },
+          { label: "Add tool", hint: "tools/", href: `${base}/tools`, icon: KINDS.tool.icon },
+          { label: "Import skill", hint: "skills/", href: `${base}/skills`, icon: KINDS.skill.icon },
+          { label: "Create subagent", hint: "subagents/", href: `${base}/subagents`, icon: KINDS.subagent.icon },
+          { label: "Open agent.ts", hint: "Files", href: `${base}/files?path=agent.ts`, icon: IconFile },
+        ],
+      },
     ];
   }, [projectId]);
-
-  const results = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    if (!needle) return commands;
-    return commands.filter((command) =>
-      `${command.label} ${command.hint}`.toLowerCase().includes(needle),
-    );
-  }, [commands, query]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -85,7 +90,6 @@ export function CommandPalette({ projectId }: { projectId: string }) {
         event.preventDefault();
         setOpen((value) => !value);
       }
-      if (event.key === "Escape") setOpen(false);
     };
     const onOpen = () => setOpen(true);
     window.addEventListener("keydown", onKeyDown);
@@ -96,78 +100,41 @@ export function CommandPalette({ projectId }: { projectId: string }) {
     };
   }, []);
 
-  useEffect(() => {
-    if (open) {
-      returnFocus.current = document.activeElement as HTMLElement | null;
-      setQuery("");
-      setActive(0);
-      inputRef.current?.focus();
-    } else {
-      returnFocus.current?.focus();
-      returnFocus.current = null;
-    }
-  }, [open]);
-
   const go = (href: string) => {
-    returnFocus.current = null;
     setOpen(false);
     router.push(href);
   };
 
-  if (!open) return null;
-
   return (
-    <div
-      className="overlay"
-      role="presentation"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) setOpen(false);
-      }}
+    <CommandDialog
+      open={open}
+      onOpenChange={setOpen}
+      title="Commands"
+      description="Jump to a page or start a change"
+      className="top-[14vh] sm:max-w-xl data-open:animate-none! data-closed:animate-none!"
     >
-      <div className="palette" role="dialog" aria-modal="true" aria-label="Commands">
-        <input
-          ref={inputRef}
-          className="input palette-input"
-          placeholder="Search commands"
-          aria-label="Search commands"
-          value={query}
-          onChange={(event) => {
-            setQuery(event.target.value);
-            setActive(0);
-          }}
-          onKeyDown={(event) => {
-            if (event.key === "ArrowDown") {
-              event.preventDefault();
-              setActive((value) => Math.min(value + 1, results.length - 1));
-            } else if (event.key === "ArrowUp") {
-              event.preventDefault();
-              setActive((value) => Math.max(value - 1, 0));
-            } else if (event.key === "Enter") {
-              event.preventDefault();
-              const target = results[active];
-              if (target) go(target.href);
-            }
-          }}
-        />
-        <ul className="palette-list">
-          {results.map(({ label, hint, href, icon: Icon }, index) => (
-            <li key={href}>
-              <button
-                type="button"
-                className="palette-item"
-                data-active={index === active}
-                onMouseEnter={() => setActive(index)}
-                onClick={() => go(href)}
-              >
-                <Icon aria-hidden="true" strokeWidth={1.5} />
-                <span className="palette-item-label">{label}</span>
-                <span className="palette-hint">{hint}</span>
-              </button>
-            </li>
+      <Command>
+        <CommandInput placeholder="Search commands" aria-label="Search commands" />
+        <CommandList className="max-h-[min(420px,60vh)]">
+          <CommandEmpty>No matching command</CommandEmpty>
+          {groups.map((group) => (
+            <CommandGroup key={group.heading} heading={group.heading}>
+              {group.entries.map((entry) => (
+                <CommandItem
+                  key={entry.href}
+                  value={`${entry.label} ${entry.hint}`}
+                  onSelect={() => go(entry.href)}
+                  className="h-9"
+                >
+                  <Icon icon={entry.icon} />
+                  <span>{entry.label}</span>
+                  <CommandShortcut className="tracking-normal">{entry.hint}</CommandShortcut>
+                </CommandItem>
+              ))}
+            </CommandGroup>
           ))}
-          {results.length === 0 && <li className="palette-item palette-hint">No matching command</li>}
-        </ul>
-      </div>
-    </div>
+        </CommandList>
+      </Command>
+    </CommandDialog>
   );
 }

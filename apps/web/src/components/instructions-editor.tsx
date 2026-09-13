@@ -5,6 +5,7 @@ import { saveInstructionsAction } from "@/lib/actions";
 import { CodeEditor } from "@/components/editor";
 import { SaveIndicator, type SaveState } from "@/components/save-state";
 import { Shortcut } from "@/components/shortcut";
+import { Button } from "@/components/ui/button";
 
 /** instructions.md editing: Monaco, ⌘S, and a debounced autosave. */
 export function InstructionsEditor({
@@ -56,15 +57,15 @@ export function InstructionsEditor({
         <div className="row">
           <SaveIndicator state={state} />
           <Shortcut keys="S" />
-          <button
-            className="button"
-            data-size="small"
+          <Button
+            variant="outline"
+            size="sm"
             type="button"
             onClick={() => void save(content)}
             disabled={state === "saved" || state === "saving"}
           >
             Save
-          </button>
+          </Button>
         </div>
       </div>
       <div className="editor-host">

@@ -1,5 +1,21 @@
 import Link from "next/link";
+import { IconUsers } from "@/components/icons";
+import { ConfirmSubmit } from "@/components/confirm";
+import { EmptyState } from "@/components/empty-state";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import { createSubagentAction, deleteSubagentAction } from "@/lib/actions";
 import { readProject } from "@/lib/workspace";
 
@@ -25,112 +41,104 @@ export default async function SubagentsPage({ params }: { params: Promise<{ id: 
             </p>
           </div>
           <div className="page-actions">
-            <Link className="button" href={`/projects/${id}/canvas`}>
-              Open canvas
-            </Link>
+            <Button asChild variant="outline">
+              <Link href={`/projects/${id}/canvas`}>Open canvas</Link>
+            </Button>
           </div>
         </header>
       </Reveal>
 
       {project.subagents.length === 0 ? (
         <Reveal delay={0.06}>
-          <div className="empty">
-            <p className="empty-title">No subagents.</p>
-            <p className="empty-body">Create one when your agent needs specialised work.</p>
-          </div>
+          <EmptyState icon={IconUsers} title="No subagents.">
+            Create one when your agent needs specialised work.
+          </EmptyState>
         </Reveal>
       ) : (
         <Stagger className="section">
           {project.subagents.map((subagent) => (
             <StaggerItem key={subagent.id}>
-              <div className="card" data-interactive="true">
-                <div className="row-between">
-                  <div>
-                    <p className="card-title">{subagent.name}</p>
-                    <p className="card-detail">{subagent.description || "No description"}</p>
-                  </div>
-                  <div className="row">
-                    <Link
-                      className="button"
-                      data-variant="ghost"
-                      href={`/projects/${id}/files?path=subagents/${subagent.id}.md`}
-                    >
-                      Edit
-                    </Link>
+              <Card size="sm">
+                <CardHeader>
+                  <CardTitle>{subagent.name}</CardTitle>
+                  <CardDescription>{subagent.description || "No description"}</CardDescription>
+                  <CardAction className="flex items-center gap-2">
+                    <Button asChild variant="ghost">
+                      <Link href={`/projects/${id}/files?path=subagents/${subagent.id}.md`}>Edit</Link>
+                    </Button>
                     <form action={deleteSubagentAction}>
                       <input type="hidden" name="projectId" value={id} />
                       <input type="hidden" name="subagentId" value={subagent.id} />
-                      <button className="button" data-variant="danger" type="submit">
+                      <ConfirmSubmit
+                        title={`Delete ${subagent.name}?`}
+                        description={`Deletes subagents/${subagent.id}.md. Tools and skills it owned go back to the agent.`}
+                        confirmLabel="Delete"
+                      >
                         Delete
-                      </button>
+                      </ConfirmSubmit>
                     </form>
-                  </div>
-                </div>
-                <div className="row">
-                  <span className="badge mono">{subagent.model?.id ?? "inherits model"}</span>
-                  <span className="badge">{plural(subagent.tools.length, "tool")}</span>
-                  <span className="badge">{plural(subagent.skills.length, "skill")}</span>
-                </div>
-              </div>
+                  </CardAction>
+                </CardHeader>
+                <CardContent className="flex flex-wrap items-center gap-2">
+                  <Badge variant="secondary" className="font-mono">
+                    {subagent.model?.id ?? "inherits model"}
+                  </Badge>
+                  <Badge variant="secondary">{plural(subagent.tools.length, "tool")}</Badge>
+                  <Badge variant="secondary">{plural(subagent.skills.length, "skill")}</Badge>
+                </CardContent>
+              </Card>
             </StaggerItem>
           ))}
         </Stagger>
       )}
 
       <Reveal delay={0.1}>
-        <section className="section">
-          <h2 className="section-title">Create subagent</h2>
-          <form action={createSubagentAction} className="panel">
-            <div className="modal-body">
+        <Card>
+          <form action={createSubagentAction} className="contents">
+            <CardHeader>
+              <CardTitle>Create subagent</CardTitle>
+              <CardDescription>Writes one markdown file under subagents/.</CardDescription>
+            </CardHeader>
+            <CardContent>
               <input type="hidden" name="projectId" value={id} />
               <div className="grid-2">
-                <div className="field">
-                  <label className="label" htmlFor="subagentId">
-                    Id
-                  </label>
-                  <input
-                    className="input mono"
+                <Field>
+                  <FieldLabel htmlFor="subagentId">Id</FieldLabel>
+                  <Input
+                    className="font-mono"
                     id="subagentId"
                     name="subagentId"
                     placeholder="researcher"
                     pattern="[a-z0-9][a-z0-9-]*"
                     required
                   />
-                </div>
-                <div className="field">
-                  <label className="label" htmlFor="name">
-                    Name
-                  </label>
-                  <input className="input" id="name" name="name" placeholder="Researcher" required />
-                </div>
-                <div className="field">
-                  <label className="label" htmlFor="description">
-                    Description
-                  </label>
-                  <input className="input" id="description" name="description" maxLength={280} />
-                  <p className="helper">The parent agent reads this to decide when to delegate.</p>
-                </div>
-                <div className="field">
-                  <label className="label" htmlFor="modelId">
-                    Model
-                  </label>
-                  <input
-                    className="input mono"
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="name">Name</FieldLabel>
+                  <Input id="name" name="name" placeholder="Researcher" required />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="description">Description</FieldLabel>
+                  <Input id="description" name="description" maxLength={280} />
+                  <FieldDescription>The parent agent reads this to decide when to delegate.</FieldDescription>
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="modelId">Model</FieldLabel>
+                  <Input
+                    className="font-mono"
                     id="modelId"
                     name="modelId"
                     placeholder={project.agent.model.id}
                   />
-                  <p className="helper">Leave empty to inherit the main agent&apos;s model.</p>
-                </div>
+                  <FieldDescription>Leave empty to inherit the main agent&apos;s model.</FieldDescription>
+                </Field>
               </div>
-            </div>
-            <div className="modal-foot">
-              <button className="button" data-variant="primary" type="submit">
-                Create subagent
-              </button>
-            </div>
+            </CardContent>
+            <CardFooter className="justify-end">
+              <Button type="submit">Create subagent</Button>
+            </CardFooter>
           </form>
-        </section>
+        </Card>
       </Reveal>
     </div>
   );
