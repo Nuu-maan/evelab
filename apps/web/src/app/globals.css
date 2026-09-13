@@ -44,6 +44,7 @@
   --kind-subagent: var(--purple);
   --kind-tool: var(--blue);
   --kind-skill: var(--amber);
+  --kind-connection: var(--teal);
 
   /* shadcn/ui roles, mapped onto the tokens above. */
   --card: var(--surface);

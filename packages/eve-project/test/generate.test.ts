@@ -1,70 +1,142 @@
 import { describe, expect, it } from "vitest";
-import { generateProject, parseProject, patchAgentSource } from "../src/index.js";
+import {
+  generateProject,
+  parseProject,
+  patchAgentSource,
+  renderAgentConfig,
+  renderProjectScaffold,
+  setFrontmatterValue,
+  type ProjectFile,
+} from "../src/index.js";
 import { loadFixture } from "./fixtures.js";
 
+function contentOf(files: ProjectFile[], path: string): string | undefined {
+  return files.find((file) => file.path === path)?.content;
+}
+
 describe("generateProject", () => {
-  it("edits only the changed value in agent.ts", () => {
-    const files = loadFixture("subagent-agent");
+  it("changes only the model value in agent.ts, keeping comments and other options", () => {
+    const files = loadFixture("full-agent");
     const { project } = parseProject(files);
-    project.agent.name = "Deep Research Agent";
+    project.agent.model = { id: "anthropic/claude-opus-5" };
 
-    const before = files.find((file) => file.path === "agent.ts")!.content;
-    const after = generateProject(project).find((file) => file.path === "agent.ts")!.content;
-
-    expect(after).toContain('name: "Deep Research Agent"');
-    expect(after).toContain("const gateway = process.env.AI_GATEWAY_URL;");
-    expect(after).toContain("tools: [browse]");
-    expect(after.split("\n")).toHaveLength(before.split("\n").length);
+    const before = contentOf(files, "agent/agent.ts")!;
+    const after = contentOf(generateProject(project), "agent/agent.ts")!;
+    expect(after).toBe(before.replace('"anthropic/claude-sonnet-5"', '"anthropic/claude-opus-5"'));
   });
 
-  it("adds a missing property without disturbing the rest", () => {
-    const source = 'export default new Agent({\n  name: "A",\n});\n';
-    expect(patchAgentSource(source, { model: '"openai/gpt-5.6"' })).toBe(
-      'export default new Agent({\n  name: "A",\n  model: "openai/gpt-5.6",\n});\n',
-    );
+  it("removes reasoning with its whole line when it is cleared", () => {
+    const { project } = parseProject(loadFixture("full-agent"));
+    project.agent.reasoning = undefined;
+    const after = contentOf(generateProject(project), "agent/agent.ts")!;
+    expect(after).not.toContain("reasoning");
+    expect(after).toContain("compaction");
   });
 
-  it("never clobbers an agent module it cannot parse", () => {
+  it("never touches a model set in code", () => {
+    const files = loadFixture("flat-agent");
+    const { project } = parseProject(files);
+    expect(contentOf(generateProject(project), "agent.ts")).toBe(contentOf(files, "agent.ts"));
+  });
+
+  it("never clobbers an agent module it cannot read", () => {
     const broken = "this is not typescript ((\n";
     const { project } = parseProject([
-      { path: "agent.ts", content: broken },
-      { path: "instructions.md", content: "hi\n" },
+      { path: "agent/agent.ts", content: broken },
+      { path: "agent/instructions.md", content: "hi\n" },
     ]);
-    project.agent.name = "Renamed";
-    const output = generateProject(project).find((file) => file.path === "agent.ts");
-    expect(output?.content).toBe(broken);
+    project.agent.model = { id: "anthropic/claude-sonnet-5" };
+    expect(contentOf(generateProject(project), "agent/agent.ts")).toBe(broken);
   });
 
-  it("drops files for deleted tools and subagents", () => {
-    const { project } = parseProject(loadFixture("subagent-agent"));
-    project.subagents = project.subagents.filter((subagent) => subagent.id !== "reviewer");
+  it("writes agent.ts the way eve init does when a model is first chosen", () => {
+    const { project } = parseProject([{ path: "agent/instructions.md", content: "Be useful.\n" }]);
+    project.agent.model = { id: "openai/gpt-5.6-luna-fast" };
+    expect(contentOf(generateProject(project), "agent/agent.ts")).toBe(
+      'import { defineAgent } from "eve";\n\nexport default defineAgent({\n  model: "openai/gpt-5.6-luna-fast",\n});\n',
+    );
+    expect(renderAgentConfig("a/b", "high")).toContain('  reasoning: "high",\n});');
+  });
+
+  it("scaffolds a project the way eve init does, and it round trips", () => {
+    const files = renderProjectScaffold({ packageName: "demo-agent", model: "openai/gpt-5.6-luna-fast" });
+    const { project } = parseProject(files);
+    expect(project.agent.name).toBe("demo-agent");
+    expect(project.channels.map((channel) => channel.kind)).toEqual(["eve"]);
+    expect(JSON.parse(contentOf(files, "package.json")!).imports).toEqual({ "#*": "./agent/*", "#evals/*": "./evals/*" });
+    expect(generateProject(project)).toEqual([...files].sort((a, b) => a.path.localeCompare(b.path)));
+  });
+
+  it("drops only the files of a deleted tool", () => {
+    const files = loadFixture("full-agent");
+    const { project } = parseProject(files);
+    project.tools = project.tools.filter((tool) => tool.id !== "search_docs");
     const paths = generateProject(project).map((file) => file.path);
-    expect(paths).not.toContain("subagents/reviewer.md");
-    expect(paths).toContain("subagents/researcher.md");
+    expect(paths).not.toContain("agent/tools/search_docs.ts");
+    expect(paths).toHaveLength(files.length - 1);
   });
 
-  it("renders a template only when there is no agent module yet", () => {
-    const { project } = parseProject([{ path: "instructions.md", content: "Be useful.\n" }]);
-    project.agent.name = "New Agent";
-    project.agent.model = { id: "openai/gpt-5.6", raw: {} };
-    const source = generateProject(project).find((file) => file.path === "agent.ts")!.content;
-    expect(source).toContain('name: "New Agent"');
-    expect(source).toContain('instructions: "instructions.md"');
+  it("drops a packaged skill with its siblings", () => {
+    const { project } = parseProject(loadFixture("full-agent"));
+    project.skills = project.skills.filter((skill) => skill.id !== "research");
+    const paths = generateProject(project).map((file) => file.path);
+    expect(paths.some((path) => path.startsWith("agent/skills/research/"))).toBe(false);
+  });
+
+  it("writes a new subagent as a directory with a description", () => {
+    const { project } = parseProject(loadFixture("basic-agent"));
+    project.subagents.push({
+      id: "reviewer",
+      kind: "local",
+      description: "Check claims before the parent replies.",
+      raw: {},
+      source: "",
+      instructions: "Reject unsupported claims.\n",
+      hasInstructions: true,
+      tools: [],
+      skills: [],
+      connections: [],
+      subagents: [],
+    });
+    const output = generateProject(project);
+    expect(contentOf(output, "agent/subagents/reviewer/agent.ts")).toBe(
+      'import { defineAgent } from "eve";\n\nexport default defineAgent({\n  description: "Check claims before the parent replies.",\n});\n',
+    );
+    expect(contentOf(output, "agent/subagents/reviewer/instructions.md")).toBe("Reject unsupported claims.\n");
+  });
+
+  it("writes a flat project back to the package root", () => {
+    const { project } = parseProject(loadFixture("flat-agent"));
+    project.agent.instructions = "You are a precise assistant.\n";
+    const output = generateProject(project);
+    expect(contentOf(output, "instructions.md")).toBe("You are a precise assistant.\n");
+    expect(output.some((file) => file.path.startsWith("agent/"))).toBe(false);
   });
 });
 
-describe("renderModelValue", () => {
-  it("keeps a shorthand property shorthand", () => {
-    const { project } = parseProject([
-      {
-        path: "agent.ts",
-        content:
-          'const gateway = 1;\nexport default new Agent({\n  model: {\n    id: "a/b",\n    gateway,\n  },\n});\n',
-      },
-    ]);
-    project.agent.model.id = "c/d";
-    const source = generateProject(project).find((file) => file.path === "agent.ts")!.content;
-    expect(source).toContain("gateway,");
-    expect(source).not.toContain("gateway: gateway");
+describe("patchAgentSource", () => {
+  it("adds a missing property without disturbing the rest", () => {
+    const source = 'export default defineAgent({\n  model: "a/b",\n});\n';
+    expect(patchAgentSource(source, { reasoning: '"high"' })).toBe(
+      'export default defineAgent({\n  model: "a/b",\n  reasoning: "high",\n});\n',
+    );
+  });
+
+  it("follows `export default agent` to the definition it names", () => {
+    const source = 'const agent = defineAgent({\n  model: "a/b",\n});\n\nexport default agent;\n';
+    expect(patchAgentSource(source, { model: '"c/d"' })).toContain('model: "c/d"');
+  });
+});
+
+describe("setFrontmatterValue", () => {
+  it("rewrites one key and keeps the rest of the file", () => {
+    const input = '---\ncron: "0 0 * * 0"\nnote: keep\n---\n\nSweep.\n';
+    expect(setFrontmatterValue(input, "cron", "0 9 * * 1")).toBe('---\ncron: "0 9 * * 1"\nnote: keep\n---\n\nSweep.\n');
+  });
+
+  it("adds a fence when there is none, and removes it when emptied", () => {
+    const added = setFrontmatterValue("Body.\n", "description", "Use when asked.");
+    expect(added).toBe("---\ndescription: Use when asked.\n---\n\nBody.\n");
+    expect(setFrontmatterValue(added, "description", undefined)).toBe("Body.\n");
   });
 });

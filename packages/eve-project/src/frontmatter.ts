@@ -1,14 +1,15 @@
 /**
- * Minimal YAML frontmatter reader/writer.
+ * Minimal YAML frontmatter reader and single-key editor.
  *
  * Deliberately supports only the flat `key: value` and `key: [a, b]` shapes that
- * Eve's markdown files use. Anything richer stays in the body rather than being
- * silently reinterpreted.
+ * Eve's markdown files use (`description`, `license`, schedule `cron`). Edits
+ * rewrite one line and leave everything else, including keys this reader does
+ * not understand, exactly as written.
  */
 
 export type Frontmatter = Record<string, string | string[]>;
 
-const FENCE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
+const FENCE = /^---\r?\n([\s\S]*?)\r?\n---(\r?\n)?/;
 
 export function parseFrontmatter(input: string): {
   data: Frontmatter;
@@ -19,7 +20,8 @@ export function parseFrontmatter(input: string): {
 
   const data: Frontmatter = {};
   for (const line of match[1]!.split(/\r?\n/)) {
-    if (!line.trim() || line.trimStart().startsWith("#")) continue;
+    // Indented lines belong to a nested value such as `metadata`; they are not top-level keys.
+    if (!line.trim() || line.trimStart().startsWith("#") || /^\s/.test(line)) continue;
     const separator = line.indexOf(":");
     if (separator === -1) continue;
     const key = line.slice(0, separator).trim();
@@ -45,6 +47,14 @@ function unquote(value: string): string {
   return value;
 }
 
+function formatValue(value: string): string {
+  return needsQuotes(value) ? JSON.stringify(value) : value;
+}
+
+function needsQuotes(value: string): boolean {
+  return /^[\[\]{}#&*!|>%@`"']|:\s|^\s|\s$|[*#]/.test(value) || value === "";
+}
+
 export function stringifyFrontmatter(data: Frontmatter, body: string): string {
   const entries = Object.entries(data).filter(
     ([, value]) => value !== undefined && (Array.isArray(value) ? true : value !== ""),
@@ -52,13 +62,40 @@ export function stringifyFrontmatter(data: Frontmatter, body: string): string {
   if (entries.length === 0) return body;
 
   const lines = entries.map(([key, value]) =>
-    Array.isArray(value)
-      ? `${key}: [${value.join(", ")}]`
-      : `${key}: ${needsQuotes(value) ? JSON.stringify(value) : value}`,
+    Array.isArray(value) ? `${key}: [${value.join(", ")}]` : `${key}: ${formatValue(value)}`,
   );
   return `---\n${lines.join("\n")}\n---\n${body}`;
 }
 
-function needsQuotes(value: string): boolean {
-  return /^[\[\]{}#&*!|>%@`"']|:\s|^\s|\s$/.test(value) || value === "";
+/**
+ * Sets one top-level key, rewriting only its line. `undefined` removes the key,
+ * and the fence with it when nothing is left.
+ */
+export function setFrontmatterValue(input: string, key: string, value: string | undefined): string {
+  const match = FENCE.exec(input);
+  const line = value === undefined ? undefined : `${key}: ${formatValue(value)}`;
+
+  if (!match) {
+    if (line === undefined) return input;
+    return `---\n${line}\n---\n${input.startsWith("\n") ? "" : "\n"}${input}`;
+  }
+
+  const lines = match[1]!.split(/\r?\n/);
+  const index = lines.findIndex((candidate) => new RegExp(`^${escapeRegExp(key)}\\s*:`).test(candidate));
+  if (line === undefined) {
+    if (index === -1) return input;
+    lines.splice(index, 1);
+  } else if (index === -1) {
+    lines.push(line);
+  } else {
+    lines[index] = line;
+  }
+
+  const rest = input.slice(match[0].length);
+  if (lines.every((candidate) => !candidate.trim())) return rest.replace(/^\r?\n/, "");
+  return `---\n${lines.join("\n")}\n---${match[2] ?? ""}${rest}`;
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { agentPath, skillFilePath, type SkillFormat } from "@evelab/eve-project";
 import { IconBookOpen } from "@/components/icons";
 import { ConfirmSubmit } from "@/components/confirm";
 import { EmptyState } from "@/components/empty-state";
@@ -7,10 +8,16 @@ import { SkillImportButton } from "@/components/skill-import-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { deleteSkillAction } from "@/lib/actions";
+import { deleteEntityAction } from "@/lib/actions";
 import { readProject } from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
+
+const FORMAT_LABELS: Record<SkillFormat, string> = {
+  markdown: "Markdown",
+  package: "Package",
+  module: "defineSkill",
+};
 
 function plural(count: number, word: string): string {
   return `${count} ${word}${count === 1 ? "" : "s"}`;
@@ -19,6 +26,7 @@ function plural(count: number, word: string): string {
 export default async function SkillsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const project = await readProject(id);
+  const base = project.root ? `${project.root}/` : "";
 
   return (
     <div className="page">
@@ -27,9 +35,9 @@ export default async function SkillsPage({ params }: { params: Promise<{ id: str
           <div className="page-heading">
             <h1 className="page-title">Skills</h1>
             <p className="page-description">
-              What your agent knows how to do. Each skill is a directory under{" "}
-              <code className="mono">skills/</code> with a SKILL.md, and import shows you every file
-              before anything is written.
+              What your agent knows how to do, loaded only when a task needs it. A skill is a markdown file
+              or a directory with a SKILL.md under <code className="mono">{agentPath(project.root, "skills/")}</code>,
+              and import shows you every file before anything is written.
             </p>
           </div>
           <div className="page-actions">
@@ -45,46 +53,42 @@ export default async function SkillsPage({ params }: { params: Promise<{ id: str
             title="No skills yet."
             action={<SkillImportButton projectId={id} label="Import your first skill" variant="ghost" />}
           >
-            Paste a GitHub link to a directory containing SKILL.md. EveLab reads it, flags files that
-            can run code, and installs only after you confirm.
+            Paste a GitHub link to a directory containing SKILL.md, such as a skill listed on skills.sh.
+            EveLab reads it, flags files that can run code, and installs only after you confirm.
           </EmptyState>
         </Reveal>
       ) : (
         <Stagger className="section">
-          {project.skills.map((skill) => (
-            <StaggerItem key={skill.id}>
-              <Card size="sm">
-                <CardHeader>
-                  <CardTitle>{skill.name}</CardTitle>
-                  <CardDescription>{skill.description || "No description"}</CardDescription>
-                  <CardAction className="flex items-center gap-2">
-                    <Button asChild variant="ghost">
-                      <Link href={`/projects/${id}/files?path=skills/${skill.id}/SKILL.md`}>Edit</Link>
-                    </Button>
-                    <form action={deleteSkillAction}>
-                      <input type="hidden" name="projectId" value={id} />
-                      <input type="hidden" name="skillId" value={skill.id} />
-                      <ConfirmSubmit
-                        title={`Remove ${skill.name}?`}
-                        description={`Deletes skills/${skill.id}/ and every file in it.`}
-                        confirmLabel="Remove"
-                      >
-                        Remove
-                      </ConfirmSubmit>
-                    </form>
-                  </CardAction>
-                </CardHeader>
-                <CardContent className="flex items-center gap-2">
-                  <Badge variant="secondary">{plural(skill.files.length + 1, "file")}</Badge>
-                  {skill.source && (
-                    <a className="hint mono truncate" href={skill.source} target="_blank" rel="noreferrer noopener">
-                      {skill.source}
-                    </a>
-                  )}
-                </CardContent>
-              </Card>
-            </StaggerItem>
-          ))}
+          {project.skills.map((skill) => {
+            const path = skillFilePath(base, skill);
+            const removes = skill.format === "package" ? `${base}skills/${skill.id}/ and every file in it` : path;
+            return (
+              <StaggerItem key={skill.id}>
+                <Card size="sm">
+                  <CardHeader>
+                    <CardTitle className="font-mono">{skill.id}</CardTitle>
+                    <CardDescription>{skill.description || "No description"}</CardDescription>
+                    <CardAction className="flex items-center gap-2">
+                      <Button asChild variant="ghost">
+                        <Link href={`/projects/${id}/files?path=${encodeURIComponent(path)}`}>Edit</Link>
+                      </Button>
+                      <form action={deleteEntityAction}>
+                        <input type="hidden" name="projectId" value={id} />
+                        <input type="hidden" name="ref" value={`skill:${skill.id}`} />
+                        <ConfirmSubmit title={`Remove ${skill.id}?`} description={`Deletes ${removes}.`} confirmLabel="Remove">
+                          Remove
+                        </ConfirmSubmit>
+                      </form>
+                    </CardAction>
+                  </CardHeader>
+                  <CardContent className="flex items-center gap-2">
+                    <Badge variant="secondary">{FORMAT_LABELS[skill.format]}</Badge>
+                    {skill.format === "package" && <Badge variant="secondary">{plural(skill.files.length + 1, "file")}</Badge>}
+                  </CardContent>
+                </Card>
+              </StaggerItem>
+            );
+          })}
         </Stagger>
       )}
     </div>

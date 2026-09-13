@@ -1,5 +1,15 @@
 {
   "name": "support-triage",
-  "private": true,
-  "type": "module"
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "eve build",
+    "dev": "eve dev",
+    "start": "eve start"
+  },
+  "dependencies": {
+    "ai": "^7.0.93",
+    "eve": "^0.54.3",
+    "zod": "^4.1.12"
+  }
 }

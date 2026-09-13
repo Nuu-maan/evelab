@@ -11,6 +11,7 @@ import {
   IconFileText,
   IconGitBranch,
   IconGridSquare,
+  IconMessage,
   IconRoute,
   IconSettingsGear,
 } from "@/components/icons";
@@ -45,12 +46,13 @@ export function openCommandPalette() {
  * ⌘K navigation. It opens and closes instantly: something summoned from the
  * keyboard many times a day should never make the user wait for an animation.
  */
-export function CommandPalette({ projectId }: { projectId: string }) {
+export function CommandPalette({ projectId, root }: { projectId: string; root: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
   const groups = useMemo<{ heading: string; entries: Entry[] }[]>(() => {
     const base = `/projects/${projectId}`;
+    const slot = (path: string) => (root ? `${root}/${path}` : path);
     return [
       {
         heading: "Go to",
@@ -59,7 +61,7 @@ export function CommandPalette({ projectId }: { projectId: string }) {
           { label: "Open overview", hint: "Project", href: base, icon: IconGridSquare },
           { label: "Browse files", hint: "Files", href: `${base}/files`, icon: IconFileText },
           { label: "Source control", hint: "GitHub", href: `${base}/source`, icon: IconGitBranch },
-          { label: "View runs", hint: "Observe", href: `${base}/runs`, icon: IconChartActivity },
+          { label: "View runs", hint: "eve dev", href: `${base}/runs`, icon: IconChartActivity },
           { label: "View deployments", hint: "Deploy", href: `${base}/deployments`, icon: IconCloudUpload },
           { label: "Project settings", hint: "Settings", href: `${base}/settings`, icon: IconSettingsGear },
           { label: "All projects", hint: "Switch", href: "/projects", icon: IconArrowUpRight },
@@ -70,19 +72,21 @@ export function CommandPalette({ projectId }: { projectId: string }) {
         entries: [
           {
             label: "Edit instructions",
-            hint: "instructions.md",
+            hint: slot("instructions.md"),
             href: `${base}/agent/instructions`,
             icon: IconAlignmentLeft,
           },
-          { label: "Configure model", hint: "agent.ts", href: `${base}/agent/model`, icon: KINDS.agent.icon },
-          { label: "Add tool", hint: "tools/", href: `${base}/tools`, icon: KINDS.tool.icon },
-          { label: "Import skill", hint: "skills/", href: `${base}/skills`, icon: KINDS.skill.icon },
-          { label: "Create subagent", hint: "subagents/", href: `${base}/subagents`, icon: KINDS.subagent.icon },
-          { label: "Open agent.ts", hint: "Files", href: `${base}/files?path=agent.ts`, icon: IconFile },
+          { label: "Configure model", hint: slot("agent.ts"), href: `${base}/agent/model`, icon: KINDS.agent.icon },
+          { label: "Add tool", hint: slot("tools/"), href: `${base}/tools`, icon: KINDS.tool.icon },
+          { label: "Import skill", hint: slot("skills/"), href: `${base}/skills`, icon: KINDS.skill.icon },
+          { label: "Create subagent", hint: slot("subagents/"), href: `${base}/subagents`, icon: KINDS.subagent.icon },
+          { label: "Add connection", hint: slot("connections/"), href: `${base}/connections`, icon: KINDS.connection.icon },
+          { label: "Add channel", hint: slot("channels/"), href: `${base}/channels`, icon: IconMessage },
+          { label: "Open agent.ts", hint: "Files", href: `${base}/files?path=${encodeURIComponent(slot("agent.ts"))}`, icon: IconFile },
         ],
       },
     ];
-  }, [projectId]);
+  }, [projectId, root]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {

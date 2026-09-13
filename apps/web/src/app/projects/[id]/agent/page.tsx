@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { updateAgentAction } from "@/lib/actions";
 import { readProject } from "@/lib/workspace";
@@ -19,7 +19,8 @@ export default async function AgentGeneralPage({ params }: { params: Promise<{ i
           <FieldGroup>
             <Field>
               <FieldLabel htmlFor="name">Name</FieldLabel>
-              <Input id="name" name="name" defaultValue={project.agent.name} required maxLength={80} />
+              <Input id="name" className="font-mono" value={project.agent.name} readOnly />
+              <FieldDescription>Eve names the agent after package.json, so rename it there.</FieldDescription>
             </Field>
             <Field>
               <FieldLabel htmlFor="description">Description</FieldLabel>

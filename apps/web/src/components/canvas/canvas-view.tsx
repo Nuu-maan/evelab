@@ -16,7 +16,7 @@ import {
 } from "@xyflow/react";
 import { AnimatePresence } from "motion/react";
 import { IconFullscreen, IconMinus, IconPlus } from "@/components/icons";
-import type { CanvasGraph, CanvasNode, CanvasNodeKind, CapabilityLink } from "@evelab/eve-project";
+import type { CanvasGraph, CanvasNode, CanvasNodeKind } from "@evelab/eve-project";
 import {
   OwnershipConnectionLine,
   OwnershipEdgePath,
@@ -49,21 +49,32 @@ export interface CanvasProps {
   contents: Record<string, string>;
   positions: Positions;
   defaultModel: string;
+  /** Where the agent lives: "agent" or "" for the flat layout. */
+  root: string;
 }
 
-const PALETTE: { kind: DraftKind | "skill"; title: string; detail: string }[] = [
-  { kind: "tool", title: "TypeScript tool", detail: "tools/<name>.ts" },
-  { kind: "subagent", title: "Subagent", detail: "subagents/<id>.md" },
-  { kind: "skill", title: "Skill", detail: "Import from GitHub" },
-];
+type PaletteKind = DraftKind | "skill";
+
+function palette(root: string): { kind: PaletteKind; title: string; detail: string }[] {
+  const base = root ? `${root}/` : "";
+  return [
+    { kind: "tool", title: "TypeScript tool", detail: `${base}tools/<name>.ts` },
+    { kind: "subagent", title: "Subagent", detail: `${base}subagents/<name>/` },
+    { kind: "connection", title: "Connection", detail: "MCP or OpenAPI" },
+    { kind: "skill", title: "Skill", detail: "Import from GitHub" },
+  ];
+}
+
+const PALETTE_KINDS = new Set<string>(["tool", "subagent", "connection", "skill"]);
+const MOVABLE = new Set<CanvasNodeKind>(["tool", "skill", "connection"]);
 
 function nodeData(node: CanvasNode, fresh: boolean): CanvasNodeData {
   return { name: node.name, detail: node.detail, filePath: node.filePath, kind: node.kind, fresh };
 }
 
 function toEdge(source: string, target: string, kind: CanvasNodeKind): OwnershipEdge {
-  // Ownership of tools and skills is editable; a subagent always belongs to the agent.
-  const movable = kind === "tool" || kind === "skill";
+  // Tools, skills and connections can change hands; a subagent's place is its directory.
+  const movable = MOVABLE.has(kind);
   return {
     id: `${source}->${target}`,
     source,
@@ -142,7 +153,7 @@ function CanvasControls() {
   );
 }
 
-function CanvasInner({ projectId, graph, contents, positions, defaultModel }: CanvasProps) {
+function CanvasInner({ projectId, graph, contents, positions, defaultModel, root }: CanvasProps) {
   const router = useRouter();
   const { screenToFlowPosition, getNodes } = useReactFlow();
   const [selectedId, setSelectedId] = useState<string | undefined>();
@@ -223,7 +234,7 @@ function CanvasInner({ projectId, graph, contents, positions, defaultModel }: Ca
   /** Applies an ownership change optimistically, then lets the server have the last word. */
   const changeOwnership = useCallback(
     async (
-      change: { remove?: CapabilityLink; add?: CapabilityLink },
+      change: { capability: string; to: string },
       optimistic: (edges: OwnershipEdge[]) => OwnershipEdge[],
     ) => {
       setEdges(optimistic);
@@ -243,7 +254,7 @@ function CanvasInner({ projectId, graph, contents, positions, defaultModel }: Ca
       const source = kinds.get(connection.source);
       const target = kinds.get(connection.target);
       if (source !== "agent" && source !== "subagent") return false;
-      if (target !== "tool" && target !== "skill") return false;
+      if (!target || !MOVABLE.has(target)) return false;
       const moving = reconnecting.current?.edge;
       // A new edge from the agent says nothing: it already owns whatever no subagent claims.
       if (source === "agent" && !moving) return false;
@@ -261,9 +272,9 @@ function CanvasInner({ projectId, graph, contents, positions, defaultModel }: Ca
     (connection: Connection) => {
       const kind = kinds.get(connection.target) ?? "tool";
       void changeOwnership(
-        { add: { owner: connection.source, capability: connection.target } },
+        { capability: connection.target, to: connection.source },
         (current) => [
-          ...current.filter((edge) => edge.id !== `agent->${connection.target}`),
+          ...current.filter((edge) => edge.target !== connection.target),
           toEdge(connection.source, connection.target, kind),
         ],
       );
@@ -277,10 +288,7 @@ function CanvasInner({ projectId, graph, contents, positions, defaultModel }: Ca
       if (previous.source === connection.source && previous.target === connection.target) return;
       const kind = kinds.get(connection.target) ?? "tool";
       void changeOwnership(
-        {
-          remove: { owner: previous.source, capability: previous.target },
-          add: { owner: connection.source, capability: connection.target },
-        },
+        { capability: previous.target, to: connection.source },
         (current) => [
           ...current.filter((edge) => edge.id !== previous.id),
           toEdge(connection.source, connection.target, kind),
@@ -301,7 +309,7 @@ function CanvasInner({ projectId, graph, contents, positions, defaultModel }: Ca
       }
       // Dropped on empty canvas: the subagent lets go, and the agent picks it up.
       void changeOwnership(
-        { remove: { owner: edge.source, capability: edge.target } },
+        { capability: edge.target, to: "agent" },
         (current) => current.filter((candidate) => candidate.id !== edge.id),
       );
     },
@@ -324,7 +332,7 @@ function CanvasInner({ projectId, graph, contents, positions, defaultModel }: Ca
     );
   }, [setNodes]);
 
-  const openDraft = (kind: DraftKind | "skill", point = { x: 0, y: 260 }) => {
+  const openDraft = (kind: PaletteKind, point = { x: 0, y: 260 }) => {
     closeInspector();
     if (kind === "skill") setImportOpen(true);
     else setDraft({ kind, ...point });
@@ -336,7 +344,7 @@ function CanvasInner({ projectId, graph, contents, positions, defaultModel }: Ca
     ? notice
     : graph.nodes.length === 1
       ? { text: "Drag a tool or subagent from the left to start building" }
-      : { text: "Click a node to open its file. Select an edge, then drag an end to move ownership." };
+      : { text: "Click a node to open its file. Select an edge, then drag an end to move it to another agent." };
 
   return (
     <div className="canvas-layout">
@@ -344,7 +352,7 @@ function CanvasInner({ projectId, graph, contents, positions, defaultModel }: Ca
         <div className="canvas-palette-scroll">
           <p className="canvas-palette-label">Add to canvas</p>
 
-          {PALETTE.map((item) => (
+          {palette(root).map((item) => (
             <div
               key={item.kind}
               className="palette-chip"
@@ -373,9 +381,9 @@ function CanvasInner({ projectId, graph, contents, positions, defaultModel }: Ca
           ))}
 
           <p className="canvas-palette-hint">
-            Drop a chip on the canvas, or press Enter on it. Edges show who can use what: drag the end
-            of one onto a subagent to hand a tool or skill over, or onto empty canvas to give it back
-            to the agent.
+            Drop a chip on the canvas, or press Enter on it. Edges show who can use what. A subagent
+            inherits nothing, so dragging an edge onto a subagent moves the file into its directory,
+            and dropping it on empty canvas moves it back to the agent.
           </p>
         </div>
 
@@ -392,9 +400,9 @@ function CanvasInner({ projectId, graph, contents, positions, defaultModel }: Ca
         }}
         onDrop={(event) => {
           const kind = event.dataTransfer.getData("application/evelab-kind");
-          if (kind !== "tool" && kind !== "subagent" && kind !== "skill") return;
+          if (!PALETTE_KINDS.has(kind)) return;
           event.preventDefault();
-          openDraft(kind, screenToFlowPosition({ x: event.clientX, y: event.clientY }));
+          openDraft(kind as PaletteKind, screenToFlowPosition({ x: event.clientX, y: event.clientY }));
         }}
       >
         <ReactFlow<CapabilityNode, OwnershipEdge>
@@ -463,6 +471,7 @@ function CanvasInner({ projectId, graph, contents, positions, defaultModel }: Ca
               key={`draft-${draft.kind}`}
               projectId={projectId}
               kind={draft.kind}
+              root={root}
               defaultModel={defaultModel}
               onClose={() => setDraft(undefined)}
               onSubmitted={(entityId) => {

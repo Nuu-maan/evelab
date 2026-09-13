@@ -5,7 +5,17 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getAuth } from "@evelab/auth";
-import { applyOwnershipChange, OwnershipError } from "@evelab/eve-project";
+import {
+  agentPath,
+  applyOwnershipChange,
+  OwnershipError,
+  reasoningSchema,
+  removeEntity,
+  renderConnectionModule,
+  renderScheduleMarkdown,
+  renderToolModule,
+  type EveProject,
+} from "@evelab/eve-project";
 import { isSafeRepoPath, newRepositoryNameSchema, repositoryNameSchema } from "@evelab/github";
 import {
   commitProject,
@@ -42,13 +52,31 @@ import {
  */
 
 const idSchema = z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/);
-const kebabSchema = z.string().regex(/^[a-z0-9][a-z0-9-]*$/, "Use lowercase letters, digits and -");
+/** Eve derives names from file and directory names: letters, digits, - and _. */
+const nameSchema = z
+  .string()
+  .trim()
+  .regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/, "Use letters, digits, - and _");
+const entityRefSchema = z.string().regex(/^(tool|skill|connection|subagent):([A-Za-z0-9][A-Za-z0-9_-]*\/)*[A-Za-z0-9][A-Za-z0-9_-]*$/);
 
 /** Parses a project id and refuses callers who may not open that project. */
 async function projectFrom(value: unknown): Promise<string> {
   const id = idSchema.parse(value);
   await requireProjectAccess(id);
   return id;
+}
+
+async function save(id: string, project: EveProject): Promise<void> {
+  await writeProject(id, project);
+  revalidatePath(`/projects/${id}`, "layout");
+}
+
+/** Eve rejects a tool and a subagent with the same name on one agent. */
+function assertNameFree(project: EveProject, name: string): void {
+  if (project.tools.some((tool) => tool.id === name)) throw new Error(`There is already a tool named "${name}".`);
+  if (project.subagents.some((subagent) => subagent.id === name)) {
+    throw new Error(`There is already a subagent named "${name}".`);
+  }
 }
 
 /* Sign-in. Plain forms, so they work before any JavaScript loads. */
@@ -108,56 +136,42 @@ export async function deleteProjectAction(formData: FormData) {
   redirect("/projects");
 }
 
-const agentSchema = z.object({
-  name: z.string().trim().min(1).max(80),
-  description: z.string().trim().max(280).optional(),
-});
-
+/** The agent's name comes from package.json, so only the description is edited here. */
 export async function updateAgentAction(formData: FormData) {
   const id = await projectFrom(formData.get("id"));
-  const input = agentSchema.parse({
-    name: formData.get("name"),
-    description: formData.get("description") || undefined,
-  });
+  const description = z.string().trim().max(280).optional().parse(formData.get("description") || undefined);
 
   const project = await readProject(id);
-  project.agent.name = input.name;
-  project.agent.description = input.description;
-  await writeProject(id, project);
-  revalidatePath(`/projects/${id}`, "layout");
+  project.agent.description = description;
+  await save(id, project);
 }
 
 const modelSchema = z.object({
-  modelId: z.string().trim().min(1),
-  temperature: z.coerce.number().min(0).max(2).optional(),
-  maxOutputTokens: z.coerce.number().int().positive().optional(),
+  modelId: z.string().trim().min(1).max(200),
+  reasoning: z.union([reasoningSchema, z.literal("")]).default(""),
 });
 
 export async function updateModelAction(formData: FormData) {
   const id = await projectFrom(formData.get("id"));
   const input = modelSchema.parse({
     modelId: formData.get("modelId"),
-    temperature: formData.get("temperature") || undefined,
-    maxOutputTokens: formData.get("maxOutputTokens") || undefined,
+    reasoning: formData.get("reasoning") ?? "",
   });
 
   const project = await readProject(id);
-  project.agent.model = {
-    ...project.agent.model,
-    id: input.modelId,
-    temperature: input.temperature,
-    maxOutputTokens: input.maxOutputTokens,
-  };
-  await writeProject(id, project);
-  revalidatePath(`/projects/${id}`, "layout");
+  if (project.agent.model?.expression) {
+    throw new Error("This agent computes its model in code. Change it in agent.ts.");
+  }
+  project.agent.model = { id: input.modelId };
+  project.agent.reasoning = input.reasoning || undefined;
+  await save(id, project);
 }
 
 export async function saveInstructionsAction(projectId: string, content: string) {
   const id = await projectFrom(projectId);
   const project = await readProject(id);
   project.agent.instructions = z.string().max(500_000).parse(content);
-  await writeProject(id, project);
-  revalidatePath(`/projects/${id}`, "layout");
+  await save(id, project);
 }
 
 export async function readFileAction(projectId: string, path: string): Promise<string> {
@@ -172,8 +186,8 @@ export async function saveFileAction(projectId: string, path: string, content: s
 }
 
 const toolSchema = z.object({
-  id: kebabSchema,
-  description: z.string().trim().max(280).default(""),
+  id: nameSchema,
+  description: z.string().trim().max(500).default(""),
 });
 
 export async function createToolAction(formData: FormData) {
@@ -184,119 +198,65 @@ export async function createToolAction(formData: FormData) {
   });
 
   const project = await readProject(projectId);
-  if (project.tools.some((tool) => tool.id === input.id)) {
-    throw new Error(`A tool named "${input.id}" already exists.`);
-  }
+  assertNameFree(project, input.id);
 
-  const symbol = input.id.replace(/-([a-z0-9])/g, (_, char: string) => char.toUpperCase());
+  const description = input.description || `The ${input.id} tool.`;
   project.tools.push({
     id: input.id,
-    name: input.id,
-    description: input.description,
-    origin: "custom",
-    enabled: true,
-    source: toolTemplate(symbol, input.id, input.description),
+    file: `${input.id}.ts`,
+    description,
+    kind: "tool",
+    source: renderToolModule(description),
   });
-  await writeProject(projectId, project);
-  revalidatePath(`/projects/${projectId}`, "layout");
+  await save(projectId, project);
   // The canvas keeps the user in place; the Tools page sends them to the source.
   if (formData.get("openSource") === "true") {
-    redirect(`/projects/${projectId}/files?path=tools/${input.id}.ts`);
+    const path = agentPath(project.root, `tools/${input.id}.ts`);
+    redirect(`/projects/${projectId}/files?path=${encodeURIComponent(path)}`);
   }
-}
-
-/**
- * TODO: confirm the exact tool factory and option names against the current Eve
- * docs. The generated file is plain source the user can edit immediately, so a
- * mismatch is visible and fixable rather than hidden behind an abstraction.
- */
-function toolTemplate(symbol: string, id: string, description: string): string {
-  return `import { tool } from "eve";
-import { z } from "zod";
-
-export const ${symbol} = tool({
-  name: ${JSON.stringify(id)},
-  description: ${JSON.stringify(description || `The ${id} tool.`)},
-  inputSchema: z.object({
-    query: z.string().describe("What to act on"),
-  }),
-  async execute({ query }) {
-    return \`TODO: implement ${id} for \${query}\`;
-  },
-});
-`;
 }
 
 const subagentSchema = z.object({
-  id: kebabSchema,
-  name: z.string().trim().min(1).max(80),
-  description: z.string().trim().max(280).default(""),
-  modelId: z.string().trim().optional(),
+  id: nameSchema,
+  description: z.string().trim().min(1, "Eve needs a description to route work to a subagent").max(500),
+  modelId: z.string().trim().max(200).optional(),
 });
 
+/** A subagent is a directory with its own agent.ts and instructions. It inherits nothing. */
 export async function createSubagentAction(formData: FormData) {
   const projectId = await projectFrom(formData.get("projectId"));
   const input = subagentSchema.parse({
     id: formData.get("subagentId"),
-    name: formData.get("name"),
-    description: formData.get("description") ?? "",
+    description: formData.get("description"),
     modelId: formData.get("modelId") || undefined,
   });
 
   const project = await readProject(projectId);
-  if (project.subagents.some((subagent) => subagent.id === input.id)) {
-    throw new Error(`A subagent named "${input.id}" already exists.`);
-  }
+  assertNameFree(project, input.id);
 
   project.subagents.push({
     id: input.id,
-    name: input.name,
+    kind: "local",
     description: input.description,
-    model: input.modelId ? { id: input.modelId, raw: {} } : undefined,
-    instructions: `Describe what ${input.name} is responsible for.\n`,
+    model: input.modelId ? { id: input.modelId } : undefined,
+    raw: {},
+    source: "",
+    instructions: `# ${input.id}\n\n${input.description}\n`,
+    hasInstructions: true,
     tools: [],
     skills: [],
-    raw: {},
+    connections: [],
+    subagents: [],
   });
-  await writeProject(projectId, project);
-  revalidatePath(`/projects/${projectId}`, "layout");
+  await save(projectId, project);
 }
 
-export async function deleteSubagentAction(formData: FormData) {
+/** Removes a tool, skill, connection or subagent by its canvas id, and only its files. */
+export async function deleteEntityAction(formData: FormData) {
   const projectId = await projectFrom(formData.get("projectId"));
-  const subagentId = kebabSchema.parse(formData.get("subagentId"));
-
+  const ref = entityRefSchema.parse(formData.get("ref"));
   const project = await readProject(projectId);
-  project.subagents = project.subagents.filter((subagent) => subagent.id !== subagentId);
-  await writeProject(projectId, project);
-  revalidatePath(`/projects/${projectId}`, "layout");
-}
-
-export async function deleteToolAction(formData: FormData) {
-  const projectId = await projectFrom(formData.get("projectId"));
-  const toolId = kebabSchema.parse(formData.get("toolId"));
-
-  const project = await readProject(projectId);
-  project.tools = project.tools.filter((tool) => tool.id !== toolId);
-  // A subagent must not keep pointing at a tool that no longer exists.
-  for (const subagent of project.subagents) {
-    subagent.tools = subagent.tools.filter((id) => id !== toolId);
-  }
-  await writeProject(projectId, project);
-  revalidatePath(`/projects/${projectId}`, "layout");
-}
-
-export async function deleteSkillAction(formData: FormData) {
-  const projectId = await projectFrom(formData.get("projectId"));
-  const skillId = kebabSchema.parse(formData.get("skillId"));
-
-  const project = await readProject(projectId);
-  project.skills = project.skills.filter((skill) => skill.id !== skillId);
-  for (const subagent of project.subagents) {
-    subagent.skills = subagent.skills.filter((id) => id !== skillId);
-  }
-  await writeProject(projectId, project);
-  revalidatePath(`/projects/${projectId}`, "layout");
+  await save(projectId, removeEntity(project, ref));
 }
 
 /** Canvas node positions. Presentation state, stored outside the project. */
@@ -311,33 +271,144 @@ export async function saveLayoutAction(
   await writeLayout(id, { positions: parsed });
 }
 
-const linkSchema = z.object({
-  owner: z.union([z.literal("agent"), z.string().regex(/^subagent:[a-z0-9][a-z0-9-]*$/)]),
-  capability: z.string().regex(/^(tool|skill):[a-z0-9][a-z0-9-]*$/),
+const ownershipSchema = z.object({
+  projectId: idSchema,
+  capability: z.string().regex(/^(tool|skill|connection):([A-Za-z0-9][A-Za-z0-9_-]*\/)*[A-Za-z0-9][A-Za-z0-9_-]*$/),
+  to: z.string().regex(/^(agent|subagent:[A-Za-z0-9][A-Za-z0-9_\-/]*)$/),
 });
 
-const ownershipSchema = z
-  .object({ projectId: idSchema, remove: linkSchema.optional(), add: linkSchema.optional() })
-  .refine((input) => input.remove || input.add, { message: "Nothing to change" });
-
 /**
- * Moves a tool or skill between the agent and its subagents: an edge dragged on
- * the canvas. Writes subagent frontmatter and nothing else.
+ * Hands a tool, skill or connection to another agent: an edge dragged on the
+ * canvas. In Eve that means moving its file into the new owner's directory.
  */
 export async function changeOwnershipAction(
   input: z.input<typeof ownershipSchema>,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
-  const { projectId, remove, add } = ownershipSchema.parse(input);
+  const { projectId, capability, to } = ownershipSchema.parse(input);
   await requireProjectAccess(projectId);
   const project = await readProject(projectId);
   try {
-    await writeProject(projectId, applyOwnershipChange(project, { remove, add }));
+    await writeProject(projectId, applyOwnershipChange(project, { capability, to }));
   } catch (error) {
     if (error instanceof OwnershipError) return { ok: false, message: error.message };
     throw error;
   }
   revalidatePath(`/projects/${projectId}`, "layout");
   return { ok: true };
+}
+
+const connectionSchema = z
+  .object({
+    id: nameSchema,
+    kind: z.enum(["mcp", "openapi"]),
+    url: z.string().trim().url().refine((value) => value.startsWith("https://") || value.startsWith("http://localhost"), {
+      message: "Use an https URL",
+    }),
+    description: z.string().trim().max(500).default(""),
+    auth: z.enum(["none", "connect", "token"]),
+    connector: z.string().trim().max(200).optional(),
+    tokenEnv: z
+      .string()
+      .trim()
+      .regex(/^[A-Z_][A-Z0-9_]*$/, "Use an environment variable name like LINEAR_API_KEY")
+      .optional(),
+    allow: z.string().trim().max(2000).optional(),
+  })
+  .refine((input) => input.auth !== "connect" || input.connector, {
+    message: "Enter the Vercel Connect connector",
+    path: ["connector"],
+  })
+  .refine((input) => input.auth !== "token" || input.tokenEnv, {
+    message: "Enter the environment variable that holds the token",
+    path: ["tokenEnv"],
+  });
+
+/**
+ * Writes `connections/<id>.ts`. Credentials never touch EveLab: Vercel Connect
+ * resolves them at run time, or the token comes from the deployment's environment.
+ */
+export async function createConnectionAction(
+  input: z.input<typeof connectionSchema> & { projectId: string },
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const projectId = await projectFrom(input.projectId);
+  const parsed = connectionSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Check the form." };
+  const value = parsed.data;
+
+  const project = await readProject(projectId);
+  if (project.connections.some((connection) => connection.id === value.id)) {
+    return { ok: false, message: `There is already a connection named "${value.id}".` };
+  }
+  const names = (value.allow ?? "")
+    .split(/[\s,]+/)
+    .map((name) => name.trim())
+    .filter(Boolean);
+  const filter = names.length > 0 ? { mode: "allow" as const, names } : undefined;
+
+  project.connections.push({
+    id: value.id,
+    file: `${value.id}.ts`,
+    kind: value.kind,
+    description: value.description,
+    url: value.kind === "mcp" ? value.url : undefined,
+    spec: value.kind === "openapi" ? value.url : undefined,
+    auth: value.auth,
+    connector: value.auth === "connect" ? value.connector : undefined,
+    filter,
+    source: renderConnectionModule({
+      kind: value.kind,
+      url: value.url,
+      description: value.description,
+      auth: value.auth,
+      connector: value.connector,
+      tokenEnv: value.tokenEnv,
+      filter,
+    }),
+  });
+  await save(projectId, project);
+  return { ok: true };
+}
+
+const scheduleSchema = z.object({
+  id: nameSchema,
+  cron: z
+    .string()
+    .trim()
+    .refine((value) => value.split(/\s+/).length === 5, { message: "Use a five-field cron expression" }),
+  prompt: z.string().trim().min(1, "Write what the agent should do").max(20_000),
+});
+
+/** Writes a markdown schedule: the cron in frontmatter and the prompt as the body. */
+export async function createScheduleAction(formData: FormData) {
+  const projectId = await projectFrom(formData.get("projectId"));
+  const input = scheduleSchema.parse({
+    id: formData.get("scheduleId"),
+    cron: formData.get("cron"),
+    prompt: formData.get("prompt"),
+  });
+
+  const project = await readProject(projectId);
+  if (project.schedules.some((schedule) => schedule.id === input.id)) {
+    throw new Error(`There is already a schedule named "${input.id}".`);
+  }
+  project.schedules.push({
+    id: input.id,
+    file: `${input.id}.md`,
+    format: "markdown",
+    cron: input.cron,
+    prompt: input.prompt,
+    handler: false,
+    source: renderScheduleMarkdown(input.cron, input.prompt),
+  });
+  await save(projectId, project);
+}
+
+export async function deleteScheduleAction(formData: FormData) {
+  const projectId = await projectFrom(formData.get("projectId"));
+  const scheduleId = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_\-/]*$/).parse(formData.get("scheduleId"));
+  const project = await readProject(projectId);
+  project.schedules = project.schedules.filter((schedule) => schedule.id !== scheduleId);
+  await save(projectId, project);
 }
 
 /**
@@ -360,10 +431,8 @@ export async function previewSkillAction(
 
 const installSkillSchema = z.object({
   projectId: idSchema,
-  id: kebabSchema,
-  name: z.string().trim().min(1).max(80),
-  description: z.string().trim().max(500).default(""),
-  source: z.string().url(),
+  id: nameSchema,
+  description: z.string().trim().max(1000).default(""),
   files: z
     .array(
       z.object({
@@ -378,8 +447,8 @@ const installSkillSchema = z.object({
     .max(60),
 });
 
-/** Writes a reviewed skill into the project. Called only after confirmation. */
-export async function installSkillAction(input: z.input<typeof installSkillSchema>) {
+/** Writes a reviewed skill package into `skills/<id>/`. Called only after confirmation. */
+export async function installSkillAction(input: z.input<typeof installSkillSchema> & { name?: string; source?: string }) {
   const parsed = installSkillSchema.parse(input);
   const projectId = parsed.projectId;
   await requireProjectAccess(projectId);
@@ -394,15 +463,12 @@ export async function installSkillAction(input: z.input<typeof installSkillSchem
 
   project.skills.push({
     id: parsed.id,
-    name: parsed.name,
+    format: "package",
     description: parsed.description,
-    source: parsed.source,
-    markdown: markdown.content,
+    content: markdown.content,
     files: parsed.files.filter((file) => file.path !== "SKILL.md"),
   });
-
-  await writeProject(projectId, project);
-  revalidatePath(`/projects/${projectId}`, "layout");
+  await save(projectId, project);
 }
 
 /*
@@ -515,7 +581,7 @@ export async function discardChangeAction(input: { projectId: string; path: stri
 }
 
 export async function disconnectRepositoryAction(formData: FormData) {
-  const id = await projectFrom(formData.get("projectId"));
+  const id = await projectFrom(formData.get("id") ?? formData.get("projectId"));
   await disconnectRepository(id);
   revalidatePath(`/projects/${id}`, "layout");
 }

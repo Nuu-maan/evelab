@@ -1,6 +1,7 @@
 import { getCanvasGraph } from "@evelab/eve-project";
 import { CanvasView } from "@/components/canvas/canvas-view";
 import { readLayout } from "@/lib/layout";
+import { DEFAULT_MODEL_ID } from "@/lib/models";
 import { readProject } from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
@@ -24,7 +25,8 @@ export default async function CanvasPage({ params }: { params: Promise<{ id: str
       graph={graph}
       contents={contents}
       positions={layout.positions}
-      defaultModel={project.agent.model.id}
+      defaultModel={project.agent.model?.id || DEFAULT_MODEL_ID}
+      root={project.root}
     />
   );
 }

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { agentPath } from "@evelab/eve-project";
 import { IconInformation, IconSettingsSliders } from "@/components/icons";
 import { EmptyState } from "@/components/empty-state";
 import { Icon } from "@/components/icon";
@@ -12,15 +13,16 @@ export default async function RuntimePage({ params }: { params: Promise<{ id: st
   const { id } = await params;
   const project = await readProject(id);
   const entries = Object.entries(project.agent.raw);
+  const configPath = agentPath(project.root, "agent.ts");
+  const href = `/projects/${id}/files?path=${encodeURIComponent(configPath)}`;
 
   return (
     <div className="section" style={{ maxWidth: 680, width: "100%" }}>
       <Alert>
         <Icon icon={IconInformation} />
         <AlertTitle className="font-normal text-muted-foreground">
-          Runtime options have no GUI controls yet: EveLab only exposes settings once their Eve
-          representation is confirmed, so that a GUI edit cannot silently rewrite semantics. Until
-          then, edit them in the source and they round trip untouched.
+          Options such as limits, compaction, modelOptions and outputSchema are code, not settings. EveLab
+          shows them here and never rewrites them, so they round trip exactly as written.
         </AlertTitle>
       </Alert>
 
@@ -30,16 +32,15 @@ export default async function RuntimePage({ params }: { params: Promise<{ id: st
           title="No extra agent options."
           action={
             <Button asChild variant="outline">
-              <Link href={`/projects/${id}/files?path=agent.ts`}>Open agent.ts</Link>
+              <Link href={href}>Open {configPath}</Link>
             </Button>
           }
         >
-          Anything you add to the config object in agent.ts beyond name, description, model and
-          instructions shows up here and is preserved on every save.
+          Anything you add to defineAgent beyond model, reasoning and description shows up here.
         </EmptyState>
       ) : (
         <section className="section">
-          <h2 className="section-title">Preserved from agent.ts</h2>
+          <h2 className="section-title">Kept from {configPath}</h2>
           <ul className="list">
             {entries.map(([key, value]) => (
               <li className="list-item" key={key}>
@@ -49,7 +50,7 @@ export default async function RuntimePage({ params }: { params: Promise<{ id: st
             ))}
           </ul>
           <Button asChild variant="outline" className="self-start">
-            <Link href={`/projects/${id}/files?path=agent.ts`}>Edit in source</Link>
+            <Link href={href}>Edit in source</Link>
           </Button>
         </section>
       )}

@@ -15,7 +15,7 @@ import { ResizeHandle } from "@/components/resize-handle";
 import { SaveIndicator, type SaveState } from "@/components/save-state";
 import { Shortcut } from "@/components/shortcut";
 import { Button } from "@/components/ui/button";
-import { deleteSkillAction, deleteToolAction, deleteSubagentAction, saveFileAction } from "@/lib/actions";
+import { deleteEntityAction, saveFileAction } from "@/lib/actions";
 
 /** Panels slide in from the edge they live on, and leave the same way, faster. */
 export const PANEL_MOTION = {
@@ -81,15 +81,7 @@ export function CanvasInspector({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose, save]);
 
-  const [, entityId] = node.id.split(":");
-  const removal =
-    node.kind === "tool"
-      ? { action: deleteToolAction, field: "toolId" }
-      : node.kind === "skill"
-        ? { action: deleteSkillAction, field: "skillId" }
-        : node.kind === "subagent"
-          ? { action: deleteSubagentAction, field: "subagentId" }
-          : undefined;
+  const removable = node.kind !== "agent";
 
   return (
     <motion.aside className="inspector" aria-label={`${node.name} inspector`} {...PANEL_MOTION}>
@@ -141,17 +133,24 @@ export function CanvasInspector({
           </Button>
         </div>
 
-        {removal && entityId && (
-          <form action={removal.action}>
+        {removable && (
+          <form action={deleteEntityAction}>
             <input type="hidden" name="projectId" value={projectId} />
-            <input type="hidden" name={removal.field} value={entityId} />
+            <input type="hidden" name="ref" value={node.id} />
             <ConfirmSubmit
               title={`Delete ${node.name}?`}
               description={
-                <>
-                  This removes <span className="mono">{node.filePath}</span> from the project. Commit
-                  first if you might want it back.
-                </>
+                node.kind === "subagent" ? (
+                  <>
+                    This removes the subagent&apos;s directory, with every tool and skill it owns. Commit first if
+                    you might want it back.
+                  </>
+                ) : (
+                  <>
+                    This removes <span className="mono">{node.filePath}</span> from the project. Commit first if
+                    you might want it back.
+                  </>
+                )
               }
               confirmLabel="Delete"
               onConfirmed={onClose}

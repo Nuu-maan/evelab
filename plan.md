@@ -76,27 +76,30 @@ packages/github          GitHub client, status, pull planning, commits
 
 ### 3.1 `packages/eve-project`
 
-The most important package. 27 unit tests. Everything is exported from
-`src/index.ts`.
+The most important package. 51 unit tests. Everything is exported from
+`src/index.ts`. It models Eve's real layout, checked against eve 0.54.3 and its
+bundled docs.
 
 | File | Contains |
 | --- | --- |
-| `types.ts` | Zod schemas and types: `EveProject`, `AgentConfig`, `ModelConfig`, `Tool`, `Skill`, `Subagent`, `ProjectFile`, plus `isGeneratedPath` |
-| `parse.ts` | `parseProject(files) => { project, warnings }` |
-| `generate.ts` | `generateProject(project) => ProjectFile[]`, `renderAgentTemplate` |
-| `agent-source.ts` | `readAgentSource`, `patchAgentSource`, `readModelValue`, `renderModelValue`: the TypeScript AST layer |
-| `validate.ts` | `validateProject(project) => ValidationIssue[]` |
-| `graph.ts` | `getProjectGraph` (agent + subagents), `getCanvasGraph` (all capabilities, with ownership edges and a `filePath` per node) |
-| `frontmatter.ts` | Flat YAML frontmatter read/write for markdown files |
-| `ownership.ts` | `applyOwnershipChange`, `OwnershipError`: moves a tool or skill between the agent and its subagents, which is what dragging a canvas edge does |
+| `types.ts` | Zod schemas and types: `EveProject`, `AgentConfig`, `ModelConfig`, `Tool`, `Skill`, `Subagent`, `Connection`, `Channel`, `Schedule`, `ProjectFile` |
+| `layout.ts` | `detectAgentRoot` (`agent/` or flat), `agentPath`, `looksLikeEveProject` |
+| `parse.ts` | `parseProject(files, { fallbackName }) => { project, warnings }`: every slot, nested subagents recursively |
+| `generate.ts` | `generateProject(project) => ProjectFile[]`, `patchSettings`, `skillFilePath` |
+| `agent-source.ts` | `readAgentSource`, `patchAgentSource` and string readers: the TypeScript AST layer |
+| `agent-template.ts` | Files EveLab creates: `renderProjectScaffold` (what `eve init` writes), `renderAgentConfig`, `renderSubagentConfig`, `renderToolModule`, `renderConnectionModule`, `renderScheduleMarkdown` |
+| `validate.ts` | `validateProject(project) => ValidationIssue[]`, mirroring Eve's compiler rules EveLab can check statically |
+| `graph.ts` | `getCanvasGraph`: agent, subagents, tools, skills and connections, with ownership edges and a `filePath` per node |
+| `frontmatter.ts` | Flat YAML frontmatter read/write, `setFrontmatterValue` |
+| `ownership.ts` | `applyOwnershipChange` (moves an entity's files between owners, which is what dragging a canvas edge does), `removeEntity`, `OwnershipError` |
 
-Fixtures live in `test/fixtures/{basic-agent,subagent-agent}`. Round-trip tests
-assert `generateProject(parseProject(files)) === files`, byte for byte. **A new
-fixture is the cheapest way to pin down new Eve syntax.**
+Fixtures live in `test/fixtures/{basic-agent,full-agent,flat-agent}`. Round-trip
+tests assert `generateProject(parseProject(files)) === files`, byte for byte.
+**A new fixture is the cheapest way to pin down new Eve syntax.**
 
-Model shapes handled today: `model: "openai/gpt-5.6"` and
-`model: { id, temperature, maxOutputTokens, ...raw }`, including shorthand
-properties (`{ gateway }` stays shorthand).
+`agent.ts` settings EveLab edits: a string `model`, `reasoning` and
+`description`. A model built in code (`anthropic("...")`) is shown and never
+rewritten; every other option is kept verbatim in `raw`.
 
 ### 3.1b `packages/github`
 
@@ -125,9 +128,9 @@ Routes, all under `src/app`:
 /projects/[id]                       overview
 /projects/[id]/canvas                visual editor + inspector
 /projects/[id]/agent                 General | Instructions | Model | Runtime
-/projects/[id]/tools                 list + create TypeScript tool
-/projects/[id]/skills                list + GitHub import
-/projects/[id]/subagents             list + create
+/projects/[id]/tools                 list + create defineTool file
+/projects/[id]/skills                list + GitHub import as a skill package
+/projects/[id]/subagents             list + create subagent directory
 /projects/[id]/files                 file tree + Monaco workbench
 /projects/[id]/source                source control: changes, diff, commit, pull
 /projects/[id]/connections           stub
@@ -159,8 +162,8 @@ Server-side libraries (`src/lib`):
 Server actions in `actions.ts`: `createProjectAction`, `deleteProjectAction`,
 `updateAgentAction`, `updateModelAction`, `saveInstructionsAction`,
 `readFileAction`, `saveFileAction`, `createToolAction`, `createSubagentAction`,
-`deleteSubagentAction`, `deleteToolAction`, `deleteSkillAction`,
-`saveLayoutAction`, `changeOwnershipAction`, `previewSkillAction`,
+`deleteEntityAction`, `createConnectionAction`, `createScheduleAction`,
+`deleteScheduleAction`, `saveLayoutAction`, `changeOwnershipAction`, `previewSkillAction`,
 `installSkillAction`, and for source control `previewImportAction`,
 `importRepositoryAction`, `connectRepositoryAction`, `createRepositoryAction`,
 `commitAction`, `pullAction`, `discardChangeAction`,
@@ -203,15 +206,17 @@ overridable with `EVELAB_WORKSPACE`. Canvas layouts sit in
 
 ### 3.3 What works
 
-- Create a project; real Eve files are written.
-- Edit agent name, description, model, temperature, max output tokens.
+- Create a project; the files `eve init` writes are written.
+- Edit the agent's description, model (from the live AI Gateway catalog) and
+  reasoning effort.
 - Edit `instructions.md` in Monaco with autosave and `⌘S`.
-- Canvas: agent, subagents, tools and skills as nodes coloured by kind; click a
-  node to edit the file behind it; drag a palette chip to create a tool or
-  subagent; drag nodes and keep their positions; drag an edge to move a tool or
-  skill between the agent and a subagent.
+- Canvas: agent, subagents, tools, skills and connections as nodes coloured by
+  kind; click a node to edit the file behind it; drag a palette chip to create a
+  tool, subagent or connection; drag nodes and keep their positions; drag an edge
+  to move a tool, skill or connection into a subagent's directory and back.
 - Overview: canvas preview, agent summary, capabilities, launch checklist.
-- Create and delete tools, subagents and skills.
+- Create and delete tools, subagents, skills and connections (MCP or OpenAPI,
+  with Vercel Connect or environment token auth).
 - Import a skill from a GitHub directory, including subdirectories, behind a
   review step that flags files which can run code.
 - Files workbench over every project file, including files added by hand, with
@@ -227,8 +232,8 @@ overridable with `EVELAB_WORKSPACE`. Canvas layouts sit in
 - **Claiming existing directories.** With sign-in on, workspace directories that
   have no project row (created before sign-in) are invisible. There is no flow
   to adopt them yet.
-- **MCP import.** Blocked on Decision 6.
-- **skills.sh import.** Blocked on not knowing their source format.
+- **MCP tool discovery.** Connections are written, but EveLab does not yet list
+  a server's tools before writing the allow list.
 - **Connections and channels.** Stub pages.
 - **Runs.** Blocked on Decision 2.
 - **Deployment.** Follows GitHub.
@@ -236,18 +241,11 @@ overridable with `EVELAB_WORKSPACE`. Canvas layouts sit in
   too; installing the App per user and storing the installation on
   `git_repositories` is the remaining step. Token mode covers local use.
 
-### 3.5 Known TODOs where Eve's API is assumed
+### 3.5 Where EveLab's knowledge of Eve comes from
 
-Three places guess at Eve names and are marked `TODO` in code. They only affect
-files EveLab creates from scratch; everything else works off the user's source.
-**Verify each against current Eve docs before relying on it.**
-
-1. `renderAgentTemplate` in `packages/eve-project/src/generate.ts`: the
-   `new Agent({ ... })` shape and `import { Agent } from "eve"`.
-2. `toolTemplate` in `apps/web/src/lib/actions.ts`: the `tool({ ... })` factory
-   and its option names.
-3. Subagent frontmatter keys in `packages/eve-project/src/parse.ts`: `name`,
-   `description`, `model`, `tools`, `skills`.
+Every shape EveLab writes was checked against eve 0.54.3: a scratch project from
+`eve init`, `eve info --json`, and the docs shipped in the package
+(`node_modules/eve/docs`). When Eve changes, update the fixtures first.
 
 ---
 
@@ -334,11 +332,13 @@ flag for local self-hosting**. Confirm against Eve's actual runtime and
 deployment model before building either. EveLab drives Eve; it does not
 re-implement it.
 
-### Decision 6: How does Eve represent MCP servers?
+### Decision 6: How does Eve represent MCP servers? (answered)
 
-**Gates the MCP importer.** Find out whether MCP servers are Eve-native
-configuration files, entries inside `agent.ts`, or something else, and preserve
-that representation exactly. Do not design an EveLab format.
+As connection files: `connections/<name>.ts` exporting
+`defineMcpClientConnection({ url, description, auth, tools })` or
+`defineOpenAPIConnection({ spec, ... })` from `eve/connections`. Remote tools
+reach the model as `<name>__<tool>`. Auth is `connect("<connector>")` from
+`@vercel/connect/eve` or a `getToken` function.
 
 ### Decision 11: Secrets
 

@@ -5,7 +5,7 @@ import { dirname, join, relative, resolve, sep } from "node:path";
 import {
   generateProject,
   parseProject,
-  renderAgentTemplate,
+  renderProjectScaffold,
   validateProject,
   type EveProject,
   type ProjectFile,
@@ -15,18 +15,18 @@ import {
  * File-backed project storage.
  *
  * The canonical form of a project is a directory of real Eve files, so a user
- * can `cd` into it, run Eve, and commit it without EveLab. Postgres (see
- * packages/db) is for metadata only and is not wired up yet.
+ * can `cd` into it, run `eve dev`, and commit it without EveLab. Postgres (see
+ * packages/db) holds metadata only.
  */
 
-const IGNORED = new Set(["node_modules", ".git", ".next", ".turbo", "dist"]);
+const IGNORED = new Set(["node_modules", ".git", ".next", ".turbo", "dist", ".eve", ".output", ".vercel"]);
 const ID_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/;
 
 export function workspaceRoot(): string {
   return resolve(process.env.EVELAB_WORKSPACE ?? join(process.cwd(), "../../.evelab/workspace"));
 }
 
-function projectRoot(id: string): string {
+export function projectRoot(id: string): string {
   if (!ID_PATTERN.test(id)) throw new Error(`Invalid project id: ${id}`);
   return join(workspaceRoot(), id);
 }
@@ -51,6 +51,14 @@ export interface ProjectSummary {
   subagentCount: number;
 }
 
+/** The model as a person reads it: the gateway id, or a note when code computes it. */
+export function modelLabel(project: EveProject): string {
+  const { model, hasConfig } = project.agent;
+  if (model?.id) return model.id;
+  if (model?.expression) return "Set in code";
+  return hasConfig ? "" : "Eve default";
+}
+
 export async function listProjects(): Promise<ProjectSummary[]> {
   const root = workspaceRoot();
   if (!existsSync(root)) return [];
@@ -64,7 +72,7 @@ export async function listProjects(): Promise<ProjectSummary[]> {
         return {
           id: entry.name,
           name: project.agent.name,
-          model: project.agent.model.id,
+          model: modelLabel(project),
           toolCount: project.tools.length,
           skillCount: project.skills.length,
           subagentCount: project.subagents.length,
@@ -105,7 +113,7 @@ export async function readProjectFiles(id: string): Promise<ProjectFile[]> {
 }
 
 export async function readProject(id: string): Promise<EveProject> {
-  return parseProject(await readProjectFiles(id)).project;
+  return parseProject(await readProjectFiles(id), { fallbackName: id }).project;
 }
 
 /** Writes the model back out, deleting files the model no longer contains. */
@@ -150,11 +158,8 @@ export function isIgnoredPath(path: string): boolean {
   return path.split("/").some((segment) => IGNORED.has(segment));
 }
 
-/**
- * Creates a project from files that were already read and shown to the user,
- * such as an imported repository. A failed write leaves nothing behind.
- */
-export async function createProjectFromFiles(nameHint: string, files: ProjectFile[]): Promise<string> {
+/** Writes files into a fresh project directory. A failed write leaves nothing behind. */
+async function writeNewProject(nameHint: string, files: ProjectFile[]): Promise<string> {
   let id = slugify(nameHint);
   let suffix = 2;
   while (isTaken(id)) id = `${slugify(nameHint)}-${suffix++}`;
@@ -171,6 +176,11 @@ export async function createProjectFromFiles(nameHint: string, files: ProjectFil
     throw error;
   }
   return id;
+}
+
+/** Creates a project from files that were already read and shown to the user, such as an imported repository. */
+export async function createProjectFromFiles(nameHint: string, files: ProjectFile[]): Promise<string> {
+  return writeNewProject(nameHint, files);
 }
 
 // Project ids are URL segments, so they must not shadow the routes beside them.
@@ -195,52 +205,29 @@ export interface CreateProjectInput {
   modelId: string;
 }
 
+/**
+ * Creates the project `eve init` would: the same package.json, tsconfig,
+ * agent/agent.ts, instructions and eve channel. Eve names the agent after the
+ * package, so the name becomes the package name.
+ */
 export async function createProject(input: CreateProjectInput): Promise<string> {
   let id = slugify(input.name);
   let suffix = 2;
   while (isTaken(id)) id = `${slugify(input.name)}-${suffix++}`;
 
-  const instructions = `# ${input.name}\n\nDescribe what this agent should do, what it must never do, and how it should\nreply.\n`;
-  const project: EveProject = {
-    agent: {
-      name: input.name,
-      description: input.description,
-      model: { id: input.modelId, raw: {} },
-      instructionsPath: "instructions.md",
-      instructions,
-      raw: {},
-    },
-    tools: [],
-    skills: [],
-    subagents: [],
-    files: [],
-  };
-
-  const files = [
-    ...generateProject(project),
-    {
-      path: "package.json",
-      content: `${JSON.stringify(
-        { name: id, private: true, type: "module" },
-        null,
-        2,
-      )}\n`,
-    },
-    { path: ".gitignore", content: "node_modules\n.env\n" },
-  ];
-
-  await mkdir(projectRoot(id), { recursive: true });
-  for (const file of files) {
-    const absolute = resolveInProject(id, file.path);
-    await mkdir(dirname(absolute), { recursive: true });
-    await writeFile(absolute, file.content, "utf8");
-  }
-
-  return id;
+  const identity = input.description ? `You are ${input.name}. ${input.description}` : `You are ${input.name}, a helpful assistant.`;
+  const scaffold = renderProjectScaffold({
+    packageName: id,
+    model: input.modelId,
+    instructions: `# Identity\n\n${identity}\n`,
+  });
+  const { project } = parseProject(scaffold, { fallbackName: id });
+  project.agent.description = input.description;
+  return writeNewProject(id, generateProject(project));
 }
 
 export async function deleteProject(id: string): Promise<void> {
   await rm(projectRoot(id), { recursive: true, force: true });
 }
 
-export { renderAgentTemplate, validateProject };
+export { validateProject };
