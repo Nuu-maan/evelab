@@ -45,7 +45,7 @@ const GROUP_ORDER: CreateKind[] = ["subagent", "tool", "skill", "connection", "c
 /** The right-hand column. Always there, so selecting something never moves the canvas. */
 export function InspectorColumn({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <aside className="canvas-inspector" aria-label={label}>
+    <aside className="canvas-float canvas-inspector" aria-label={label}>
       <ResizeHandle pane="inspector" edge="start" label="Resize inspector" />
       {children}
     </aside>
@@ -325,7 +325,7 @@ function ChannelOverview({ graph, node }: InspectorProps & { node: CanvasNode })
   );
 }
 
-function ArchitectureSummary({ graph, issues, onCreate }: InspectorProps) {
+function ArchitectureSummary({ graph, issues, onCreate, onClear }: InspectorProps) {
   const count = (kind: CanvasNodeKind) => graph.nodes.filter((node) => node.kind === kind).length;
   const shared = graph.nodes.filter((node) => node.shared).length;
   const root = graph.nodes.find((node) => node.kind === "agent");
@@ -340,6 +340,9 @@ function ArchitectureSummary({ graph, issues, onCreate }: InspectorProps) {
           <h2 className="inspector-name">{root?.name}</h2>
           <p className="inspector-detail">{root?.detail}</p>
         </div>
+        <Button variant="ghost" size="icon-sm" type="button" aria-label="Close" onClick={onClear}>
+          <Icon icon={IconCross} />
+        </Button>
       </header>
 
       <div className="inspector-scroll">
@@ -393,6 +396,8 @@ function ArchitectureSummary({ graph, issues, onCreate }: InspectorProps) {
           <dl className="inspector-keys">
             {[
               ["A", "Add resource"],
+              ["N", "New note"],
+              ["S", "New section"],
               ["F", "Focus selection"],
               ["0", "Fit everything"],
               ["1", "Go to root"],

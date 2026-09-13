@@ -4,7 +4,7 @@ import { memo, useContext } from "react";
 import {
   BaseEdge,
   EdgeLabelRenderer,
-  getBezierPath,
+  getSmoothStepPath,
   type ConnectionLineComponentProps,
   type Edge,
   type EdgeProps,
@@ -21,12 +21,12 @@ export type RelationEdgeData = {
 
 export type RelationEdge = Edge<RelationEdgeData, "relation">;
 
-const CURVATURE = 0.36;
+const RADIUS = 14;
 
 /**
- * A relationship: "has tool", "contains", "routes to". A quiet hairline at
- * rest; hovering either end or the edge itself colours it and names it, and a
- * selected resource edge offers to detach.
+ * A relationship drawn the way a systems diagram draws a wire: right angles
+ * with rounded corners, a dashed line, and what it means written beside it.
+ * Hovering either end runs the dashes from agent to what it uses.
  */
 function RelationEdgeBase({
   id,
@@ -39,23 +39,24 @@ function RelationEdgeBase({
   sourcePosition,
   targetPosition,
   selected,
+  markerEnd,
   data,
 }: EdgeProps<RelationEdge>) {
   const { detachEdge } = useContext(CanvasContext);
-  const [path, labelX, labelY] = getBezierPath({
+  const [path, labelX, labelY] = getSmoothStepPath({
     sourceX,
     sourceY,
     sourcePosition,
     targetX,
     targetY,
     targetPosition,
-    curvature: CURVATURE,
+    borderRadius: RADIUS,
+    offset: 24,
   });
 
   return (
     <>
-      <BaseEdge id={id} path={path} interactionWidth={20} />
-      <path className="edge-flow" d={path} aria-hidden="true" />
+      <BaseEdge id={id} path={path} markerEnd={markerEnd} interactionWidth={20} />
       {data?.showLabel && data.relation && (
         <EdgeLabelRenderer>
           <div
@@ -88,14 +89,14 @@ export function CanvasConnectionLine({
   toPosition,
   connectionStatus,
 }: ConnectionLineComponentProps) {
-  const [path] = getBezierPath({
+  const [path] = getSmoothStepPath({
     sourceX: fromX,
     sourceY: fromY,
     sourcePosition: fromPosition,
     targetX: toX,
     targetY: toY,
     targetPosition: toPosition,
-    curvature: CURVATURE,
+    borderRadius: RADIUS,
   });
 
   return (

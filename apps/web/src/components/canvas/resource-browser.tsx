@@ -2,29 +2,27 @@
 
 import { useMemo, useState } from "react";
 import type { CanvasNode, CanvasNodeKind } from "@evelab/eve-project";
-import { IconMagnifyingGlass, IconPlus } from "@/components/icons";
+import { IconFileText, IconGridSquare, IconMagnifyingGlass, IconPlus } from "@/components/icons";
 import { PaletteChip } from "@/components/canvas/palette-chip";
 import { isResourceKind } from "@/components/canvas/canvas-node";
+import type { Annotation } from "@/components/canvas/layout";
 import { Icon } from "@/components/icon";
-import { KINDS, KindTile } from "@/components/kinds";
-import { ResizeHandle } from "@/components/resize-handle";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { KINDS } from "@/components/kinds";
 
 type Point = { x: number; y: number };
-type Filter = "all" | Exclude<CanvasNodeKind, "agent">;
+type GroupKind = Exclude<CanvasNodeKind, "agent">;
 
-const GROUPS: Exclude<CanvasNodeKind, "agent">[] = ["subagent", "tool", "skill", "connection", "channel"];
+const GROUPS: GroupKind[] = ["subagent", "tool", "skill", "connection", "channel"];
+
+const ANNOTATE: { type: Annotation["type"]; title: string; detail: string; icon: typeof IconFileText }[] = [
+  { type: "note", title: "Note", detail: "Handwritten text", icon: IconFileText },
+  { type: "section", title: "Section", detail: "Group things together", icon: IconGridSquare },
+];
 
 /**
- * Everything the architecture is made of, in one searchable list. Resources
- * are picked up and dropped onto an agent to attach them; anything can be
- * clicked to find it on the canvas.
+ * A floating library of everything the architecture is made of, grouped by
+ * kind. Resources are picked up and dropped onto an agent to attach them;
+ * notes and sections are dropped anywhere.
  */
 export function ResourceBrowser({
   nodes,
@@ -34,22 +32,25 @@ export function ResourceBrowser({
   canDrop,
   onDrop,
   onHoverDrop,
+  canPlace,
+  onAnnotate,
 }: {
   nodes: CanvasNode[];
   selectedId?: string;
   onSelect: (id: string) => void;
-  onCreate: (kind: Exclude<CanvasNodeKind, "agent">) => void;
+  onCreate: (kind: GroupKind) => void;
   canDrop: (resourceId: string, point: Point) => boolean;
   onDrop: (resourceId: string, point: Point) => void;
   onHoverDrop: (over: boolean) => void;
+  canPlace: (point: Point) => boolean;
+  onAnnotate: (type: Annotation["type"], point?: Point) => void;
 }) {
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<Filter>("all");
+  const needle = query.trim().toLowerCase();
 
-  const groups = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    return GROUPS.filter((kind) => filter === "all" || filter === kind)
-      .map((kind) => ({
+  const groups = useMemo(
+    () =>
+      GROUPS.map((kind) => ({
         kind,
         items: nodes
           .filter((node) => node.kind === kind)
@@ -61,101 +62,99 @@ export function ResourceBrowser({
               node.description?.toLowerCase().includes(needle),
           )
           .sort((a, b) => a.name.localeCompare(b.name)),
-      }))
-      .filter((group) => group.items.length > 0);
-  }, [filter, nodes, query]);
-
-  const total = nodes.filter((node) => node.kind !== "agent").length;
+      })),
+    [needle, nodes],
+  );
 
   return (
-    <aside className="canvas-browser" aria-label="Resources">
-      <div className="browser-head">
-        <div className="browser-title-row">
-          <p className="browser-title">Resources</p>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon-sm" aria-label="Create a resource">
-                <Icon icon={IconPlus} />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              {GROUPS.map((kind) => (
-                <DropdownMenuItem key={kind} onSelect={() => onCreate(kind)}>
-                  <KindTile kind={kind} />
-                  New {KINDS[kind].label.toLowerCase()}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-
-        <label className="browser-search">
-          <Icon icon={IconMagnifyingGlass} size={14} />
-          <input
-            type="search"
-            value={query}
-            placeholder="Search resources"
-            aria-label="Search resources"
-            onChange={(event) => setQuery(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Escape") setQuery("");
-            }}
-          />
-        </label>
-
-        <div className="browser-filters" role="group" aria-label="Filter by kind">
-          {(["all", ...GROUPS] as Filter[]).map((value) => (
-            <button
-              key={value}
-              type="button"
-              className="browser-filter"
-              data-kind={value === "all" ? undefined : value}
-              aria-pressed={filter === value}
-              onClick={() => setFilter(value)}
-            >
-              {value === "all" ? "All" : KINDS[value].plural}
-            </button>
-          ))}
-        </div>
-      </div>
+    <aside className="canvas-float canvas-browser" aria-label="Resources">
+      <label className="browser-search">
+        <Icon icon={IconMagnifyingGlass} size={14} />
+        <input
+          type="search"
+          value={query}
+          placeholder="Search"
+          aria-label="Search resources"
+          onChange={(event) => setQuery(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") setQuery("");
+          }}
+        />
+      </label>
 
       <div className="browser-list">
-        {groups.map((group) => (
-          <section key={group.kind} className="browser-group" aria-label={KINDS[group.kind].plural}>
-            <p className="browser-group-label">
-              {KINDS[group.kind].plural}
-              <span className="tabular-nums">{group.items.length}</span>
-            </p>
-            {group.items.map((node) => {
-              const attachable = isResourceKind(node.kind);
-              const users = node.usedBy?.length ?? 0;
-              return (
-                <PaletteChip
-                  key={node.id}
-                  variant="row"
-                  draggable={attachable}
-                  selected={node.id === selectedId}
-                  item={{ kind: node.kind, title: node.name, detail: node.detail }}
-                  badge={node.shared ? `${users} ${users === 1 ? "agent" : "agents"}` : undefined}
-                  dropLabel="Release to attach"
-                  onActivate={() => onSelect(node.id)}
-                  canDrop={(point) => canDrop(node.id, point)}
-                  onDrop={(point) => onDrop(node.id, point)}
-                  onHoverDrop={onHoverDrop}
-                />
-              );
-            })}
-          </section>
-        ))}
+        {groups.map((group) => {
+          if (needle && group.items.length === 0) return null;
+          const { label, plural } = KINDS[group.kind];
+          return (
+            <section key={group.kind} className="browser-group" aria-label={plural}>
+              <div className="browser-group-head">
+                <p className="browser-group-label">{plural}</p>
+                <button
+                  type="button"
+                  className="browser-group-add"
+                  aria-label={`New ${label.toLowerCase()}`}
+                  title={`New ${label.toLowerCase()}`}
+                  onClick={() => onCreate(group.kind)}
+                >
+                  <Icon icon={IconPlus} size={12} />
+                </button>
+              </div>
+              {group.items.length === 0 && (
+                <button type="button" className="browser-empty-row" onClick={() => onCreate(group.kind)}>
+                  New {label.toLowerCase()}
+                </button>
+              )}
+              {group.items.map((node) => {
+                const users = node.usedBy?.length ?? 0;
+                return (
+                  <PaletteChip
+                    key={node.id}
+                    variant="row"
+                    draggable={isResourceKind(node.kind)}
+                    selected={node.id === selectedId}
+                    item={{ kind: node.kind, title: node.name, detail: node.detail }}
+                    badge={node.shared ? `${users}` : undefined}
+                    dropLabel="Release to attach"
+                    onActivate={() => onSelect(node.id)}
+                    canDrop={(point) => canDrop(node.id, point)}
+                    onDrop={(point) => onDrop(node.id, point)}
+                    onHoverDrop={onHoverDrop}
+                  />
+                );
+              })}
+            </section>
+          );
+        })}
 
-        {groups.length === 0 && (
-          <p className="browser-empty">{total === 0 ? "Nothing here yet. Create a resource to start." : "No resources match."}</p>
+        {!needle && (
+          <section className="browser-group" aria-label="Annotate">
+            <div className="browser-group-head">
+              <p className="browser-group-label">Annotate</p>
+            </div>
+            {ANNOTATE.map((item) => (
+              <PaletteChip
+                key={item.type}
+                variant="row"
+                item={{
+                  title: item.title,
+                  detail: item.detail,
+                  tile: (
+                    <span className="kind-tile annotate-tile">
+                      <Icon icon={item.icon} size={14} />
+                    </span>
+                  ),
+                }}
+                dropLabel="Release to place"
+                onActivate={() => onAnnotate(item.type)}
+                canDrop={canPlace}
+                onDrop={(point) => onAnnotate(item.type, point)}
+                onHoverDrop={() => {}}
+              />
+            ))}
+          </section>
         )}
       </div>
-
-      <p className="browser-hint">Drag a tool, skill or connection onto an agent to attach it.</p>
-
-      <ResizeHandle pane="palette" label="Resize resources" />
     </aside>
   );
 }

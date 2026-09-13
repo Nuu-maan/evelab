@@ -3,12 +3,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import {
+  applyNodeChanges,
   Background,
   BackgroundVariant,
+  MarkerType,
   MiniMap,
   ReactFlow,
   ReactFlowProvider,
-  SelectionMode,
   useEdgesState,
   useNodesInitialized,
   useNodesState,
@@ -18,11 +19,31 @@ import {
   type EdgeMouseHandler,
   type IsValidConnection,
   type Node,
+  type NodeChange,
   type NodeMouseHandler,
   type OnNodeDrag,
 } from "@xyflow/react";
 import type { CanvasEdge, CanvasGraph, CanvasNode, CanvasNodeKind } from "@evelab/eve-project";
-import { IconChevronDown, IconFullscreen, IconMinus, IconPlus } from "@/components/icons";
+import {
+  IconFullscreen,
+  IconMinus,
+  IconPlus,
+  IconRotateCounterClockwise,
+  IconSettingsSliders,
+  IconSidebarLeft,
+} from "@/components/icons";
+import {
+  AnnotationContext,
+  AnnotationToolbar,
+  fromAnnotationNode,
+  isAnnotationId,
+  newAnnotation,
+  NoteCard,
+  SectionCard,
+  toAnnotationNode,
+  type AnnotationContextValue,
+  type AnnotationNode,
+} from "@/components/canvas/annotations";
 import { CanvasConnectionLine, RelationEdgePath, type RelationEdge } from "@/components/canvas/canvas-edge";
 import {
   CanvasContext,
@@ -43,7 +64,7 @@ import {
 } from "@/components/canvas/canvas-inspector";
 import { CanvasCreatePanel, type DraftKind } from "@/components/canvas/canvas-create-panel";
 import { ResourceBrowser } from "@/components/canvas/resource-browser";
-import { autoLayout, type LayoutMode, type Positions } from "@/components/canvas/layout";
+import { autoLayout, type Annotation, type LayoutMode, type Positions } from "@/components/canvas/layout";
 import type { ChatSdkOption } from "@/components/channel-form";
 import { ConfirmDialog } from "@/components/confirm";
 import { Icon } from "@/components/icon";
@@ -59,7 +80,6 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
-  DropdownMenuShortcut,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
@@ -69,8 +89,10 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { attachResourceAction, changeOwnershipAction, detachResourceAction, removeNodeAction, saveLayoutAction } from "@/lib/actions";
 import "@/app/canvas.css";
 
-const nodeTypes = { capability: CanvasNodeCard };
+const nodeTypes = { capability: CanvasNodeCard, note: NoteCard, section: SectionCard };
 const edgeTypes = { relation: RelationEdgePath };
+
+type FlowNode = CapabilityNode | AnnotationNode;
 
 export interface CanvasProps {
   projectId: string;
@@ -80,6 +102,7 @@ export interface CanvasProps {
   positions: Positions;
   mode: LayoutMode;
   collapsed: string[];
+  annotations: Annotation[];
   defaultModel: string;
   models: { id: string; label: string }[];
   /** Where the agent lives: "agent" or "" for the flat layout. */
@@ -94,13 +117,14 @@ type Point = { x: number; y: number };
 
 type HistoryEntry =
   | { type: "move"; before: Positions; after: Positions }
-  | { type: "attach" | "detach"; resource: string; agent: string };
+  | { type: "attach" | "detach"; resource: string; agent: string }
+  | { type: "annotations"; before: Annotation[]; after: Annotation[] };
 
-const LAYOUTS: { mode: LayoutMode; label: string; hint: string }[] = [
-  { mode: "hierarchical", label: "Hierarchical", hint: "Root on top, resources below" },
-  { mode: "horizontal", label: "Horizontal", hint: "Left to right" },
-  { mode: "vertical", label: "Vertical", hint: "An indented outline" },
-  { mode: "freeform", label: "Freeform", hint: "Only where you put things" },
+const LAYOUTS: { mode: LayoutMode; label: string }[] = [
+  { mode: "hierarchical", label: "Hierarchical" },
+  { mode: "horizontal", label: "Horizontal" },
+  { mode: "vertical", label: "Vertical outline" },
+  { mode: "freeform", label: "Freeform" },
 ];
 
 const ADD_ITEMS: { kind: CreateKind; hint: string }[] = [
@@ -110,6 +134,15 @@ const ADD_ITEMS: { kind: CreateKind; hint: string }[] = [
   { kind: "connection", hint: "An MCP server or OpenAPI service" },
   { kind: "channel", hint: "Chat SDK, Slack, HTTP and more" },
 ];
+
+/** Room for the floating panels, so fitting never tucks a card under them. */
+const FIT_PADDING = { top: "112px", right: "48px", bottom: "72px", left: "288px" } as const;
+
+const EDGE_MARKER = { type: MarkerType.ArrowClosed, width: 14, height: 14, color: "var(--canvas-edge)" };
+
+function isCapability(node: Node): node is CapabilityNode {
+  return node.type === "capability";
+}
 
 /** "tool:#github" or "tool:researcher/github" to "github". */
 function refName(ref: string): string {
@@ -146,6 +179,7 @@ function toEdge(edge: Pick<CanvasEdge, "source" | "target" | "relation">, kind: 
     type: "relation",
     className: `edge-${kind}`,
     interactionWidth: 20,
+    markerEnd: EDGE_MARKER,
     data: { relation: edge.relation, detachable: isResourceKind(kind) },
   };
 }
@@ -190,18 +224,28 @@ function ToolbarButton({
   tooltip,
   onClick,
   className,
+  disabled,
   children,
 }: {
   label: string;
   tooltip: string;
   onClick: () => void;
   className?: string;
+  disabled?: boolean;
   children: ReactNode;
 }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Button variant="ghost" size="icon-sm" type="button" aria-label={label} className={className} onClick={onClick}>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          type="button"
+          aria-label={label}
+          className={className}
+          disabled={disabled}
+          onClick={onClick}
+        >
           {children}
         </Button>
       </TooltipTrigger>
@@ -217,14 +261,14 @@ function ZoomControls() {
   const { zoomIn, zoomOut, zoomTo, fitView } = useReactFlow();
   const { zoom } = useViewport();
   return (
-    <>
+    <div className="canvas-float canvas-zoom" role="toolbar" aria-label="Zoom">
       <ToolbarButton label="Zoom out" tooltip="Zoom out" onClick={() => void zoomOut({ duration: 200 })}>
         <Icon icon={IconMinus} />
       </ToolbarButton>
       <ToolbarButton
         label="Reset zoom to 100%"
         tooltip="Reset to 100%"
-        className="w-12 text-xs tabular-nums text-muted-foreground"
+        className="w-12 font-mono text-xs tabular-nums text-muted-foreground"
         onClick={() => void zoomTo(1, { duration: 200 })}
       >
         {Math.round(zoom * 100)}%
@@ -235,24 +279,29 @@ function ZoomControls() {
       <ToolbarButton
         label="Fit to screen"
         tooltip="Fit everything (0)"
-        onClick={() => void fitView({ duration: 280, padding: 0.2, maxZoom: 1 })}
+        onClick={() => void fitView({ duration: 280, padding: FIT_PADDING, maxZoom: 1 })}
       >
         <Icon icon={IconFullscreen} />
       </ToolbarButton>
-    </>
+    </div>
   );
 }
 
 function CanvasInner(props: CanvasProps) {
   const { projectId, graph, contents, positions, issues, root } = props;
   const router = useRouter();
-  const { fitView, getNodes, getNode, getIntersectingNodes, setCenter, getZoom } = useReactFlow<CapabilityNode, RelationEdge>();
+  const { fitView, getNodes, getNode, getIntersectingNodes, setCenter, getZoom, screenToFlowPosition } = useReactFlow<
+    FlowNode,
+    RelationEdge
+  >();
 
   const [mode, setMode] = useState<LayoutMode>(props.mode);
   const [collapsed, setCollapsed] = useState(() => new Set(props.collapsed));
   const [snap, setSnap] = useState(false);
   const [locked, setLocked] = useState(false);
-  const [minimap, setMinimap] = useState(true);
+  const [minimap, setMinimap] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(true);
+  const [summaryOpen, setSummaryOpen] = useState(false);
   const [hovered, setHovered] = useState<{ type: "node" | "edge"; id: string }>();
   const [attachTarget, setAttachTarget] = useState<string>();
   const [dragging, setDragging] = useState<string>();
@@ -264,8 +313,13 @@ function CanvasInner(props: CanvasProps) {
   const [notice, setNotice] = useState<{ text: string; tone?: "error"; undo?: boolean }>();
   const [pendingCount, setPendingCount] = useState(0);
   const [sourceState, setSourceState] = useState<SourceState>("saved");
+  const [editingId, setEditingId] = useState<string>();
+  const [annotations, setAnnotations] = useState<AnnotationNode[]>(() => props.annotations.map(toAnnotationNode));
 
   const layoutState = useRef({ mode: props.mode, collapsed: new Set(props.collapsed) });
+  const annotationsRef = useRef(annotations);
+  const savedAnnotations = useRef(JSON.stringify(props.annotations));
+  const surfaceRef = useRef<HTMLDivElement>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const settleTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const noticeTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -273,8 +327,12 @@ function CanvasInner(props: CanvasProps) {
   const pending = useRef<Positions>({});
   const history = useRef<{ past: HistoryEntry[]; future: HistoryEntry[] }>({ past: [], future: [] });
   const dragStart = useRef<Positions>({});
-  const clipboard = useRef<string[]>([]);
+  const clipboard = useRef<{ resources: string[]; annotations: Annotation[] }>({ resources: [], annotations: [] });
   const renderedGraph = useRef(graph);
+
+  useEffect(() => {
+    annotationsRef.current = annotations;
+  }, [annotations]);
 
   const byId = useMemo(() => new Map(graph.nodes.map((node) => [node.id, node])), [graph.nodes]);
   const kinds = useMemo(() => new Map(graph.nodes.map((node) => [node.id, node.kind] as const)), [graph.nodes]);
@@ -283,7 +341,7 @@ function CanvasInner(props: CanvasProps) {
     [graph.edges, kinds],
   );
 
-  const [nodes, setNodes, onNodesChange] = useNodesState<CapabilityNode>(
+  const [nodes, setNodes, onGraphNodesChange] = useNodesState<CapabilityNode>(
     useMemo(() => {
       const layout = { ...autoLayout(graph, props.mode === "freeform" ? "hierarchical" : props.mode), ...positions };
       return graph.nodes.map((node) => ({
@@ -304,7 +362,7 @@ function CanvasInner(props: CanvasProps) {
   useEffect(() => {
     if (!initialized || fitted.current) return;
     fitted.current = true;
-    requestAnimationFrame(() => void fitView({ padding: 0.12, maxZoom: 1 }));
+    requestAnimationFrame(() => void fitView({ padding: FIT_PADDING, maxZoom: 1 }));
   }, [fitView, initialized]);
 
   const usesSet = useMemo(() => new Set(edges.map((edge) => `${edge.source}|${edge.target}`)), [edges]);
@@ -337,10 +395,9 @@ function CanvasInner(props: CanvasProps) {
             const index = placedChildren.get(owner.id) ?? 0;
             placedChildren.set(owner.id, index + 1);
             const horizontal = layoutState.current.mode === "horizontal";
-            const offset = (owner.measured?.height ?? 140) + 72;
             position = horizontal
-              ? { x: owner.position.x + (owner.measured?.width ?? 260) + 96, y: owner.position.y + index * 112 }
-              : { x: owner.position.x + index * 244, y: owner.position.y + offset };
+              ? { x: owner.position.x + (owner.measured?.width ?? 260) + 120, y: owner.position.y + index * 132 }
+              : { x: owner.position.x + index * 256, y: owner.position.y + (owner.measured?.height ?? 140) + 96 };
           }
         }
         return {
@@ -357,20 +414,48 @@ function CanvasInner(props: CanvasProps) {
     });
   }, [graph, graphEdges, positions, setEdges, setNodes]);
 
+  const flushRef = useRef<(() => void) | undefined>(undefined);
   const persist = useCallback(() => {
     clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => {
+    const save = () => {
+      flushRef.current = undefined;
       const next: Positions = {};
-      for (const node of getNodes()) next[node.id] = { x: Math.round(node.position.x), y: Math.round(node.position.y) };
+      for (const node of getNodes()) {
+        if (isCapability(node)) next[node.id] = { x: Math.round(node.position.x), y: Math.round(node.position.y) };
+      }
       for (const [id, position] of Object.entries(pending.current)) {
         next[id] = { x: Math.round(position.x), y: Math.round(position.y) };
       }
       void saveLayoutAction(projectId, next, {
         mode: layoutState.current.mode,
         collapsed: [...layoutState.current.collapsed],
+        annotations: annotationsRef.current.map(fromAnnotationNode),
       });
-    }, 400);
+    };
+    flushRef.current = save;
+    saveTimer.current = setTimeout(save, 400);
   }, [getNodes, projectId]);
+
+  // Leaving the canvas inside the debounce window still saves what was just drawn.
+  useEffect(() => {
+    const flush = () => {
+      clearTimeout(saveTimer.current);
+      flushRef.current?.();
+    };
+    window.addEventListener("pagehide", flush);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      flush();
+    };
+  }, []);
+
+  // Annotations save whenever what they say or where they are changes, not when they are merely selected.
+  useEffect(() => {
+    const serialized = JSON.stringify(annotations.map(fromAnnotationNode));
+    if (serialized === savedAnnotations.current) return;
+    savedAnnotations.current = serialized;
+    persist();
+  }, [annotations, persist]);
 
   const say = useCallback((next: { text: string; tone?: "error"; undo?: boolean } | undefined) => {
     clearTimeout(noticeTimer.current);
@@ -461,10 +546,18 @@ function CanvasInner(props: CanvasProps) {
     (placed: Positions) => {
       settle();
       setNodes((current) => current.map((node) => (placed[node.id] ? { ...node, position: placed[node.id]! } : node)));
+      setAnnotations((current) =>
+        current.map((node) => (placed[node.id] ? ({ ...node, position: placed[node.id]! } as AnnotationNode) : node)),
+      );
       persist();
     },
     [persist, setNodes, settle],
   );
+
+  const applyAnnotations = useCallback((list: Annotation[]) => {
+    setEditingId(undefined);
+    setAnnotations(list.map(toAnnotationNode));
+  }, []);
 
   const undo = useCallback(() => {
     const entry = history.current.past.pop();
@@ -472,18 +565,20 @@ function CanvasInner(props: CanvasProps) {
     history.current.future.push(entry);
     say(undefined);
     if (entry.type === "move") applyPositions(entry.before);
+    else if (entry.type === "annotations") applyAnnotations(entry.before);
     else if (entry.type === "attach") void detach(entry.resource, entry.agent, { record: false });
     else void attach(entry.resource, entry.agent, { record: false });
-  }, [applyPositions, attach, detach, say]);
+  }, [applyAnnotations, applyPositions, attach, detach, say]);
 
   const redo = useCallback(() => {
     const entry = history.current.future.pop();
     if (!entry) return;
     history.current.past.push(entry);
     if (entry.type === "move") applyPositions(entry.after);
+    else if (entry.type === "annotations") applyAnnotations(entry.after);
     else if (entry.type === "attach") void attach(entry.resource, entry.agent, { record: false });
     else void detach(entry.resource, entry.agent, { record: false });
-  }, [applyPositions, attach, detach]);
+  }, [applyAnnotations, applyPositions, attach, detach]);
 
   const applyLayout = useCallback(
     (next: LayoutMode) => {
@@ -491,9 +586,9 @@ function CanvasInner(props: CanvasProps) {
       layoutState.current.mode = next;
       if (next !== "freeform") {
         const placed = autoLayout(graph, next, foldedNodes(graph, layoutState.current.collapsed).hidden);
-        record({ type: "move", before: snapshot(getNodes()), after: placed });
+        record({ type: "move", before: snapshot(getNodes().filter(isCapability)), after: placed });
         applyPositions(placed);
-        requestAnimationFrame(() => void fitView({ duration: 360, padding: 0.2, maxZoom: 1 }));
+        requestAnimationFrame(() => void fitView({ duration: 360, padding: FIT_PADDING, maxZoom: 1 }));
       }
       persist();
     },
@@ -526,11 +621,20 @@ function CanvasInner(props: CanvasProps) {
     [persist],
   );
 
+  const clearSelection = useCallback(() => {
+    setNodes((current) => (current.some((node) => node.selected) ? current.map((node) => ({ ...node, selected: false })) : current));
+    setEdges((current) => (current.some((edge) => edge.selected) ? current.map((edge) => ({ ...edge, selected: false })) : current));
+    setAnnotations((current) =>
+      current.some((node) => node.selected) ? current.map((node) => ({ ...node, selected: false }) as AnnotationNode) : current,
+    );
+  }, [setEdges, setNodes]);
+
   const select = useCallback(
     (id: string) => {
       setDraft(undefined);
-      setNodes((current) => current.map((node) => ({ ...node, selected: node.id === id })));
-      setEdges((current) => current.map((edge) => (edge.selected ? { ...edge, selected: false } : edge)));
+      setSummaryOpen(false);
+      clearSelection();
+      setNodes((current) => current.map((node) => (node.id === id ? { ...node, selected: true } : node)));
       const node = getNode(id);
       if (node) {
         const width = node.measured?.width ?? 240;
@@ -538,25 +642,114 @@ function CanvasInner(props: CanvasProps) {
         void setCenter(node.position.x + width / 2, node.position.y + height / 2, { zoom: Math.max(getZoom(), 0.8), duration: 320 });
       }
     },
-    [getNode, getZoom, setCenter, setEdges, setNodes],
+    [clearSelection, getNode, getZoom, setCenter, setNodes],
   );
 
-  const clearSelection = useCallback(() => {
-    setNodes((current) => (current.some((node) => node.selected) ? current.map((node) => ({ ...node, selected: false })) : current));
-    setEdges((current) => (current.some((edge) => edge.selected) ? current.map((edge) => ({ ...edge, selected: false })) : current));
-  }, [setEdges, setNodes]);
+  const create = useCallback((kind: CreateKind, owner?: string) => {
+    setAddOpen(false);
+    setSummaryOpen(false);
+    if (kind === "skill") {
+      setImportOpen(true);
+      return;
+    }
+    setDraft({ kind, owner: owner && owner !== "agent" && kind !== "channel" ? owner : undefined });
+  }, []);
 
-  const create = useCallback(
-    (kind: CreateKind, owner?: string) => {
-      setAddOpen(false);
-      if (kind === "skill") {
-        setImportOpen(true);
-        return;
-      }
-      setDraft({ kind, owner: owner && owner !== "agent" && kind !== "channel" ? owner : undefined });
+  /* ---------- Annotations ---------- */
+
+  const viewportCenter = useCallback((): Point => {
+    const rect = surfaceRef.current?.getBoundingClientRect();
+    return screenToFlowPosition({
+      x: (rect?.left ?? 0) + (rect?.width ?? 800) / 2,
+      y: (rect?.top ?? 0) + (rect?.height ?? 600) / 2,
+    });
+  }, [screenToFlowPosition]);
+
+  const addAnnotations = useCallback(
+    (added: Annotation[], options: { edit?: boolean } = {}) => {
+      const before = annotationsRef.current.map(fromAnnotationNode);
+      clearSelection();
+      setAnnotations((current) => [
+        ...current.map((node) => (node.selected ? ({ ...node, selected: false } as AnnotationNode) : node)),
+        ...added.map((annotation) => ({ ...toAnnotationNode(annotation), selected: true }) as AnnotationNode),
+      ]);
+      record({ type: "annotations", before, after: [...before, ...added] });
+      if (options.edit && added.length === 1) setEditingId(added[0]!.id);
     },
-    [],
+    [clearSelection, record],
   );
+
+  const addAnnotation = useCallback(
+    (type: Annotation["type"], point?: Point) => {
+      addAnnotations([newAnnotation(type, point ?? viewportCenter())], { edit: true });
+    },
+    [addAnnotations, viewportCenter],
+  );
+
+  const duplicateAnnotations = useCallback(
+    (source: Annotation[]) => {
+      if (source.length === 0) return;
+      addAnnotations(
+        source.map((annotation) => ({
+          ...annotation,
+          id: `${annotation.type}:${crypto.randomUUID().slice(0, 8)}`,
+          x: annotation.x + 32,
+          y: annotation.y + 32,
+        })),
+      );
+    },
+    [addAnnotations],
+  );
+
+  const removeSelectedAnnotations = useCallback((): boolean => {
+    const current = annotationsRef.current;
+    if (!current.some((node) => node.selected)) return false;
+    record({
+      type: "annotations",
+      before: current.map(fromAnnotationNode),
+      after: current.filter((node) => !node.selected).map(fromAnnotationNode),
+    });
+    setAnnotations((list) => list.filter((node) => !node.selected));
+    return true;
+  }, [record]);
+
+  const styleSelected = useCallback(
+    (patch: Partial<Annotation>) => {
+      const current = annotationsRef.current;
+      const next = current.map((node) => (node.selected ? ({ ...node, data: { ...node.data, ...patch } } as AnnotationNode) : node));
+      record({ type: "annotations", before: current.map(fromAnnotationNode), after: next.map(fromAnnotationNode) });
+      setAnnotations(next);
+    },
+    [record],
+  );
+
+  const annotationContext = useMemo<AnnotationContextValue>(
+    () => ({
+      editingId,
+      setEditing: setEditingId,
+      update: (id, patch) =>
+        setAnnotations((current) =>
+          current.map((node) => (node.id === id ? ({ ...node, data: { ...node.data, ...patch } } as AnnotationNode) : node)),
+        ),
+      remove: (id) => setAnnotations((current) => current.filter((node) => node.id !== id)),
+      commit: persist,
+    }),
+    [editingId, persist],
+  );
+
+  const onNodesChange = useCallback(
+    (changes: NodeChange<FlowNode>[]) => {
+      const forAnnotations = changes.filter((change) => "id" in change && isAnnotationId(change.id));
+      const forGraph = changes.filter((change) => !("id" in change && isAnnotationId(change.id)));
+      if (forGraph.length > 0) onGraphNodesChange(forGraph as NodeChange<CapabilityNode>[]);
+      if (forAnnotations.length > 0) {
+        setAnnotations((current) => applyNodeChanges(forAnnotations as NodeChange<AnnotationNode>[], current));
+      }
+    },
+    [onGraphNodesChange],
+  );
+
+  /* ---------- Deletion ---------- */
 
   const removeNode = useCallback(async () => {
     const node = confirmDelete;
@@ -569,6 +762,7 @@ function CanvasInner(props: CanvasProps) {
 
   const selectedNodes = nodes.filter((node) => node.selected);
   const selectedEdges = edges.filter((edge) => edge.selected);
+  const selectedAnnotations = annotations.filter((node) => node.selected);
   const selected = selectedNodes.length === 1 ? byId.get(selectedNodes[0]!.id) : undefined;
   const addTarget = selected && isAgentKind(selected.kind) ? selected : byId.get("agent");
 
@@ -602,19 +796,28 @@ function CanvasInner(props: CanvasProps) {
       if (mod && key === "a") {
         event.preventDefault();
         setNodes((current) => current.map((node) => (node.hidden ? node : { ...node, selected: true })));
+        setAnnotations((current) => current.map((node) => ({ ...node, selected: true }) as AnnotationNode));
         return;
       }
       if (mod && key === "c") {
-        const copied = getNodes().filter((node) => node.selected && isResourceKind(node.data.kind));
-        if (copied.length === 0) return;
-        clipboard.current = copied.map((node) => node.id);
-        say({ text: `Copied ${copied.length === 1 ? copied[0]!.data.name : `${copied.length} resources`}. Select an agent and paste to attach.` });
+        const resources = getNodes().filter((node): node is CapabilityNode => node.selected === true && isCapability(node) && isResourceKind(node.data.kind));
+        const notes = annotationsRef.current.filter((node) => node.selected).map(fromAnnotationNode);
+        if (resources.length === 0 && notes.length === 0) return;
+        clipboard.current = { resources: resources.map((node) => node.id), annotations: notes };
+        if (resources.length > 0) {
+          say({ text: `Copied ${resources.length === 1 ? resources[0]!.data.name : `${resources.length} resources`}. Select an agent and paste to attach.` });
+        }
         return;
       }
       if (mod && key === "v") {
-        if (clipboard.current.length === 0 || !addTarget) return;
         event.preventDefault();
-        for (const resource of clipboard.current) void attach(resource, addTarget.id);
+        duplicateAnnotations(clipboard.current.annotations);
+        if (addTarget) for (const resource of clipboard.current.resources) void attach(resource, addTarget.id);
+        return;
+      }
+      if (mod && key === "d") {
+        event.preventDefault();
+        duplicateAnnotations(annotationsRef.current.filter((node) => node.selected).map(fromAnnotationNode));
         return;
       }
       if (mod || event.altKey) return;
@@ -622,12 +825,12 @@ function CanvasInner(props: CanvasProps) {
       switch (event.key) {
         case "Delete":
         case "Backspace": {
+          event.preventDefault();
+          const removedAnnotations = removeSelectedAnnotations();
           const detachable = selectedEdges.filter((edge) => edge.data?.detachable);
           if (detachable.length > 0) {
-            event.preventDefault();
             for (const edge of detachable) void detach(edge.target, edge.source);
-          } else if (selected && selected.kind !== "agent") {
-            event.preventDefault();
+          } else if (!removedAnnotations && selected && selected.kind !== "agent") {
             setConfirmDelete(selected);
           }
           break;
@@ -637,7 +840,7 @@ function CanvasInner(props: CanvasProps) {
           focusSelection();
           break;
         case "0":
-          void fitView({ duration: 320, padding: 0.2, maxZoom: 1 });
+          void fitView({ duration: 320, padding: FIT_PADDING, maxZoom: 1 });
           break;
         case "1":
           void fitView({ nodes: [{ id: "agent" }], duration: 320, padding: 0.6, maxZoom: 1 });
@@ -647,8 +850,19 @@ function CanvasInner(props: CanvasProps) {
           event.preventDefault();
           setAddOpen(true);
           break;
+        case "n":
+        case "N":
+          event.preventDefault();
+          addAnnotation("note");
+          break;
+        case "s":
+        case "S":
+          event.preventDefault();
+          addAnnotation("section");
+          break;
         case "Escape":
           setDraft(undefined);
+          setSummaryOpen(false);
           clearSelection();
           say(undefined);
           break;
@@ -656,12 +870,29 @@ function CanvasInner(props: CanvasProps) {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [addTarget, attach, clearSelection, detach, fitView, focusSelection, getNodes, redo, say, selected, selectedEdges, setNodes, undo]);
+  }, [
+    addAnnotation,
+    addTarget,
+    attach,
+    clearSelection,
+    detach,
+    duplicateAnnotations,
+    fitView,
+    focusSelection,
+    getNodes,
+    redo,
+    removeSelectedAnnotations,
+    say,
+    selected,
+    selectedEdges,
+    setNodes,
+    undo,
+  ]);
 
   const { hidden, counts } = useMemo(() => foldedNodes(graph, collapsed), [collapsed, graph]);
 
   const related = useMemo(() => {
-    if (!hovered || dragging) return undefined;
+    if (!hovered || dragging || isAnnotationId(hovered.id)) return undefined;
     if (hovered.type === "edge") {
       const edge = graph.edges.find((candidate) => `${candidate.source}->${candidate.target}` === hovered.id);
       return new Set(edge ? [edge.source, edge.target] : []);
@@ -697,18 +928,35 @@ function CanvasInner(props: CanvasProps) {
     [attachTarget, collapsed, counts, hidden, nodes, related, settling],
   );
 
+  const flowNodes = useMemo<FlowNode[]>(
+    () => [
+      ...annotations.filter((node) => node.type === "section"),
+      ...displayNodes,
+      ...annotations.filter((node) => node.type === "note"),
+    ],
+    [annotations, displayNodes],
+  );
+
   const displayEdges = useMemo(() => {
+    const crowded = edges.length > 40;
     const list = edges.map((edge) => {
-      const touches = hovered?.type === "edge" ? hovered.id === edge.id : hovered?.type === "node" && (edge.source === hovered.id || edge.target === hovered.id);
+      const hoveredEdge = hovered?.type === "edge" && hovered.id === edge.id;
+      const touches = hoveredEdge || (hovered?.type === "node" && (edge.source === hovered.id || edge.target === hovered.id));
       const kind = kinds.get(edge.target) ?? "tool";
       const className = [`edge-${kind}`, related ? (touches ? "is-related" : "is-dim") : ""].filter(Boolean).join(" ");
-      const showLabel = Boolean(edge.selected || (hovered?.type === "edge" && hovered.id === edge.id));
+      const showLabel = Boolean(!crowded || edge.selected || touches);
       if (edge.className === className && edge.data?.showLabel === showLabel) return edge;
       return { ...edge, className, data: { ...edge.data!, showLabel } };
     });
     if (dragging && attachTarget) {
       const kind = kinds.get(dragging) ?? "tool";
-      list.push({ ...toEdge({ source: attachTarget, target: dragging, relation: "has tool" }, kind), id: "attach-preview", className: `edge-${kind} is-preview`, selectable: false });
+      list.push({
+        ...toEdge({ source: attachTarget, target: dragging, relation: "has tool" }, kind),
+        id: "attach-preview",
+        className: `edge-${kind} is-preview`,
+        selectable: false,
+        data: { detachable: false },
+      });
     }
     return list;
   }, [attachTarget, dragging, edges, hovered, kinds, related]);
@@ -721,12 +969,9 @@ function CanvasInner(props: CanvasProps) {
     [kinds, uses],
   );
 
-  const onConnect = useCallback(
-    (connection: Connection) => void attach(connection.target, connection.source),
-    [attach],
-  );
+  const onConnect = useCallback((connection: Connection) => void attach(connection.target, connection.source), [attach]);
 
-  const onNodeDragStart = useCallback<OnNodeDrag<CapabilityNode>>(
+  const onNodeDragStart = useCallback<OnNodeDrag<FlowNode>>(
     (_, node) => {
       dragStart.current = snapshot(getNodes());
       setDragging(node.id);
@@ -734,16 +979,16 @@ function CanvasInner(props: CanvasProps) {
     [getNodes],
   );
 
-  const onNodeDrag = useCallback<OnNodeDrag<CapabilityNode>>(
+  const onNodeDrag = useCallback<OnNodeDrag<FlowNode>>(
     (_, node) => {
-      if (!isResourceKind(node.data.kind)) return;
+      if (!isCapability(node) || !isResourceKind(node.data.kind)) return;
       const hit = getIntersectingNodes(node).find((candidate) => isAgentKind(kinds.get(candidate.id)) && !uses(candidate.id, node.id));
       setAttachTarget((current) => (current === hit?.id ? current : hit?.id));
     },
     [getIntersectingNodes, kinds, uses],
   );
 
-  const onNodeDragStop = useCallback<OnNodeDrag<CapabilityNode>>(
+  const onNodeDragStop = useCallback<OnNodeDrag<FlowNode>>(
     (_, node, dragged) => {
       setDragging(undefined);
       const target = attachTarget;
@@ -763,14 +1008,13 @@ function CanvasInner(props: CanvasProps) {
           after[moved.id] = moved.position;
         }
       }
-      if (Object.keys(after).length > 0) {
-        record({ type: "move", before, after });
-        if (layoutState.current.mode !== "freeform") {
-          layoutState.current.mode = "freeform";
-          setMode("freeform");
-        }
-        persist();
+      if (Object.keys(after).length === 0) return;
+      record({ type: "move", before, after });
+      if (dragged.some(isCapability) && layoutState.current.mode !== "freeform") {
+        layoutState.current.mode = "freeform";
+        setMode("freeform");
       }
+      persist();
     },
     [applyPositions, attach, attachTarget, persist, record],
   );
@@ -786,6 +1030,11 @@ function CanvasInner(props: CanvasProps) {
     [kinds],
   );
 
+  const overCanvas = useCallback((point: Point) => {
+    const target = document.elementFromPoint(point.x, point.y);
+    return Boolean(target && surfaceRef.current?.contains(target) && !target.closest(".canvas-float"));
+  }, []);
+
   const context = useMemo<CanvasContextValue>(
     () => ({
       horizontal: mode === "horizontal",
@@ -797,101 +1046,124 @@ function CanvasInner(props: CanvasProps) {
   );
 
   const errors = issues.filter((issue) => issue.level === "error");
-  const sync =
+  const saveState =
     pendingCount > 0
-      ? { label: "Writing files", tone: "busy" }
+      ? { label: "Saving", tone: "busy" }
       : sourceState === "conflict"
         ? { label: "Conflict", tone: "error" }
         : sourceState === "dirty"
           ? { label: "Unsaved", tone: "warning" }
-          : errors.length > 0
-            ? { label: `${errors.length} ${errors.length === 1 ? "issue" : "issues"}`, tone: "error" }
-            : { label: "In sync", tone: "ok" };
+          : { label: "Saved", tone: "ok" };
 
+  const count = (kind: CanvasNodeKind) => graph.nodes.filter((node) => node.kind === kind).length;
+  const agents = count("agent") + count("subagent");
+  const resources = count("tool") + count("skill") + count("connection");
+  const stats = [
+    { label: "Agents", value: agents },
+    { label: "Tools", value: count("tool") },
+    { label: "Skills", value: count("skill") },
+    { label: "Connections", value: count("connection") },
+    { label: "Channels", value: count("channel") },
+    { label: "Shared", value: graph.nodes.filter((node) => node.shared).length },
+  ];
+  const notes = annotations.length;
+  const rootNode = byId.get("agent");
   const empty = graph.nodes.every((node) => node.kind === "agent" || node.kind === "channel");
   const attachable = addTarget ? graph.nodes.filter((node) => isResourceKind(node.kind) && !uses(addTarget.id, node.id)) : [];
+  const showInspector = Boolean(draft || selected || summaryOpen);
 
   return (
     <CanvasContext.Provider value={context}>
-      <div className="canvas-layout">
-        <ResourceBrowser
-          nodes={graph.nodes}
-          selectedId={selected?.id}
-          onSelect={select}
-          onCreate={(kind) => create(kind)}
-          canDrop={(resource, point) => {
-            const target = agentAt(point);
-            const ok = Boolean(target && !uses(target, resource));
-            setAttachTarget((current) => {
-              const next = ok ? target : undefined;
-              return current === next ? current : next;
-            });
-            return ok;
-          }}
-          onDrop={(resource, point) => {
-            const target = agentAt(point);
-            setAttachTarget(undefined);
-            if (target) void attach(resource, target);
-          }}
-          onHoverDrop={(over) => {
-            if (!over) setAttachTarget(undefined);
-          }}
-        />
-
-        <div className="canvas-surface" data-locked={locked || undefined}>
-          <ReactFlow<CapabilityNode, RelationEdge>
-            nodes={displayNodes}
-            edges={displayEdges}
-            nodeTypes={nodeTypes}
-            edgeTypes={edgeTypes}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onNodeMouseEnter={useCallback<NodeMouseHandler<CapabilityNode>>((_, node) => setHovered({ type: "node", id: node.id }), [])}
-            onNodeMouseLeave={useCallback(() => setHovered(undefined), [])}
-            onEdgeMouseEnter={useCallback<EdgeMouseHandler<RelationEdge>>((_, edge) => setHovered({ type: "edge", id: edge.id }), [])}
-            onEdgeMouseLeave={useCallback(() => setHovered(undefined), [])}
-            onNodeClick={() => setDraft(undefined)}
-            onPaneClick={() => setDraft(undefined)}
-            onNodeDragStart={onNodeDragStart}
-            onNodeDrag={onNodeDrag}
-            onNodeDragStop={onNodeDragStop}
-            onConnect={onConnect}
-            isValidConnection={isValidConnection}
-            connectionLineComponent={CanvasConnectionLine}
-            connectionRadius={40}
-            selectionOnDrag
-            selectionMode={SelectionMode.Partial}
-            panOnDrag={[1, 2]}
-            panOnScroll
-            multiSelectionKeyCode={["Meta", "Control", "Shift"]}
-            // Deleting a node removes files; the canvas asks first, so React Flow never deletes on its own.
-            deleteKeyCode={null}
-            snapToGrid={snap}
-            snapGrid={[16, 16]}
-            nodesDraggable={!locked}
-            nodesConnectable={!locked}
-            elevateEdgesOnSelect
-            onlyRenderVisibleElements={graph.nodes.length > 120}
-            // React Flow asks open projects without a Pro plan to keep its attribution.
-            attributionPosition="bottom-left"
-            minZoom={0.2}
-            maxZoom={2}
+      <AnnotationContext.Provider value={annotationContext}>
+        <div className="canvas-layout" data-panel={panelOpen || undefined} data-inspector={showInspector || undefined}>
+          <div
+            className="canvas-surface"
+            ref={surfaceRef}
+            data-locked={locked || undefined}
+            onDoubleClick={(event) => {
+              // Double-click on empty canvas writes a note there, as on a whiteboard.
+              if (!(event.target as HTMLElement).classList.contains("react-flow__pane")) return;
+              addAnnotation("note", screenToFlowPosition({ x: event.clientX, y: event.clientY }));
+            }}
           >
-            <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="var(--canvas-dot)" />
-            {minimap && (
-              <MiniMap
-                pannable
-                zoomable
-                position="bottom-right"
-                nodeBorderRadius={4}
-                nodeStrokeWidth={0}
-                nodeClassName={(node) => `minimap-node minimap-${(node.data as CanvasNodeData).kind}`}
-                ariaLabel="Minimap"
-              />
-            )}
-          </ReactFlow>
+            <ReactFlow<FlowNode, RelationEdge>
+              nodes={flowNodes}
+              edges={displayEdges}
+              nodeTypes={nodeTypes}
+              edgeTypes={edgeTypes}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onNodeMouseEnter={useCallback<NodeMouseHandler<FlowNode>>((_, node) => setHovered({ type: "node", id: node.id }), [])}
+              onNodeMouseLeave={useCallback(() => setHovered(undefined), [])}
+              onEdgeMouseEnter={useCallback<EdgeMouseHandler<RelationEdge>>((_, edge) => setHovered({ type: "edge", id: edge.id }), [])}
+              onEdgeMouseLeave={useCallback(() => setHovered(undefined), [])}
+              onNodeClick={() => {
+                setDraft(undefined);
+                setSummaryOpen(false);
+              }}
+              onPaneClick={() => setDraft(undefined)}
+              onNodeDragStart={onNodeDragStart}
+              onNodeDrag={onNodeDrag}
+              onNodeDragStop={onNodeDragStop}
+              onConnect={onConnect}
+              isValidConnection={isValidConnection}
+              connectionLineComponent={CanvasConnectionLine}
+              connectionRadius={40}
+              // Whiteboard controls: drag and scroll pan, Ctrl or pinch zooms, Shift draws a selection.
+              panOnDrag
+              panOnScroll
+              selectionKeyCode="Shift"
+              multiSelectionKeyCode={["Meta", "Control"]}
+              zoomOnDoubleClick={false}
+              // Deleting a node removes files; the canvas asks first, so React Flow never deletes on its own.
+              deleteKeyCode={null}
+              snapToGrid={snap}
+              snapGrid={[24, 24]}
+              nodesDraggable={!locked}
+              nodesConnectable={!locked}
+              elevateEdgesOnSelect
+              onlyRenderVisibleElements={graph.nodes.length > 120}
+              // React Flow asks open projects without a Pro plan to keep its attribution.
+              attributionPosition="top-right"
+              minZoom={0.15}
+              maxZoom={2.5}
+            >
+              <Background variant={BackgroundVariant.Lines} gap={24} lineWidth={1} color="var(--canvas-grid)" />
+              {minimap && (
+                <MiniMap
+                  pannable
+                  zoomable
+                  position="bottom-right"
+                  nodeBorderRadius={4}
+                  nodeStrokeWidth={0}
+                  nodeClassName={(node) =>
+                    node.type === "capability" ? `minimap-node minimap-${(node.data as CanvasNodeData).kind}` : "minimap-node minimap-annotation"
+                  }
+                  ariaLabel="Minimap"
+                />
+              )}
+            </ReactFlow>
+          </div>
 
-          <div className="canvas-toolbar" role="toolbar" aria-label="Canvas">
+          <div className="canvas-float canvas-title">
+            <div className="canvas-title-text">
+              <p className="canvas-title-name" title={rootNode?.name}>
+                {rootNode?.name}
+              </p>
+              <p className="canvas-save" data-tone={saveState.tone} role="status" aria-label="Save state">
+                <span className="sync-dot" aria-hidden="true" />
+                {saveState.label}
+              </p>
+            </div>
+            <ToolbarButton label="Undo" tooltip="Undo (Ctrl Z)" onClick={undo}>
+              <Icon icon={IconRotateCounterClockwise} />
+            </ToolbarButton>
+            <ToolbarButton label="Redo" tooltip="Redo (Ctrl Shift Z)" onClick={redo} className="icon-mirror">
+              <Icon icon={IconRotateCounterClockwise} />
+            </ToolbarButton>
+          </div>
+
+          <div className="canvas-float canvas-stats" role="toolbar" aria-label="Canvas">
             <DropdownMenu open={addOpen} onOpenChange={setAddOpen}>
               <DropdownMenuTrigger asChild>
                 <Button size="sm" className="gap-1.5">
@@ -899,17 +1171,8 @@ function CanvasInner(props: CanvasProps) {
                   Add
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" sideOffset={8} className="w-72">
-                <DropdownMenuLabel>
-                  Add to {addTarget?.kind === "subagent" ? addTarget.name : "the architecture"}
-                </DropdownMenuLabel>
-                <DropdownMenuItem disabled>
-                  <KindTile kind="agent" />
-                  <span className="menu-text">
-                    Agent
-                    <span className="menu-hint">One root agent per Eve project</span>
-                  </span>
-                </DropdownMenuItem>
+              <DropdownMenuContent align="start" sideOffset={10} className="w-72">
+                <DropdownMenuLabel>Add to {addTarget?.kind === "subagent" ? addTarget.name : "the architecture"}</DropdownMenuLabel>
                 {ADD_ITEMS.map((item) => (
                   <DropdownMenuItem
                     key={item.kind}
@@ -923,6 +1186,21 @@ function CanvasInner(props: CanvasProps) {
                     </span>
                   </DropdownMenuItem>
                 ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => addAnnotation("note")}>
+                  <span className="menu-text">
+                    Note
+                    <span className="menu-hint">Handwritten text on the canvas</span>
+                  </span>
+                  <kbd className="menu-kbd">N</kbd>
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => addAnnotation("section")}>
+                  <span className="menu-text">
+                    Section
+                    <span className="menu-hint">A coloured frame to group agents</span>
+                  </span>
+                  <kbd className="menu-kbd">S</kbd>
+                </DropdownMenuItem>
                 {attachable.length > 0 && addTarget && (
                   <>
                     <DropdownMenuSeparator />
@@ -943,31 +1221,58 @@ function CanvasInner(props: CanvasProps) {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <span className="canvas-toolbar-separator" aria-hidden="true" />
+            <span className="canvas-stats-separator" aria-hidden="true" />
 
+            {stats.map((stat) => (
+              <div key={stat.label} className="canvas-stat">
+                <span className="canvas-stat-label">{stat.label}</span>
+                <span className="canvas-stat-value">{stat.value}</span>
+              </div>
+            ))}
+            <button
+              type="button"
+              className="canvas-stat canvas-stat-button"
+              data-tone={errors.length > 0 ? "error" : issues.length > 0 ? "warning" : undefined}
+              aria-pressed={summaryOpen}
+              onClick={() => {
+                clearSelection();
+                setDraft(undefined);
+                setSummaryOpen((open) => !open);
+              }}
+            >
+              <span className="canvas-stat-label">Issues</span>
+              <span className="canvas-stat-value">{issues.length}</span>
+            </button>
+          </div>
+
+          <p className="canvas-hints" aria-hidden="true">
+            <span>Scroll to pan</span>
+            <span>Ctrl+scroll to zoom</span>
+            <span>Shift+drag to select</span>
+            <span>Double-click to write</span>
+          </p>
+
+          <div className="canvas-float canvas-view-menu">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground">
-                  Layout
-                  <Icon icon={IconChevronDown} size={14} />
+                <Button variant="ghost" size="icon-sm" aria-label="View options">
+                  <Icon icon={IconSettingsSliders} />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" sideOffset={8} className="w-60">
+              <DropdownMenuContent align="end" sideOffset={10} className="w-56">
+                <DropdownMenuLabel>Layout</DropdownMenuLabel>
                 <DropdownMenuRadioGroup value={mode} onValueChange={(value) => applyLayout(value as LayoutMode)}>
                   {LAYOUTS.map((layout) => (
                     <DropdownMenuRadioItem key={layout.mode} value={layout.mode}>
-                      <span className="menu-text">
-                        {layout.label}
-                        <span className="menu-hint">{layout.hint}</span>
-                      </span>
+                      {layout.label}
                     </DropdownMenuRadioItem>
                   ))}
                 </DropdownMenuRadioGroup>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem disabled={selectedNodes.length < 2} onSelect={() => align("x")}>
+                <DropdownMenuItem disabled={selectedNodes.length + selectedAnnotations.length < 2} onSelect={() => align("x")}>
                   Align left edges
                 </DropdownMenuItem>
-                <DropdownMenuItem disabled={selectedNodes.length < 2} onSelect={() => align("y")}>
+                <DropdownMenuItem disabled={selectedNodes.length + selectedAnnotations.length < 2} onSelect={() => align("y")}>
                   Align top edges
                 </DropdownMenuItem>
                 <DropdownMenuItem
@@ -990,51 +1295,94 @@ function CanvasInner(props: CanvasProps) {
                 <DropdownMenuCheckboxItem checked={locked} onCheckedChange={(value) => setLocked(value === true)}>
                   Lock canvas
                 </DropdownMenuCheckboxItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={undo}>
-                  Undo
-                  <DropdownMenuShortcut>Ctrl Z</DropdownMenuShortcut>
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={redo}>
-                  Redo
-                  <DropdownMenuShortcut>Ctrl Shift Z</DropdownMenuShortcut>
-                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-
-            <span className="canvas-toolbar-separator" aria-hidden="true" />
-            <ZoomControls />
-            <span className="canvas-toolbar-separator" aria-hidden="true" />
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button type="button" className="sync-status" data-tone={sync.tone} onClick={clearSelection}>
-                  <span className="sync-dot" aria-hidden="true" />
-                  {sync.label}
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" sideOffset={6}>
-                The canvas reads and writes the Eve files directly.
-              </TooltipContent>
-            </Tooltip>
           </div>
 
-          {empty && !draft && (
+          {panelOpen && (
+            <ResourceBrowser
+              nodes={graph.nodes}
+              selectedId={selected?.id}
+              onSelect={select}
+              onCreate={(kind) => create(kind)}
+              canDrop={(resource, point) => {
+                const target = agentAt(point);
+                const ok = Boolean(target && !uses(target, resource));
+                setAttachTarget((current) => {
+                  const next = ok ? target : undefined;
+                  return current === next ? current : next;
+                });
+                return ok;
+              }}
+              onDrop={(resource, point) => {
+                const target = agentAt(point);
+                setAttachTarget(undefined);
+                if (target) void attach(resource, target);
+              }}
+              onHoverDrop={(over) => {
+                if (!over) setAttachTarget(undefined);
+              }}
+              canPlace={overCanvas}
+              onAnnotate={(type, point) => addAnnotation(type, point ? screenToFlowPosition(point) : undefined)}
+            />
+          )}
+
+          <div className="canvas-bottom-left">
+            <div className="canvas-float canvas-icon-float">
+              <ToolbarButton
+                label={panelOpen ? "Hide resources" : "Show resources"}
+                tooltip={panelOpen ? "Hide resources" : "Show resources"}
+                onClick={() => setPanelOpen((open) => !open)}
+              >
+                <Icon icon={IconSidebarLeft} />
+              </ToolbarButton>
+            </div>
+            <p className="canvas-float canvas-status">
+              <span>
+                {agents} {agents === 1 ? "agent" : "agents"}
+              </span>
+              <span>
+                {resources} {resources === 1 ? "resource" : "resources"}
+              </span>
+              <span>
+                {graph.edges.length} {graph.edges.length === 1 ? "edge" : "edges"}
+              </span>
+              {notes > 0 && (
+                <span>
+                  {notes} {notes === 1 ? "annotation" : "annotations"}
+                </span>
+              )}
+              <span className="canvas-status-mode">{mode}</span>
+            </p>
+          </div>
+
+          {selectedAnnotations.length > 0 && (
+            <AnnotationToolbar selection={selectedAnnotations.map((node) => node.data)} onChange={styleSelected} />
+          )}
+
+          <ZoomControls />
+
+          {empty && !draft && annotations.length === 0 && (
             <div className="canvas-empty">
               <p className="canvas-empty-title">Build your agent architecture</p>
               <p className="canvas-empty-text">
-                Give the root agent subagents, tools, skills and connections. A resource can be shared by any number of
-                agents and is still defined once.
+                Give the root agent subagents, tools, skills and connections, then sketch around them with notes and
+                sections. A resource can be shared by any number of agents and is still defined once.
               </p>
-              <Button size="sm" onClick={() => setAddOpen(true)}>
-                <Icon icon={IconPlus} />
-                Add resource
-              </Button>
+              <div className="row justify-center">
+                <Button size="sm" onClick={() => setAddOpen(true)}>
+                  <Icon icon={IconPlus} />
+                  Add resource
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => addAnnotation("note")}>
+                  Write a note
+                </Button>
+              </div>
             </div>
           )}
 
           {notice && (
-            <div className="canvas-notice" role="status" data-tone={notice.tone}>
+            <div className="canvas-float canvas-notice" role="status" data-tone={notice.tone} data-raised={selectedAnnotations.length > 0 || undefined}>
               <span>{notice.text}</span>
               {notice.undo && (
                 <button type="button" className="canvas-notice-action" onClick={undo}>
@@ -1043,70 +1391,75 @@ function CanvasInner(props: CanvasProps) {
               )}
             </div>
           )}
-        </div>
 
-        <InspectorColumn label={draft ? "Create" : selected ? `${selected.name} inspector` : "Architecture"}>
-          {draft ? (
-            <CanvasCreatePanel
-              key={`${draft.kind}-${draft.owner ?? "root"}`}
-              projectId={projectId}
-              kind={draft.kind}
-              root={root}
-              owner={draft.owner ? byId.get(draft.owner)?.name : undefined}
-              defaultModel={props.defaultModel}
-              models={props.models}
-              existingChannels={graph.nodes.filter((node) => node.kind === "channel").map((node) => node.name)}
-              chatSdkAdapters={props.chatSdkAdapters}
-              chatSdkStates={props.chatSdkStates}
-              onClose={() => setDraft(undefined)}
-              onSubmitted={(entityId) => {
-                const owner = draft.owner;
-                const kind = draft.kind;
-                setDraft(undefined);
-                say({ text: `Created ${entityId}` });
-                if (owner && (kind === "tool" || kind === "connection")) {
-                  // Created at the root first, then moved into the subagent's own folder.
-                  void run(() => changeOwnershipAction({ projectId, capability: `${kind}:${entityId}`, to: owner }));
-                }
-              }}
-            />
-          ) : (
-            <CanvasInspector
-              projectId={projectId}
-              graph={graph}
-              node={selected}
-              content={selected ? (contents[selected.filePath] ?? "") : ""}
-              issues={issues}
-              onSelect={select}
-              onClear={clearSelection}
-              onAttach={(resource, agent) => void attach(resource, agent)}
-              onDetach={(resource, agent) => void detach(resource, agent)}
-              onCreate={create}
-              onDelete={setConfirmDelete}
-              onSourceState={setSourceState}
-            />
+          {showInspector && (
+            <InspectorColumn label={draft ? "Create" : selected ? `${selected.name} inspector` : "Architecture"}>
+              {draft ? (
+                <CanvasCreatePanel
+                  key={`${draft.kind}-${draft.owner ?? "root"}`}
+                  projectId={projectId}
+                  kind={draft.kind}
+                  root={root}
+                  owner={draft.owner ? byId.get(draft.owner)?.name : undefined}
+                  defaultModel={props.defaultModel}
+                  models={props.models}
+                  existingChannels={graph.nodes.filter((node) => node.kind === "channel").map((node) => node.name)}
+                  chatSdkAdapters={props.chatSdkAdapters}
+                  chatSdkStates={props.chatSdkStates}
+                  onClose={() => setDraft(undefined)}
+                  onSubmitted={(entityId) => {
+                    const owner = draft.owner;
+                    const kind = draft.kind;
+                    setDraft(undefined);
+                    say({ text: `Created ${entityId}` });
+                    if (owner && (kind === "tool" || kind === "connection")) {
+                      // Created at the root first, then moved into the subagent's own folder.
+                      void run(() => changeOwnershipAction({ projectId, capability: `${kind}:${entityId}`, to: owner }));
+                    }
+                  }}
+                />
+              ) : (
+                <CanvasInspector
+                  projectId={projectId}
+                  graph={graph}
+                  node={selected}
+                  content={selected ? (contents[selected.filePath] ?? "") : ""}
+                  issues={issues}
+                  onSelect={select}
+                  onClear={() => {
+                    clearSelection();
+                    setSummaryOpen(false);
+                  }}
+                  onAttach={(resource, agent) => void attach(resource, agent)}
+                  onDetach={(resource, agent) => void detach(resource, agent)}
+                  onCreate={create}
+                  onDelete={setConfirmDelete}
+                  onSourceState={setSourceState}
+                />
+              )}
+            </InspectorColumn>
           )}
-        </InspectorColumn>
 
-        <SkillImportDialog projectId={projectId} open={importOpen} onClose={() => setImportOpen(false)} />
+          <SkillImportDialog projectId={projectId} open={importOpen} onClose={() => setImportOpen(false)} />
 
-        <ConfirmDialog
-          open={Boolean(confirmDelete)}
-          onOpenChange={(open) => {
-            if (!open) setConfirmDelete(undefined);
-          }}
-          title={`Delete ${confirmDelete?.name ?? ""}?`}
-          description={
-            confirmDelete?.kind === "subagent"
-              ? "This removes the subagent's folder with everything defined inside it. Commit first if you might want it back."
-              : confirmDelete?.shared
-                ? `This removes ${confirmDelete.filePath} and the re-export from all ${confirmDelete.usedBy?.length ?? 0} agents using it.`
-                : `This removes ${confirmDelete?.filePath ?? "the file"} from the project. Commit first if you might want it back.`
-          }
-          confirmLabel="Delete"
-          onConfirm={() => void removeNode()}
-        />
-      </div>
+          <ConfirmDialog
+            open={Boolean(confirmDelete)}
+            onOpenChange={(open) => {
+              if (!open) setConfirmDelete(undefined);
+            }}
+            title={`Delete ${confirmDelete?.name ?? ""}?`}
+            description={
+              confirmDelete?.kind === "subagent"
+                ? "This removes the subagent's folder with everything defined inside it. Commit first if you might want it back."
+                : confirmDelete?.shared
+                  ? `This removes ${confirmDelete.filePath} and the re-export from all ${confirmDelete.usedBy?.length ?? 0} agents using it.`
+                  : `This removes ${confirmDelete?.filePath ?? "the file"} from the project. Commit first if you might want it back.`
+            }
+            confirmLabel="Delete"
+            onConfirm={() => void removeNode()}
+          />
+        </div>
+      </AnnotationContext.Provider>
     </CanvasContext.Provider>
   );
 }
