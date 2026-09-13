@@ -4,7 +4,16 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { CanvasGraph, CanvasNode, CanvasNodeKind } from "@evelab/eve-project";
-import { IconCheckCircle, IconCross, IconMinusCircle, IconPlus, IconWarning } from "@/components/icons";
+import {
+  IconArrowUpRight,
+  IconCheckCircle,
+  IconCross,
+  IconFullscreen,
+  IconMinusCircle,
+  IconMoreVertical,
+  IconPlus,
+  IconWarning,
+} from "@/components/icons";
 import { isAgentKind, isResourceKind } from "@/components/canvas/canvas-node";
 import { CodeEditor, languageFor } from "@/components/editor";
 import { Icon } from "@/components/icon";
@@ -41,8 +50,9 @@ export function dialogIsOpen(): boolean {
 }
 
 const GROUP_ORDER: CreateKind[] = ["subagent", "tool", "skill", "connection", "channel"];
+const SLOT: Record<"tool" | "skill" | "connection", string> = { tool: "tools", skill: "skills", connection: "connections" };
 
-/** The right-hand column. Always there, so selecting something never moves the canvas. */
+/** The floating panel on the right. It appears with a selection and leaves with it. */
 export function InspectorColumn({ label, children }: { label: string; children: ReactNode }) {
   return (
     <aside className="canvas-float canvas-inspector" aria-label={label}>
@@ -59,6 +69,7 @@ interface InspectorProps {
   content: string;
   issues: Issue[];
   onSelect: (id: string) => void;
+  onFocus: (id: string) => void;
   onClear: () => void;
   onAttach: (resource: string, agent: string) => void;
   onDetach: (resource: string, agent: string) => void;
@@ -67,31 +78,131 @@ interface InspectorProps {
   onSourceState: (state: SourceState) => void;
 }
 
+function IconAction({ label, onClick, children }: { label: string; onClick: () => void; children: ReactNode }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button variant="ghost" size="icon-sm" type="button" aria-label={label} onClick={onClick}>
+          {children}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom">{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+function plural(count: number, kind: CanvasNodeKind): string {
+  return count === 1 ? KINDS[kind].label : KINDS[kind].plural;
+}
+
+/** The directory an agent's own slots live in: "agent/" or "agent/subagents/writer/". */
+function agentDirectory(node: CanvasNode): string {
+  return node.filePath.replace(/(agent\.ts|instructions\.md)$/, "");
+}
+
+/** Three readings across the top of the panel, the same numbers the card leads with. */
+function metricsFor(graph: CanvasGraph, node: CanvasNode): { label: string; value: string }[] {
+  const counts = node.counts;
+  const resources = counts ? counts.tools + counts.skills + counts.connections : 0;
+  if (node.kind === "agent") {
+    return [
+      { label: "Subagents", value: String(counts?.subagents ?? 0) },
+      { label: "Resources", value: String(resources) },
+      { label: "Channels", value: String(counts?.channels ?? 0) },
+    ];
+  }
+  if (node.kind === "subagent") {
+    return [
+      { label: "Resources", value: String(resources) },
+      { label: "Tools", value: String(counts?.tools ?? 0) },
+      { label: "Nested", value: String(counts?.subagents ?? 0) },
+    ];
+  }
+  if (node.kind === "channel") {
+    const root = graph.nodes.find((entry) => entry.kind === "agent");
+    return [
+      { label: "Route", value: `/${node.name}` },
+      { label: "Answers", value: root?.name ?? "root" },
+    ];
+  }
+  return [
+    { label: "Used by", value: String(node.usedBy?.length ?? 0) },
+    { label: "Scope", value: node.shared ? "Shared" : "Local" },
+    { label: "Type", value: node.detail.split(" · ")[0] ?? KINDS[node.kind].label },
+  ];
+}
+
 /**
- * What is selected, in the terms Eve uses: an agent's resources, a resource's
- * users, and the file behind either. With nothing selected it describes the
- * whole architecture.
+ * What is selected, in Eve's terms: a header with the things you do to it, the
+ * readings from its card, its properties, and who it is wired to. The file
+ * behind it is one tab away.
  */
 export function CanvasInspector(props: InspectorProps) {
-  const { node } = props;
+  const { node, projectId } = props;
   if (!node) return <ArchitectureSummary {...props} />;
+  const filesHref = `/projects/${projectId}/files?path=${encodeURIComponent(node.filePath)}`;
 
   return (
-    <div className="inspector-content" key={node.id}>
-      <header className="inspector-header">
-        <KindTile kind={node.kind} size="large" />
-        <div className="inspector-titles">
-          <p className="inspector-eyebrow">
-            {node.kind === "agent" ? "Root agent" : KINDS[node.kind].label}
-            {node.shared && <span className="node-shared" data-kind={node.kind}>Shared</span>}
-          </p>
-          <h2 className="inspector-name">{node.name}</h2>
-          <p className="inspector-detail">{node.detail}</p>
+    <div className="inspector-content" data-kind={node.kind} key={node.id}>
+      <header className="inspector-hero">
+        <div className="inspector-hero-row">
+          <span className="inspector-tile" aria-hidden="true">
+            <Icon icon={KINDS[node.kind].icon} size={18} />
+          </span>
+          <div className="inspector-hero-actions">
+            <IconAction label="Focus on canvas" onClick={() => props.onFocus(node.id)}>
+              <Icon icon={IconFullscreen} />
+            </IconAction>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button asChild variant="ghost" size="icon-sm">
+                  <Link href={filesHref} aria-label="Open in Files">
+                    <Icon icon={IconArrowUpRight} />
+                  </Link>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Open in Files</TooltipContent>
+            </Tooltip>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon-sm" aria-label="More actions">
+                  <Icon icon={IconMoreVertical} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onSelect={() => void navigator.clipboard?.writeText(node.filePath)}>Copy file path</DropdownMenuItem>
+                {node.kind !== "agent" && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={() => props.onDelete(node)}>
+                      Delete {KINDS[node.kind].label.toLowerCase()}
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <IconAction label="Close" onClick={props.onClear}>
+              <Icon icon={IconCross} />
+            </IconAction>
+          </div>
         </div>
-        <Button variant="ghost" size="icon-sm" type="button" aria-label="Clear selection" onClick={props.onClear}>
-          <Icon icon={IconCross} />
-        </Button>
+        <p className="inspector-eyebrow">
+          <span className="inspector-dot" aria-hidden="true" />
+          {node.kind === "agent" ? "Root agent" : KINDS[node.kind].label}
+          {node.shared && <span className="node-shared">Shared</span>}
+        </p>
+        <h2 className="inspector-name">{node.name}</h2>
+        {node.description && <p className="inspector-description">{node.description}</p>}
       </header>
+
+      <dl className="inspector-metrics">
+        {metricsFor(props.graph, node).map((metric) => (
+          <div key={metric.label} className="inspector-metric">
+            <dt>{metric.label}</dt>
+            <dd title={metric.value}>{metric.value}</dd>
+          </div>
+        ))}
+      </dl>
 
       <Tabs defaultValue="overview" className="inspector-tabs">
         <TabsList variant="line" className="inspector-tab-list">
@@ -99,46 +210,49 @@ export function CanvasInspector(props: InspectorProps) {
           <TabsTrigger value="source">Source</TabsTrigger>
         </TabsList>
         <TabsContent value="overview" className="inspector-scroll">
-          {node.description && <p className="inspector-description">{node.description}</p>}
+          <Properties node={node} />
           {isAgentKind(node.kind) ? (
-            <AgentOverview {...props} node={node} />
+            <AgentRelations {...props} node={node} />
           ) : isResourceKind(node.kind) ? (
-            <ResourceOverview {...props} node={node} />
-          ) : (
-            <ChannelOverview {...props} node={node} />
-          )}
+            <ResourceRelations {...props} node={node} />
+          ) : null}
         </TabsContent>
         <TabsContent value="source" className="inspector-source">
-          <SourceEditor
-            projectId={props.projectId}
-            path={node.filePath}
-            content={props.content}
-            onState={props.onSourceState}
-          />
+          <SourceEditor projectId={projectId} path={node.filePath} content={props.content} onState={props.onSourceState} />
         </TabsContent>
       </Tabs>
-
-      <footer className="inspector-foot">
-        <code className="inspector-path mono" title={node.filePath}>
-          {node.filePath}
-        </code>
-        <div className="row">
-          <Button asChild variant="ghost" size="sm">
-            <Link href={`/projects/${props.projectId}/files?path=${encodeURIComponent(node.filePath)}`}>Open in Files</Link>
-          </Button>
-          {node.kind !== "agent" && (
-            <Button variant="ghost" size="sm" className="text-destructive" onClick={() => props.onDelete(node)}>
-              Delete
-            </Button>
-          )}
-        </div>
-      </footer>
     </div>
   );
 }
 
-function byIdOf(graph: CanvasGraph) {
-  return new Map(graph.nodes.map((entry) => [entry.id, entry]));
+function Properties({ node }: { node: CanvasNode }) {
+  const rows: [string, ReactNode][] = [];
+  if (isAgentKind(node.kind)) {
+    rows.push(["Model", node.detail]);
+    rows.push(["Folder", agentDirectory(node) || "./"]);
+    if (node.kind === "subagent") rows.push(["Inherits", "Nothing from its parent"]);
+  } else if (node.kind === "channel") {
+    rows.push(["Type", node.detail]);
+    rows.push(["Route", `/eve/v1/${node.name}`]);
+  } else {
+    rows.push(["Type", node.detail]);
+    rows.push(["Defined in", node.shared ? "lib/, re-exported by each agent" : "The folder of the agent using it"]);
+  }
+  rows.push(["File", node.filePath]);
+
+  return (
+    <section className="inspector-section">
+      <h3 className="inspector-section-title">Properties</h3>
+      <dl className="inspector-props">
+        {rows.map(([label, value]) => (
+          <div key={label}>
+            <dt>{label}</dt>
+            <dd>{value}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
 }
 
 function Row({
@@ -151,19 +265,25 @@ function Row({
   action?: { label: string; run: () => void };
 }) {
   return (
-    <li className="inspector-row">
+    <li className="inspector-row" data-kind={node.kind}>
       <button type="button" className="inspector-row-main" onClick={() => onSelect(node.id)}>
         <KindTile kind={node.kind} />
         <span className="inspector-row-text">
           <span className="inspector-row-name">{node.name}</span>
           <span className="inspector-row-detail">{node.detail}</span>
         </span>
-        {node.shared && <span className="node-shared" data-kind={node.kind}>Shared</span>}
+        {node.shared && <span className="node-shared">Shared</span>}
       </button>
       {action && (
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon-sm" aria-label={`${action.label} ${node.name}`} onClick={action.run}>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="inspector-row-action"
+              aria-label={`${action.label} ${node.name}`}
+              onClick={action.run}
+            >
               <Icon icon={IconMinusCircle} />
             </Button>
           </TooltipTrigger>
@@ -174,8 +294,8 @@ function Row({
   );
 }
 
-function AgentOverview({ graph, node, onSelect, onAttach, onDetach, onCreate }: InspectorProps & { node: CanvasNode }) {
-  const byId = useMemo(() => byIdOf(graph), [graph]);
+function AgentRelations({ graph, node, onSelect, onAttach, onDetach, onCreate }: InspectorProps & { node: CanvasNode }) {
+  const byId = useMemo(() => new Map(graph.nodes.map((entry) => [entry.id, entry])), [graph]);
   const children = graph.edges
     .filter((edge) => edge.source === node.id)
     .map((edge) => byId.get(edge.target))
@@ -185,43 +305,17 @@ function AgentOverview({ graph, node, onSelect, onAttach, onDetach, onCreate }: 
   const creatable = GROUP_ORDER.filter((kind) => kind !== "channel" || node.kind === "agent");
 
   return (
-    <>
-      <div className="inspector-actions">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm">
-              <Icon icon={IconPlus} />
-              Add resource
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-64">
-            {attachable.length > 0 && (
-              <>
-                <DropdownMenuLabel>Attach existing</DropdownMenuLabel>
-                {attachable.map((resource) => (
-                  <DropdownMenuItem key={resource.id} onSelect={() => onAttach(resource.id, node.id)}>
-                    <KindTile kind={resource.kind} />
-                    <span className="min-w-0 flex-1 truncate">{resource.name}</span>
-                    <span className="menu-meta">{KINDS[resource.kind].label}</span>
-                  </DropdownMenuItem>
-                ))}
-                <DropdownMenuSeparator />
-              </>
-            )}
-            <DropdownMenuLabel>Create in {node.name}</DropdownMenuLabel>
-            {creatable.map((kind) => (
-              <DropdownMenuItem key={kind} onSelect={() => onCreate(kind, node.id)}>
-                <KindTile kind={kind} />
-                New {KINDS[kind].label.toLowerCase()}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+    <section className="inspector-section">
+      <h3 className="inspector-section-title">
+        Wired to
+        <span className="tabular-nums">{children.length}</span>
+      </h3>
 
       {children.length === 0 && (
         <p className="inspector-empty">
-          {node.name} has nothing of its own yet. In Eve a subagent inherits nothing, so attach what it needs.
+          {node.kind === "subagent"
+            ? "A subagent starts with nothing. Attach the tools, skills and connections it needs."
+            : "Add subagents and resources to start the architecture."}
         </p>
       )}
 
@@ -229,11 +323,8 @@ function AgentOverview({ graph, node, onSelect, onAttach, onDetach, onCreate }: 
         const items = children.filter((child) => child.kind === kind);
         if (items.length === 0) return null;
         return (
-          <section key={kind} className="inspector-section">
-            <h3 className="inspector-section-title">
-              {KINDS[kind].plural}
-              <span className="tabular-nums">{items.length}</span>
-            </h3>
+          <div key={kind} className="inspector-group">
+            <p className="inspector-group-label">{plural(items.length, kind)}</p>
             <ul className="inspector-list">
               {items.map((item) => (
                 <Row
@@ -244,17 +335,49 @@ function AgentOverview({ graph, node, onSelect, onAttach, onDetach, onCreate }: 
                 />
               ))}
             </ul>
-          </section>
+          </div>
         );
       })}
-    </>
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button type="button" className="inspector-add-row">
+            <Icon icon={IconPlus} size={14} />
+            Add to {node.name}
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-72">
+          {attachable.length > 0 && (
+            <>
+              <DropdownMenuLabel>Attach existing</DropdownMenuLabel>
+              {attachable.map((resource) => (
+                <DropdownMenuItem key={resource.id} onSelect={() => onAttach(resource.id, node.id)}>
+                  <KindTile kind={resource.kind} />
+                  <span className="min-w-0 flex-1 truncate">{resource.name}</span>
+                  {resource.shared && <span className="menu-meta">Shared</span>}
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuSeparator />
+            </>
+          )}
+          <DropdownMenuLabel>Create new</DropdownMenuLabel>
+          {creatable.map((kind) => (
+            <DropdownMenuItem key={kind} onSelect={() => onCreate(kind, node.id)}>
+              <KindTile kind={kind} />
+              {KINDS[kind].label}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </section>
   );
 }
 
-function ResourceOverview({ graph, node, onSelect, onAttach, onDetach }: InspectorProps & { node: CanvasNode }) {
-  const byId = useMemo(() => byIdOf(graph), [graph]);
+function ResourceRelations({ graph, node, onSelect, onAttach, onDetach }: InspectorProps & { node: CanvasNode }) {
+  const byId = useMemo(() => new Map(graph.nodes.map((entry) => [entry.id, entry])), [graph]);
   const users = (node.usedBy ?? []).map((id) => byId.get(id)).filter((entry): entry is CanvasNode => Boolean(entry));
   const others = graph.nodes.filter((entry) => isAgentKind(entry.kind) && !node.usedBy?.includes(entry.id));
+  const slot = isResourceKind(node.kind) ? SLOT[node.kind] : "tools";
 
   return (
     <>
@@ -264,7 +387,7 @@ function ResourceOverview({ graph, node, onSelect, onAttach, onDetach }: Inspect
           <span className="tabular-nums">{users.length}</span>
         </h3>
         {users.length === 0 ? (
-          <p className="inspector-empty">No agent uses this yet. Attach it to one, or it stays a definition in lib/.</p>
+          <p className="inspector-empty">No agent uses this yet. It stays a definition in lib/ until one does.</p>
         ) : (
           <ul className="inspector-list">
             {users.map((user) => (
@@ -275,12 +398,12 @@ function ResourceOverview({ graph, node, onSelect, onAttach, onDetach }: Inspect
         {others.length > 0 && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="self-start">
-                <Icon icon={IconPlus} />
-                Attach to agent
-              </Button>
+              <button type="button" className="inspector-add-row">
+                <Icon icon={IconPlus} size={14} />
+                Attach to another agent
+              </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-56">
+            <DropdownMenuContent align="start" className="w-60">
               {others.map((agent) => (
                 <DropdownMenuItem key={agent.id} onSelect={() => onAttach(node.id, agent.id)}>
                   <KindTile kind={agent.kind} />
@@ -293,88 +416,82 @@ function ResourceOverview({ graph, node, onSelect, onAttach, onDetach }: Inspect
       </section>
 
       <section className="inspector-section">
-        <h3 className="inspector-section-title">How Eve sees it</h3>
-        <p className="inspector-note">
-          {node.shared ? (
-            <>
-              Defined once in <code className="mono">{node.filePath}</code>. Every agent above has a one-line re-export in its
-              own folder, so a change here reaches all of them.
-            </>
-          ) : (
-            <>
-              Defined in <code className="mono">{node.filePath}</code>. Attach it to a second agent and EveLab moves the
-              definition to <code className="mono">lib/</code>, leaving each agent a re-export instead of a copy.
-            </>
-          )}
-        </p>
+        <h3 className="inspector-section-title">Wiring</h3>
+        {node.shared ? (
+          <>
+            <p className="inspector-note">One definition, and a one-line re-export in each agent&apos;s own folder.</p>
+            <pre className="inspector-code">
+              {users.map((user) => (
+                <span key={user.id} className="inspector-code-block">
+                  <span className="code-comment">{`// ${agentDirectory(user)}${slot}/${node.name}.ts`}</span>
+                  {"\n"}
+                  <span className="code-keyword">export</span> {"{ default } "}
+                  <span className="code-keyword">from</span> <span className="code-string">{`"#lib/${slot}/${node.name}.ts"`}</span>
+                  {";\n"}
+                </span>
+              ))}
+              {users.length === 0 && <span className="code-comment">{"// No re-exports yet"}</span>}
+            </pre>
+          </>
+        ) : (
+          <p className="inspector-note">
+            Defined in its agent&apos;s folder. Attach it to a second agent and EveLab moves the definition to{" "}
+            <code className="mono">lib/{slot}/</code> and leaves each agent a re-export, never a copy.
+          </p>
+        )}
       </section>
     </>
   );
 }
 
-function ChannelOverview({ graph, node }: InspectorProps & { node: CanvasNode }) {
-  const root = graph.nodes.find((entry) => entry.kind === "agent");
-  return (
-    <section className="inspector-section">
-      <h3 className="inspector-section-title">Routing</h3>
-      <p className="inspector-note">
-        Messages arriving at <code className="mono">/eve/v1/{node.name}</code> go to {root?.name ?? "the root agent"}. Channels
-        belong to the root; subagents are reached through it.
-      </p>
-    </section>
-  );
-}
-
 function ArchitectureSummary({ graph, issues, onCreate, onClear }: InspectorProps) {
   const count = (kind: CanvasNodeKind) => graph.nodes.filter((node) => node.kind === kind).length;
-  const shared = graph.nodes.filter((node) => node.shared).length;
   const root = graph.nodes.find((node) => node.kind === "agent");
   const errors = issues.filter((issue) => issue.level === "error");
 
   return (
-    <div className="inspector-content">
-      <header className="inspector-header">
-        <KindTile kind="agent" size="large" />
-        <div className="inspector-titles">
-          <p className="inspector-eyebrow">Architecture</p>
-          <h2 className="inspector-name">{root?.name}</h2>
-          <p className="inspector-detail">{root?.detail}</p>
+    <div className="inspector-content" data-kind="agent">
+      <header className="inspector-hero">
+        <div className="inspector-hero-row">
+          <span className="inspector-tile" aria-hidden="true">
+            <Icon icon={KINDS.agent.icon} size={18} />
+          </span>
+          <div className="inspector-hero-actions">
+            <IconAction label="Close" onClick={onClear}>
+              <Icon icon={IconCross} />
+            </IconAction>
+          </div>
         </div>
-        <Button variant="ghost" size="icon-sm" type="button" aria-label="Close" onClick={onClear}>
-          <Icon icon={IconCross} />
-        </Button>
+        <p className="inspector-eyebrow">Architecture</p>
+        <h2 className="inspector-name">{root?.name}</h2>
+        <p className="inspector-description mono">{root?.detail}</p>
       </header>
 
-      <div className="inspector-scroll">
-        <dl className="inspector-stats">
-          {GROUP_ORDER.map((kind) => (
-            <div key={kind} className="inspector-stat" data-kind={kind}>
-              <dt>
-                <KindTile kind={kind} />
-                {KINDS[kind].plural}
-              </dt>
-              <dd className="tabular-nums">{count(kind)}</dd>
-            </div>
-          ))}
-          <div className="inspector-stat">
-            <dt>Shared resources</dt>
-            <dd className="tabular-nums">{shared}</dd>
+      <dl className="inspector-metrics">
+        {(
+          [
+            ["Agents", count("agent") + count("subagent")],
+            ["Resources", count("tool") + count("skill") + count("connection")],
+            ["Shared", graph.nodes.filter((node) => node.shared).length],
+          ] as const
+        ).map(([label, value]) => (
+          <div key={label} className="inspector-metric">
+            <dt>{label}</dt>
+            <dd>{value}</dd>
           </div>
-        </dl>
+        ))}
+      </dl>
 
-        <div className="inspector-actions">
-          <Button variant="outline" size="sm" onClick={() => onCreate("subagent")}>
-            <Icon icon={IconPlus} />
-            New subagent
-          </Button>
-        </div>
-
+      <div className="inspector-scroll">
         <section className="inspector-section">
-          <h3 className="inspector-section-title">Code sync</h3>
+          <h3 className="inspector-section-title">
+            Code sync
+            <span className="tabular-nums">{issues.length}</span>
+          </h3>
           {issues.length === 0 ? (
             <p className="inspector-status" data-tone="ok">
               <Icon icon={IconCheckCircle} size={14} />
-              Every node maps to a file, and the project validates.
+              Every card maps to a file, and the project validates.
             </p>
           ) : (
             <ul className="inspector-issues">
@@ -392,31 +509,15 @@ function ArchitectureSummary({ graph, issues, onCreate, onClear }: InspectorProp
         </section>
 
         <section className="inspector-section">
-          <h3 className="inspector-section-title">Shortcuts</h3>
-          <dl className="inspector-keys">
-            {[
-              ["A", "Add resource"],
-              ["N", "New note"],
-              ["S", "New section"],
-              ["F", "Focus selection"],
-              ["0", "Fit everything"],
-              ["1", "Go to root"],
-              ["Space", "Hold to pan"],
-              ["Ctrl Z", "Undo"],
-              ["Ctrl Shift Z", "Redo"],
-              ["Ctrl C, Ctrl V", "Attach copies to the selected agent"],
-              ["Delete", "Detach edge or delete node"],
-            ].map(([keys, label]) => (
-              <div key={keys}>
-                <dt>
-                  {keys!.split(", ").map((combo) => (
-                    <kbd key={combo}>{combo}</kbd>
-                  ))}
-                </dt>
-                <dd>{label}</dd>
-              </div>
+          <h3 className="inspector-section-title">Grow it</h3>
+          <div className="inspector-quick">
+            {(["subagent", "tool", "skill", "connection"] as const).map((kind) => (
+              <button key={kind} type="button" className="inspector-quick-item" data-kind={kind} onClick={() => onCreate(kind)}>
+                <KindTile kind={kind} />
+                {KINDS[kind].label}
+              </button>
             ))}
-          </dl>
+          </div>
         </section>
       </div>
     </div>
