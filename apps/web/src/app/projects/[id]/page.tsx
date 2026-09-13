@@ -251,7 +251,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
                     asChild
                     variant="ghost"
                     size="icon-sm"
-                    className="ml-auto"
+                    className="ms-auto"
                     aria-label={`Manage ${KINDS[column.kind].plural.toLowerCase()}`}
                   >
                     <Link href={column.href}>

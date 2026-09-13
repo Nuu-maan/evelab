@@ -72,7 +72,7 @@ export default async function ToolsPage({ params }: { params: Promise<{ id: stri
                   <CardHeader>
                     <CardTitle className="font-mono">{tool.id}</CardTitle>
                     <CardDescription>{tool.description || "No description"}</CardDescription>
-                    <CardAction className="flex items-center gap-2">
+                    <CardAction className="flex items-center gap-4">
                       <Badge variant="secondary">{KIND_LABELS[tool.kind]}</Badge>
                       <Button asChild variant="ghost">
                         <Link href={`/projects/${id}/files?path=${encodeURIComponent(path)}`}>Edit</Link>

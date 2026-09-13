@@ -69,7 +69,7 @@ export default async function SubagentsPage({ params }: { params: Promise<{ id: 
                   <CardHeader>
                     <CardTitle className="font-mono">{subagent.id}</CardTitle>
                     <CardDescription>{subagent.description || "No description"}</CardDescription>
-                    <CardAction className="flex items-center gap-2">
+                    <CardAction className="flex items-center gap-4">
                       <Button asChild variant="ghost">
                         <Link href={`/projects/${id}/files?path=${encodeURIComponent(path)}`}>Edit</Link>
                       </Button>

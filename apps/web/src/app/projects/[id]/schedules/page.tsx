@@ -60,7 +60,7 @@ export default async function SchedulesPage({ params }: { params: Promise<{ id: 
                   <CardHeader>
                     <CardTitle className="font-mono">{schedule.id}</CardTitle>
                     <CardDescription>{describeCron(schedule.cron) || "No cron"}</CardDescription>
-                    <CardAction className="flex items-center gap-2">
+                    <CardAction className="flex items-center gap-4">
                       <Badge variant="secondary" className="font-mono">
                         {schedule.cron || "missing cron"}
                       </Badge>

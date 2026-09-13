@@ -77,7 +77,7 @@ export default async function ChannelsPage({ params }: { params: Promise<{ id: s
                       ? "Sessions, streaming and the eve TUI. Replaces Eve's default to change who may call it."
                       : `Webhook route /eve/v1/${channel.id}`}
                   </CardDescription>
-                  <CardAction className="flex items-center gap-2">
+                  <CardAction className="flex items-center gap-4">
                     <Badge variant="secondary">{LABELS[channel.kind] ?? "Channel"}</Badge>
                     <Button asChild variant="ghost">
                       <Link href={`/projects/${id}/files?path=${encodeURIComponent(path)}`}>Edit</Link>

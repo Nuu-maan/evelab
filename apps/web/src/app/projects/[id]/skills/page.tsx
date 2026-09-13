@@ -68,7 +68,7 @@ export default async function SkillsPage({ params }: { params: Promise<{ id: str
                   <CardHeader>
                     <CardTitle className="font-mono">{skill.id}</CardTitle>
                     <CardDescription>{skill.description || "No description"}</CardDescription>
-                    <CardAction className="flex items-center gap-2">
+                    <CardAction className="flex items-center gap-4">
                       <Button asChild variant="ghost">
                         <Link href={`/projects/${id}/files?path=${encodeURIComponent(path)}`}>Edit</Link>
                       </Button>
