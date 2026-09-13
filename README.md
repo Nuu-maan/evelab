@@ -35,6 +35,12 @@ Optional environment:
 
 With none of them set, EveLab runs as a local single-user tool.
 
+**Connections, channels and schedules.** Add a hosted MCP server or an OpenAPI
+service with Vercel Connect or token auth, reach the agent from Slack, Discord,
+Linear, GitHub, Teams, Telegram or MCP clients, and give it cron schedules. Each
+is one file under `agent/`, written the way Eve's docs and `eve add` write it;
+credentials stay with Vercel Connect or the deployment environment.
+
 ## Layout
 
 ```text

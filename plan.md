@@ -133,8 +133,9 @@ Routes, all under `src/app`:
 /projects/[id]/subagents             list + create subagent directory
 /projects/[id]/files                 file tree + Monaco workbench
 /projects/[id]/source                source control: changes, diff, commit, pull
-/projects/[id]/connections           stub
-/projects/[id]/channels              stub
+/projects/[id]/connections           MCP and OpenAPI connections, Vercel Connect or token auth
+/projects/[id]/channels              platform channels (Slack, Discord, Linear, GitHub, Teams, Telegram, MCP...)
+/projects/[id]/schedules             markdown schedules with cron
 /projects/[id]/runs                  stub
 /projects/[id]/deployments           stub
 /projects/[id]/settings              path on disk, delete project
@@ -234,7 +235,9 @@ overridable with `EVELAB_WORKSPACE`. Canvas layouts sit in
   to adopt them yet.
 - **MCP tool discovery.** Connections are written, but EveLab does not yet list
   a server's tools before writing the allow list.
-- **Connections and channels.** Stub pages.
+- **Vercel Connect connector management.** EveLab writes the connector UID into
+  channel and connection files; creating the connector and attaching its trigger
+  path still happens in the Vercel CLI or dashboard.
 - **Runs.** Blocked on Decision 2.
 - **Deployment.** Follows GitHub.
 - **GitHub App installation flow.** The App client exists and sign-in now does
@@ -518,7 +521,14 @@ created before sign-in, and moving sync records into `git_repositories`.
 
 ---
 
-### Phase 6: Connections and channels
+### Phase 6: Connections and channels (done for files)
+
+**Status.** Connections, Channels and Schedules pages write Eve's own files:
+`defineMcpClientConnection` / `defineOpenAPIConnection` with `connect()` or
+token auth, platform channels in the shape `eve add channel/<platform>` writes
+(Vercel Connect credentials where the platform supports them), and markdown
+schedules. Deferred: creating Vercel Connect connectors from EveLab, which needs
+a Vercel token (see the final questions).
 
 **Goal:** connecting an external service feels native, without EveLab becoming
 an OAuth platform.
