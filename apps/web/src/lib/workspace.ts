@@ -3,6 +3,8 @@ import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import {
+  getCanvasGraph,
+  type CanvasGraph,
   generateProject,
   parseProject,
   renderProjectScaffold,
@@ -52,6 +54,8 @@ export interface ProjectSummary {
   toolCount: number;
   skillCount: number;
   subagentCount: number;
+  /** The canvas graph, for the picture on the project card. */
+  graph: CanvasGraph;
 }
 
 /** The model as a person reads it: the gateway id, or a note when code computes it. */
@@ -79,6 +83,7 @@ export async function listProjects(): Promise<ProjectSummary[]> {
           toolCount: project.tools.length,
           skillCount: project.skills.length,
           subagentCount: project.subagents.length,
+          graph: getCanvasGraph(project),
         };
       }),
   );

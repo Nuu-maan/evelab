@@ -2,13 +2,14 @@ import Link from "next/link";
 import { IconGridSquare, IconLogoGithub, IconPlus } from "@/components/icons";
 import { EmptyState } from "@/components/empty-state";
 import { Icon } from "@/components/icon";
+import { GraphPreview } from "@/components/graph-preview";
 import { KindCount } from "@/components/kinds";
 import { PlainShell } from "@/components/plain-shell";
 import { Avatar } from "@/components/project-switcher";
 import { Reveal, Stagger } from "@/components/motion";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { requireAccount, visibleProjectIds } from "@/lib/session";
+import { readLayout } from "@/lib/layout";
 import { listProjects } from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +18,9 @@ export default async function ProjectsPage() {
   await requireAccount();
   const [all, visible] = await Promise.all([listProjects(), visibleProjectIds()]);
   const projects = visible ? all.filter((project) => visible.has(project.id)) : all;
+  const layouts = new Map(
+    await Promise.all(projects.map(async (project) => [project.id, (await readLayout(project.id)).positions] as const)),
+  );
 
   return (
     <PlainShell>
@@ -64,9 +68,12 @@ export default async function ProjectsPage() {
           ) : (
             <Stagger className="grid-fluid">
               {projects.map((project) => (
-                <Link className="group block rounded-xl" href={`/projects/${project.id}`} key={project.id}>
-                  <Card className="h-full transition-colors duration-150 group-hover:border-(--border-strong)">
-                    <CardContent className="flex flex-col gap-4">
+                <Link className="group block rounded-[14px]" href={`/projects/${project.id}`} key={project.id}>
+                  <article className="project-card">
+                    <div className="project-card-preview" aria-hidden="true">
+                      <GraphPreview graph={project.graph} positions={layouts.get(project.id) ?? {}} />
+                    </div>
+                    <div className="project-card-body">
                       <div className="row" style={{ gap: "var(--space-3)" }}>
                         <Avatar name={project.name} size="large" />
                         <div className="page-heading">
@@ -82,8 +89,8 @@ export default async function ProjectsPage() {
                           {project.id}
                         </span>
                       </div>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </article>
                 </Link>
               ))}
             </Stagger>
