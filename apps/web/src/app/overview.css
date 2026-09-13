@@ -152,12 +152,41 @@
     text-wrap: pretty;
   }
 
+  /* The whole row is the link, with a chevron that appears on hover so it reads as one. */
   .overview-item {
+    position: relative;
     display: flex;
     flex-direction: column;
-    padding: 10px var(--space-4);
+    width: 100%;
+    padding: 10px 40px 10px var(--space-4);
     border-bottom: 1px solid var(--border);
+    cursor: pointer;
     transition: background-color var(--duration-hover) ease;
+  }
+
+  .overview-item::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: 18px;
+    width: 7px;
+    height: 7px;
+    border-top: 1.75px solid var(--foreground-tertiary);
+    border-right: 1.75px solid var(--foreground-tertiary);
+    transform: translate(-4px, -50%) rotate(45deg);
+    opacity: 0;
+    transition: opacity var(--duration-hover) ease, transform 200ms var(--ease-out);
+  }
+
+  .overview-item:hover::after,
+  .overview-item:focus-visible::after {
+    opacity: 1;
+    transform: translate(0, -50%) rotate(45deg);
+  }
+
+  .overview-item:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: -2px;
   }
 
   .overview-column li:last-child .overview-item {

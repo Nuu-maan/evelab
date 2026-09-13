@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { agentPath } from "@evelab/eve-project";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { SettingCard } from "@/components/setting-card";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -33,74 +33,93 @@ export default async function ModelPage({ params }: { params: Promise<{ id: stri
 
   if (model?.expression) {
     return (
-      <div className="section" style={{ maxWidth: 600, width: "100%" }}>
-        <p className="page-description">
-          This agent builds its model in code, so EveLab shows it and leaves it alone:
-        </p>
-        <pre className="code mono">model: {model.expression}</pre>
-        <Button asChild variant="outline" className="self-start">
-          <Link href={configHref}>Edit {configPath}</Link>
-        </Button>
+      <div className="settings-stack">
+        <SettingCard
+          title="Model"
+          description="This agent builds its model in code, so EveLab shows it and leaves it alone."
+          footer={
+            <>
+              Defined in <code className="mono">{configPath}</code>.
+            </>
+          }
+          action={
+            <Button asChild variant="outline" size="sm">
+              <Link href={configHref}>Edit {configPath}</Link>
+            </Button>
+          }
+        >
+          <pre className="setting-preview">model: {model.expression}</pre>
+        </SettingCard>
       </div>
     );
   }
 
   return (
-    <Card className="py-0" style={{ maxWidth: 600, width: "100%" }}>
-      <form action={updateModelAction} className="contents">
-        <input type="hidden" name="id" value={id} />
-        <CardContent className="flex flex-col gap-5 pt-5">
-
-        <Field>
-          <FieldLabel htmlFor="modelId">Model</FieldLabel>
-          <Input
-            id="modelId"
-            name="modelId"
-            className="font-mono"
-            list="model-options"
-            defaultValue={model?.id ?? ""}
-            placeholder="openai/gpt-5.6-luna-fast"
-            required
-          />
-          <datalist id="model-options">
-            {models.map((candidate) => (
-              <option key={candidate.id} value={candidate.id}>
-                {candidate.label}
-              </option>
-            ))}
-          </datalist>
-          <FieldDescription>
-            {known
-              ? `${details ? `${current?.label}: ${details}. ` : ""}An AI Gateway model id, written to ${configPath}.`
-              : "Not in the AI Gateway catalog. It is still written verbatim, so check the id."}
-          </FieldDescription>
-        </Field>
-
-        <Field>
-          <FieldLabel htmlFor="reasoning">Reasoning</FieldLabel>
-          <Select name="reasoning" defaultValue={reasoning ?? "provider-default"}>
-            <SelectTrigger id="reasoning" className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {REASONING.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
+    <form action={updateModelAction} className="settings-stack">
+      <input type="hidden" name="id" value={id} />
+      <SettingCard
+        title="Model"
+        description="The AI Gateway model the agent calls, and how much it reasons before answering."
+        footer={
+          <>
+            Written to <code className="mono">{configPath}</code>.
+          </>
+        }
+        action={
+          <>
+            <Button asChild variant="ghost" size="sm">
+              <Link href={configHref}>View {configPath}</Link>
+            </Button>
+            <Button type="submit" size="sm">
+              Save
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-5">
+          <Field>
+            <FieldLabel htmlFor="modelId">Model</FieldLabel>
+            <Input
+              id="modelId"
+              name="modelId"
+              className="font-mono"
+              list="model-options"
+              defaultValue={model?.id ?? ""}
+              placeholder="openai/gpt-5.6-luna-fast"
+              required
+            />
+            <datalist id="model-options">
+              {models.map((candidate) => (
+                <option key={candidate.id} value={candidate.id}>
+                  {candidate.label}
+                </option>
               ))}
-            </SelectContent>
-          </Select>
-          <FieldDescription>How much the model thinks before it answers, where the provider supports it.</FieldDescription>
-        </Field>
+            </datalist>
+            <FieldDescription>
+              {known
+                ? `${details ? `${current?.label}: ${details}.` : "An AI Gateway model id."}`
+                : "Not in the AI Gateway catalog. It is still written verbatim, so check the id."}
+            </FieldDescription>
+          </Field>
 
-        </CardContent>
-        <CardFooter className="justify-end gap-2 border-t py-4">
-          <Button asChild variant="ghost">
-            <Link href={configHref}>View {configPath}</Link>
-          </Button>
-          <Button type="submit">Save</Button>
-        </CardFooter>
-      </form>
-    </Card>
+          <Field>
+            <FieldLabel htmlFor="reasoning">Reasoning</FieldLabel>
+            <Select name="reasoning" defaultValue={reasoning ?? "provider-default"}>
+              <SelectTrigger id="reasoning" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {REASONING.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <FieldDescription>Where the provider supports it.</FieldDescription>
+          </Field>
+        </div>
+      </SettingCard>
+    </form>
   );
 }

@@ -10,7 +10,7 @@ import { getSourceSummary } from "@/lib/git";
 import { paneStyle } from "@/lib/panes";
 import { getAccount, requireProjectPage, visibleProjectIds } from "@/lib/session";
 import { SIDEBAR_COOKIE, parseSidebarState } from "@/lib/sidebar-state";
-import { listProjects, projectExists, readProject, validateProject } from "@/lib/workspace";
+import { listProjects, projectExists, readProject, syncProjectDocs, validateProject } from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +25,8 @@ export default async function ProjectLayout({
   if (!(await projectExists(id))) notFound();
   // With sign-in on, a project someone else owns is indistinguishable from one that does not exist.
   await requireProjectPage(id);
+  // Projects made before EveLab wrote docs get a README and .env.example the first time they are opened.
+  await syncProjectDocs(id, { onlyMissing: true });
 
   const [project, all, visible, account, style, source, jar] = await Promise.all([
     readProject(id),

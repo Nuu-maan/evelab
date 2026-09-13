@@ -216,6 +216,13 @@ Linear, WhatsApp, Google Chat and Telegram all go through eve's `chatSdkChannel`
 with a Chat SDK adapter, credentials read from the environment. Eve's native
 channels remain available beside them.
 
+**Every project carries a README and .env.example derived from its source.**
+EveLab writes both when a project is created, imported or first opened, and
+rewrites them after every change, so the environment variables and the
+architecture they describe never drift from the code. Each file starts with a
+marker line; deleting it hands the file to its author and EveLab stops writing
+it. `.env.example` holds names only, never values.
+
 ## Open
 
 **skills.sh import.** skills.sh lists skills that live in GitHub repositories,
