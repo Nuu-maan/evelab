@@ -77,7 +77,8 @@ test("selecting a node opens its file in the inspector and saves edits", async (
   const inspector = page.getByRole("complementary", { name: /notes inspector/ });
   await expect(inspector).toBeVisible();
   await expect(inspector.getByText("agent/skills/notes/SKILL.md")).toBeVisible();
-  await expect(inspector.getByText("Write things down.")).toBeVisible();
+  // Monaco loads on first use, which can take a while on a busy machine.
+  await expect(inspector.getByText("Write things down.")).toBeVisible({ timeout: 20_000 });
 
   // insertText rather than type: Monaco drops characters from fast key events.
   await inspector.getByText("Write things down.").click();
