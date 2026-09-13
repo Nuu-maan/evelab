@@ -62,7 +62,8 @@ test("a schedule is a markdown file with a cron", async ({ page }) => {
   await page.getByLabel("Prompt").fill("Summarize new tickets.");
   await page.getByRole("button", { name: "Add schedule" }).click();
 
-  await expect(page.getByText("Weekdays at 09:00 UTC")).toBeVisible();
+  // The cron presets list holds the same words in a hidden option, so read the card.
+  await expect(page.locator('[data-slot="card-description"]', { hasText: "Weekdays at 09:00 UTC" })).toBeVisible();
   const path = join(PROJECT, "agent", "schedules", "digest.md");
   expect(await readFile(path, "utf8")).toBe('---\ncron: "0 9 * * 1-5"\n---\n\nSummarize new tickets.\n');
 
