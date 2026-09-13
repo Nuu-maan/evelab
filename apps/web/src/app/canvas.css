@@ -204,102 +204,142 @@
     }
   }
 
-  /* The stats bar reads like an instrument panel: small caps labels over big mono numbers. */
+  /* The stats bar: one row of kind-coloured readings, each a way to find those cards. */
   .canvas-stats {
     position: absolute;
     top: var(--float-gap);
     left: 50%;
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: 1px;
     height: 52px;
-    padding: 0 10px 0 10px;
+    padding: 0 7px;
     transform: translateX(-50%);
     white-space: nowrap;
   }
 
+  .button-kbd {
+    margin-left: 2px;
+    padding: 0 5px;
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--primary-foreground) 16%, transparent);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    line-height: 16px;
+    opacity: 0.75;
+  }
+
   .canvas-stats-separator {
+    flex: none;
     width: 1px;
-    height: 28px;
-    margin: 0 10px;
+    height: 22px;
+    margin: 0 7px;
     background: var(--border);
   }
 
   .canvas-stat {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: 38px;
     padding: 0 10px;
+    border-radius: 8px;
+    color: var(--kind, var(--foreground-secondary));
+    transition: background-color var(--duration-hover) ease, transform var(--duration-press) var(--ease-out);
   }
 
-  .canvas-stat-label {
-    color: var(--foreground-tertiary);
-    font-family: var(--font-mono);
-    font-size: 9.5px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+  @media (hover: hover) and (pointer: fine) {
+    .canvas-stat:hover {
+      background: var(--surface-hover);
+    }
+  }
+
+  .canvas-stat:active {
+    transform: scale(0.97);
+  }
+
+  .canvas-stat:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: -2px;
+  }
+
+  .canvas-stat svg {
+    flex: none;
   }
 
   .canvas-stat-value {
     color: var(--foreground);
     font-family: var(--font-mono);
-    font-size: 18px;
-    font-weight: var(--weight-medium);
+    font-size: 15px;
+    font-weight: var(--weight-semibold);
     font-variant-numeric: tabular-nums;
-    line-height: 22px;
   }
 
-  .canvas-stat-button {
-    height: 42px;
-    justify-content: center;
-    border-radius: 8px;
-    transition: background-color var(--duration-hover) ease;
+  .canvas-stat-label {
+    color: var(--foreground-secondary);
+    font-size: 12px;
   }
 
-  @media (hover: hover) and (pointer: fine) {
-    .canvas-stat-button:hover {
-      background: var(--surface-hover);
-    }
+  .canvas-stat[data-empty] svg {
+    opacity: 0.45;
   }
 
-  .canvas-stat-button[aria-pressed="true"] {
-    background: var(--surface-active);
+  .canvas-stat[data-empty] .canvas-stat-value,
+  .canvas-stat[data-empty] .canvas-stat-label {
+    color: var(--foreground-tertiary);
   }
 
-  .canvas-stat-button[data-tone="warning"] .canvas-stat-value {
+  .canvas-stat[data-tone="ok"] {
+    color: var(--success);
+  }
+
+  .canvas-stat[data-tone="warning"] {
     color: var(--warning);
   }
 
-  .canvas-stat-button[data-tone="error"] .canvas-stat-value {
+  .canvas-stat[data-tone="error"] {
     color: var(--danger);
   }
 
-  .canvas-hints {
-    position: absolute;
-    top: 72px;
-    left: 50%;
-    z-index: 9;
+  .canvas-stat[aria-pressed="true"] {
+    background: var(--surface-active);
+  }
+
+  .shortcut-list {
+    display: grid;
+    gap: 2px;
+    padding: 2px 8px 6px;
+    font-size: 12px;
+  }
+
+  .shortcut-list div {
     display: flex;
-    gap: 14px;
-    padding: 4px 10px;
-    transform: translateX(-50%);
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    min-height: 24px;
+  }
+
+  .shortcut-list dt {
+    color: var(--foreground-secondary);
+  }
+
+  .shortcut-list kbd {
+    padding: 1px 6px;
     border: 1px solid var(--border);
-    border-radius: 6px;
-    background: color-mix(in srgb, var(--background) 80%, transparent);
-    color: var(--foreground-tertiary);
+    border-radius: 4px;
+    background: var(--background);
+    color: var(--foreground-secondary);
     font-family: var(--font-mono);
-    font-size: 9.5px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    white-space: nowrap;
-    pointer-events: none;
+    font-size: 10.5px;
   }
 
   .canvas-view-menu {
     position: absolute;
     top: var(--float-gap);
     right: var(--float-gap);
+    display: flex;
+    gap: 1px;
     padding: 3px;
   }
 
@@ -329,13 +369,14 @@
     padding: 3px;
   }
 
+  /* The legend: what each wire colour and stroke means. */
   .canvas-status {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
     height: 34px;
     padding: 0 12px;
-    color: var(--foreground-tertiary);
+    color: var(--foreground-secondary);
     font-family: var(--font-mono);
     font-size: 10px;
     letter-spacing: 0.06em;
@@ -343,8 +384,26 @@
     white-space: nowrap;
   }
 
+  .legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .legend-item i {
+    width: 16px;
+    height: 0;
+    border-top: 2px solid var(--kind);
+  }
+
+  .legend-item i[data-dashed] {
+    border-top-style: dashed;
+  }
+
   .canvas-status-mode {
-    color: var(--foreground-secondary);
+    padding-left: 12px;
+    border-left: 1px solid var(--border);
+    color: var(--foreground-tertiary);
   }
 
   .canvas-zoom {
@@ -1080,37 +1139,44 @@
   }
 
   .react-flow__edge.is-dim {
-    opacity: 0.2;
+    opacity: 0.12;
   }
 
-  /* Wires: dashed, quiet at rest, and flowing in the kind's colour when looked at. */
+  /*
+   * A wire at rest is a thin line in its kind's colour: solid for what an agent
+   * uses, dashed for what it contains or routes to. Looking at it brightens it
+   * and runs the dashes toward the arrow.
+   */
   .react-flow__edge-path {
     fill: none;
-    stroke: var(--canvas-edge);
+    stroke: color-mix(in srgb, var(--kind) 50%, transparent);
     stroke-width: 1.5;
-    stroke-dasharray: 6 4;
     stroke-linecap: round;
-    transition: stroke var(--duration-hover) ease;
+    stroke-linejoin: round;
+    transition: stroke var(--duration-hover) ease, stroke-width var(--duration-hover) ease;
+  }
+
+  .react-flow__edge.relation-structure .react-flow__edge-path {
+    stroke-dasharray: 5 5;
   }
 
   .react-flow__edge.is-related .react-flow__edge-path,
   .react-flow__edge.selected .react-flow__edge-path {
     stroke: var(--kind);
-    animation: edge-flow 700ms linear infinite;
-  }
-
-  .react-flow__edge.selected .react-flow__edge-path {
     stroke-width: 2;
+    stroke-dasharray: 8 5;
+    animation: edge-flow 650ms linear infinite;
   }
 
   .react-flow__edge.is-preview .react-flow__edge-path {
     stroke: var(--focus);
+    stroke-dasharray: 6 4;
     animation: edge-flow 500ms linear infinite;
   }
 
   @keyframes edge-flow {
     to {
-      stroke-dashoffset: -10;
+      stroke-dashoffset: -13;
     }
   }
 
@@ -1120,39 +1186,57 @@
     }
   }
 
+  /* The outline leaves from the bottom left of a card, like a tree in a file explorer. */
+  .canvas-layout[data-mode="vertical"] .react-flow__handle.node-handle.source {
+    left: 22px;
+  }
+
+  /* A label is a solid chip on the wire's own stub: readable over any line. */
   .edge-label {
     position: absolute;
     z-index: 10;
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 1px 5px;
-    border-radius: 4px;
-    background: var(--background);
-    color: var(--foreground-tertiary);
-    font-family: var(--font-mono);
-    font-size: 10.5px;
-    white-space: nowrap;
-    pointer-events: none;
-  }
-
-  .react-flow__edge.is-related + .edge-label,
-  .edge-label[data-actionable] {
-    color: var(--foreground-secondary);
-  }
-
-  .edge-label[data-actionable] {
-    padding: 2px 2px 2px 7px;
-    border: 1px solid var(--border);
+    gap: 6px;
+    height: 22px;
+    padding: 0 8px;
+    border: 1px solid color-mix(in srgb, var(--kind, var(--border-strong)) 45%, var(--border));
+    border-radius: 6px;
     background: var(--surface-raised);
     box-shadow: var(--shadow-small);
+    color: var(--foreground);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    white-space: nowrap;
+    pointer-events: none;
+    animation: edge-label-in 140ms var(--ease-out) both;
+  }
+
+  .edge-label::before {
+    content: "";
+    flex: none;
+    width: 6px;
+    height: 6px;
+    border-radius: 2px;
+    background: var(--kind, var(--foreground-tertiary));
+  }
+
+  .edge-label[data-actionable] {
+    padding-right: 2px;
     pointer-events: all;
   }
 
+  @keyframes edge-label-in {
+    from {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(0.96);
+    }
+  }
+
   .edge-label-action {
-    height: 20px;
+    height: 18px;
     padding: 0 7px;
-    border-radius: 3px;
+    border-radius: 4px;
     background: var(--surface-hover);
     color: var(--foreground);
     font-size: 10.5px;
@@ -1473,43 +1557,113 @@
     }
   }
 
-  .inspector-header {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--space-3);
-    padding: var(--space-4);
+  .inspector-hero {
+    padding: 14px 14px 14px 16px;
   }
 
-  .inspector-titles {
-    flex: 1;
-    min-width: 0;
+  .inspector-hero-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  .inspector-tile {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--kind) 12%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--kind) 45%, transparent);
+    color: var(--kind);
+  }
+
+  .inspector-hero-actions {
+    display: flex;
+    gap: 1px;
+  }
+
+  .inspector-hero-actions [data-slot="button"] {
+    border-radius: 8px;
   }
 
   .inspector-eyebrow {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 7px;
     color: var(--foreground-tertiary);
     font-family: var(--font-mono);
     font-size: 10px;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
   }
 
-  .inspector-name {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 16px;
-    font-weight: var(--weight-semibold);
-    letter-spacing: -0.01em;
+  .inspector-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 2px;
+    background: var(--kind);
   }
 
-  .inspector-detail {
+  .inspector-name {
+    margin-top: 2px;
     overflow: hidden;
+    font-size: 19px;
+    font-weight: var(--weight-semibold);
+    letter-spacing: -0.02em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .inspector-description {
+    margin-top: 6px;
     color: var(--foreground-secondary);
+    font-size: 13px;
+    line-height: 1.5;
+    text-wrap: pretty;
+  }
+
+  .inspector-description.mono {
+    font-size: 12px;
+  }
+
+  .inspector-metrics {
+    display: grid;
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
+    margin: 0 14px 12px 16px;
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--kind) 25%, var(--border));
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--kind) 5%, transparent);
+  }
+
+  .inspector-metric {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    padding: 9px 12px;
+  }
+
+  .inspector-metric + .inspector-metric {
+    border-left: 1px solid color-mix(in srgb, var(--kind) 20%, var(--border));
+  }
+
+  .inspector-metric dt {
+    color: var(--foreground-tertiary);
     font-family: var(--font-mono);
-    font-size: 11.5px;
+    font-size: 9.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .inspector-metric dd {
+    overflow: hidden;
+    font-family: var(--font-mono);
+    font-size: 16px;
+    font-weight: var(--weight-semibold);
     text-overflow: ellipsis;
     white-space: nowrap;
   }
@@ -1523,7 +1677,7 @@
   }
 
   .inspector-tab-list {
-    padding: 0 var(--space-4);
+    padding: 0 16px;
     border-bottom: 1px solid var(--border);
   }
 
@@ -1531,21 +1685,21 @@
     display: flex;
     flex: 1;
     flex-direction: column;
-    gap: var(--space-4);
+    gap: 18px;
     min-height: 0;
-    padding: var(--space-4);
+    padding: 14px 14px 18px 16px;
     overflow-y: auto;
+    scrollbar-width: thin;
   }
 
-  .inspector-header + .inspector-scroll {
-    padding-top: 0;
+  .inspector-metrics + .inspector-scroll {
+    border-top: 1px solid var(--border);
   }
 
-  .inspector-description,
   .inspector-note,
   .inspector-empty {
     color: var(--foreground-secondary);
-    font-size: var(--text-compact);
+    font-size: 12.5px;
     line-height: 1.55;
     text-wrap: pretty;
   }
@@ -1554,15 +1708,10 @@
     color: var(--foreground-tertiary);
   }
 
-  .inspector-actions {
-    display: flex;
-    gap: var(--space-2);
-  }
-
   .inspector-section {
     display: flex;
     flex-direction: column;
-    gap: var(--space-2);
+    gap: 8px;
   }
 
   .inspector-section-title {
@@ -1576,16 +1725,58 @@
     text-transform: uppercase;
   }
 
+  .inspector-props {
+    display: grid;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+
+  .inspector-props div {
+    display: grid;
+    grid-template-columns: 84px minmax(0, 1fr);
+    gap: 10px;
+    padding: 8px 12px;
+  }
+
+  .inspector-props div + div {
+    border-top: 1px solid var(--border);
+  }
+
+  .inspector-props dt {
+    color: var(--foreground-tertiary);
+    font-size: 12px;
+  }
+
+  .inspector-props dd {
+    color: var(--foreground);
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+
+  .inspector-group {
+    display: grid;
+    gap: 2px;
+  }
+
+  .inspector-group-label {
+    padding: 2px 0;
+    color: var(--foreground-secondary);
+    font-size: 12px;
+  }
+
   .inspector-list {
     display: grid;
-    margin: 0 calc(var(--space-2) * -1);
+    gap: 1px;
+    margin: 0 -6px;
   }
 
   .inspector-row {
     display: flex;
     align-items: center;
-    gap: 2px;
-    padding-right: 2px;
+    padding-right: 4px;
     border-radius: 8px;
     transition: background-color var(--duration-hover) ease;
   }
@@ -1600,10 +1791,18 @@
     display: flex;
     align-items: center;
     flex: 1;
-    gap: var(--space-2);
+    gap: 10px;
     min-width: 0;
-    padding: 6px var(--space-2);
+    padding: 6px;
     text-align: left;
+  }
+
+  .inspector-row .kind-tile {
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    background: color-mix(in srgb, var(--kind) 10%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--kind) 40%, transparent);
   }
 
   .inspector-row-text {
@@ -1615,10 +1814,10 @@
 
   .inspector-row-name {
     overflow: hidden;
+    font-size: 13px;
+    font-weight: var(--weight-medium);
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: var(--text-compact);
-    font-weight: var(--weight-medium);
   }
 
   .inspector-row-detail {
@@ -1630,42 +1829,106 @@
     white-space: nowrap;
   }
 
-  .inspector-stats {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    overflow: hidden;
-    border: 1px solid var(--border);
-    border-radius: 10px;
+  .inspector-row-action {
+    opacity: 0;
+    transition: opacity var(--duration-hover) ease;
   }
 
-  .inspector-stat {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    padding: 10px 12px;
-    border-bottom: 1px solid var(--border);
+  .inspector-row:hover .inspector-row-action,
+  .inspector-row:focus-within .inspector-row-action {
+    opacity: 1;
   }
 
-  .inspector-stat:nth-child(odd) {
-    border-right: 1px solid var(--border);
+  @media (hover: none) {
+    .inspector-row-action {
+      opacity: 1;
+    }
   }
 
-  .inspector-stat:nth-last-child(-n + 2) {
-    border-bottom: none;
-  }
-
-  .inspector-stat dt {
+  .inspector-add-row {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
+    height: 36px;
+    padding: 0 10px;
+    border: 1px dashed var(--border-strong);
+    border-radius: 8px;
     color: var(--foreground-secondary);
-    font-size: 12px;
+    font-size: 12.5px;
+    transition: border-color var(--duration-hover) ease, color var(--duration-hover) ease,
+      background-color var(--duration-hover) ease, transform var(--duration-press) var(--ease-out);
   }
 
-  .inspector-stat dd {
+  @media (hover: hover) and (pointer: fine) {
+    .inspector-add-row:hover {
+      border-color: var(--foreground-tertiary);
+      background: var(--surface-hover);
+      color: var(--foreground);
+    }
+  }
+
+  .inspector-add-row:active {
+    transform: scale(0.99);
+  }
+
+  .inspector-code {
+    margin: 0;
+    padding: 10px 12px;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--background);
     font-family: var(--font-mono);
-    font-size: 18px;
-    font-weight: var(--weight-medium);
+    font-size: 11px;
+    line-height: 1.65;
+    white-space: pre;
+  }
+
+  .inspector-code-block + .inspector-code-block::before {
+    content: "\A";
+    white-space: pre;
+  }
+
+  .code-comment {
+    color: var(--foreground-tertiary);
+  }
+
+  .code-keyword {
+    color: var(--kind-channel);
+  }
+
+  .code-string {
+    color: var(--kind-connection);
+  }
+
+  .inspector-quick {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .inspector-quick-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 10px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    font-size: 12.5px;
+    transition: border-color var(--duration-hover) ease, background-color var(--duration-hover) ease,
+      transform var(--duration-press) var(--ease-out);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .inspector-quick-item:hover {
+      border-color: color-mix(in srgb, var(--kind) 50%, var(--border));
+      background: color-mix(in srgb, var(--kind) 6%, transparent);
+    }
+  }
+
+  .inspector-quick-item:active {
+    transform: scale(0.98);
   }
 
   .inspector-status {
@@ -1673,7 +1936,7 @@
     align-items: center;
     gap: 6px;
     color: var(--foreground-secondary);
-    font-size: var(--text-compact);
+    font-size: 12.5px;
   }
 
   .inspector-status[data-tone="ok"] svg {
@@ -1703,39 +1966,6 @@
     color: var(--danger);
   }
 
-  .inspector-keys {
-    display: grid;
-    gap: 6px;
-    font-size: 12px;
-  }
-
-  .inspector-keys div {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-3);
-  }
-
-  .inspector-keys dt {
-    display: flex;
-    gap: 4px;
-  }
-
-  .inspector-keys dd {
-    color: var(--foreground-secondary);
-    text-align: right;
-  }
-
-  .inspector-keys kbd {
-    padding: 1px 5px;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    background: var(--background);
-    color: var(--foreground-secondary);
-    font-family: var(--font-mono);
-    font-size: 11px;
-  }
-
   .inspector-source {
     display: flex;
     flex: 1;
@@ -1752,42 +1982,46 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: var(--space-2) var(--space-4);
+    padding: 8px 14px 8px 16px;
     border-top: 1px solid var(--border);
   }
 
   .inspector-conflict {
     display: grid;
     gap: var(--space-2);
-    padding: var(--space-3) var(--space-4);
+    padding: 12px 16px;
     border-bottom: 1px solid color-mix(in srgb, var(--warning) 30%, var(--border));
     background: color-mix(in srgb, var(--warning) 8%, transparent);
     color: var(--foreground);
     font-size: 12px;
   }
 
+  /* The create form shares the panel. */
+  .inspector-header {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding: 16px;
+  }
+
+  .inspector-titles {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .inspector-detail {
+    color: var(--foreground-secondary);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .inspector-header + .inspector-scroll {
+    padding-top: 0;
+  }
+
   .inspector-form {
     display: flex;
     flex-direction: column;
     gap: var(--space-5);
-  }
-
-  .inspector-foot {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-2);
-    padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
-    border-top: 1px solid var(--border);
-    background: var(--background);
-  }
-
-  .inspector-path {
-    min-width: 0;
-    overflow: hidden;
-    color: var(--foreground-tertiary);
-    font-size: 11px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
 }

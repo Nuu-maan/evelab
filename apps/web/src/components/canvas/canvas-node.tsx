@@ -5,6 +5,7 @@ import { Handle, Position, useConnection, type Node, type NodeProps } from "@xyf
 import type { CanvasNodeKind, CapabilityCounts } from "@evelab/eve-project";
 import { IconChevronDown, IconChevronRight } from "@/components/icons";
 import { Icon } from "@/components/icon";
+import type { LayoutMode } from "@/components/canvas/layout";
 import { KINDS } from "@/components/kinds";
 
 export type CanvasNodeData = {
@@ -29,7 +30,7 @@ export type CanvasNodeData = {
 export type CapabilityNode = Node<CanvasNodeData, "capability">;
 
 export interface CanvasContextValue {
-  horizontal: boolean;
+  mode: LayoutMode;
   /** Whether an agent already uses a resource, so a drag can show where it may land. */
   uses: (agentId: string, resourceId: string) => boolean;
   toggleCollapse: (agentId: string) => void;
@@ -37,7 +38,7 @@ export interface CanvasContextValue {
 }
 
 export const CanvasContext = createContext<CanvasContextValue>({
-  horizontal: false,
+  mode: "hierarchical",
   uses: () => false,
   toggleCollapse: () => {},
   detachEdge: () => {},
@@ -85,7 +86,11 @@ function readings(data: CanvasNodeData): { value: string; label: string }[] {
  * largest card, resources the smallest.
  */
 function CanvasNodeCardBase({ id, data, selected }: NodeProps<CapabilityNode>) {
-  const { horizontal, uses, toggleCollapse } = useContext(CanvasContext);
+  const { mode, uses, toggleCollapse } = useContext(CanvasContext);
+  // Horizontal wires run left to right; the outline enters from the left and leaves from the bottom.
+  const targetPosition =
+    mode === "horizontal" ? Position.Left : mode === "vertical" && data.kind !== "subagent" ? Position.Left : Position.Top;
+  const sourcePosition = mode === "horizontal" ? Position.Right : Position.Bottom;
   const owns = isAgentKind(data.kind);
   const resource = isResourceKind(data.kind);
   // Both selectors return primitives, so a drag re-renders a node when its answer changes, not every frame.
@@ -112,7 +117,7 @@ function CanvasNodeCardBase({ id, data, selected }: NodeProps<CapabilityNode>) {
         <Handle
           className="node-handle"
           type="target"
-          position={horizontal ? Position.Left : Position.Top}
+          position={targetPosition}
           isConnectableStart={false}
         />
       )}
@@ -162,7 +167,7 @@ function CanvasNodeCardBase({ id, data, selected }: NodeProps<CapabilityNode>) {
       </div>
 
       {owns && (
-        <Handle className="node-handle" type="source" position={horizontal ? Position.Right : Position.Bottom} />
+        <Handle className="node-handle" type="source" position={sourcePosition} />
       )}
     </div>
   );

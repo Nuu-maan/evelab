@@ -14,6 +14,7 @@ import {
   useNodesInitialized,
   useNodesState,
   useReactFlow,
+  useUpdateNodeInternals,
   useViewport,
   type Connection,
   type EdgeMouseHandler,
@@ -25,8 +26,12 @@ import {
 } from "@xyflow/react";
 import type { CanvasEdge, CanvasGraph, CanvasNode, CanvasNodeKind } from "@evelab/eve-project";
 import {
+  IconCheckCircle,
   IconFullscreen,
+  IconInformation,
   IconMinus,
+  IconRoute,
+  IconWarning,
   IconPlus,
   IconRotateCounterClockwise,
   IconSettingsSliders,
@@ -44,7 +49,7 @@ import {
   type AnnotationContextValue,
   type AnnotationNode,
 } from "@/components/canvas/annotations";
-import { CanvasConnectionLine, RelationEdgePath, type RelationEdge } from "@/components/canvas/canvas-edge";
+import { CanvasConnectionLine, RelationEdgePath, type EdgeBend, type RelationEdge } from "@/components/canvas/canvas-edge";
 import {
   CanvasContext,
   CanvasNodeCard,
@@ -64,10 +69,10 @@ import {
 } from "@/components/canvas/canvas-inspector";
 import { CanvasCreatePanel, type DraftKind } from "@/components/canvas/canvas-create-panel";
 import { ResourceBrowser } from "@/components/canvas/resource-browser";
-import { autoLayout, type Annotation, type LayoutMode, type Positions } from "@/components/canvas/layout";
+import { autoLayout, type Annotation, type LayoutMode, type NodeSizes, type Positions } from "@/components/canvas/layout";
 import type { ChatSdkOption } from "@/components/channel-form";
 import { ConfirmDialog } from "@/components/confirm";
-import { Icon } from "@/components/icon";
+import { Icon, type IconData } from "@/components/icon";
 import { KINDS, KindTile } from "@/components/kinds";
 import { SkillImportDialog } from "@/components/skill-import-dialog";
 import { Button } from "@/components/ui/button";
@@ -113,6 +118,15 @@ export interface CanvasProps {
 }
 
 type Result = { ok: true } | { ok: false; message: string };
+
+interface Stat {
+  label: string;
+  value: number;
+  icon: IconData;
+  kind?: CanvasNodeKind;
+  match: (node: CanvasNode) => boolean;
+  create?: CreateKind;
+}
 type Point = { x: number; y: number };
 
 type HistoryEntry =
@@ -123,7 +137,7 @@ type HistoryEntry =
 const LAYOUTS: { mode: LayoutMode; label: string }[] = [
   { mode: "hierarchical", label: "Hierarchical" },
   { mode: "horizontal", label: "Horizontal" },
-  { mode: "vertical", label: "Vertical outline" },
+  { mode: "vertical", label: "Columns by agent" },
   { mode: "freeform", label: "Freeform" },
 ];
 
@@ -138,7 +152,38 @@ const ADD_ITEMS: { kind: CreateKind; hint: string }[] = [
 /** Room for the floating panels, so fitting never tucks a card under them. */
 const FIT_PADDING = { top: "112px", right: "48px", bottom: "72px", left: "288px" } as const;
 
-const EDGE_MARKER = { type: MarkerType.ArrowClosed, width: 14, height: 14, color: "var(--canvas-edge)" };
+const KIND_COLOR: Partial<Record<CanvasNodeKind, string>> = {
+  subagent: "var(--kind-subagent)",
+  tool: "var(--kind-tool)",
+  skill: "var(--kind-skill)",
+  connection: "var(--kind-connection)",
+  channel: "var(--kind-channel)",
+};
+
+/** What each wire colour and stroke means, shown in the status bar. */
+const LEGEND: { kind: CanvasNodeKind; label: string; dashed?: boolean }[] = [
+  { kind: "subagent", label: "contains", dashed: true },
+  { kind: "tool", label: "tool" },
+  { kind: "skill", label: "skill" },
+  { kind: "connection", label: "connects" },
+  { kind: "channel", label: "routes", dashed: true },
+];
+
+const SHORTCUTS: [string, string][] = [
+  ["A", "Add resource"],
+  ["N", "New note"],
+  ["S", "New section"],
+  ["F", "Focus selection"],
+  ["0", "Fit everything"],
+  ["1", "Go to root"],
+  ["Space", "Hold to pan"],
+  ["Shift drag", "Select an area"],
+  ["Ctrl Z", "Undo"],
+  ["Ctrl Shift Z", "Redo"],
+  ["Ctrl C / V", "Attach copies to an agent"],
+  ["Ctrl D", "Duplicate notes"],
+  ["Delete", "Detach or delete"],
+];
 
 function isCapability(node: Node): node is CapabilityNode {
   return node.type === "capability";
@@ -171,17 +216,26 @@ function sameData(previous: CanvasNodeData, node: CanvasNode): boolean {
   );
 }
 
-function toEdge(edge: Pick<CanvasEdge, "source" | "target" | "relation">, kind: CanvasNodeKind): RelationEdge {
+function toEdge(
+  edge: Pick<CanvasEdge, "source" | "target" | "relation">,
+  kind: CanvasNodeKind,
+  bend: EdgeBend = "middle",
+): RelationEdge {
   return {
     id: `${edge.source}->${edge.target}`,
     source: edge.source,
     target: edge.target,
     type: "relation",
-    className: `edge-${kind}`,
-    interactionWidth: 20,
-    markerEnd: EDGE_MARKER,
-    data: { relation: edge.relation, detachable: isResourceKind(kind) },
+    className: edgeClass(kind, edge.relation),
+    interactionWidth: 22,
+    markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14, color: KIND_COLOR[kind] ?? "var(--canvas-edge)" },
+    data: { relation: edge.relation, kind, bend, detachable: isResourceKind(kind) },
   };
+}
+
+function edgeClass(kind: CanvasNodeKind, relation: CanvasEdge["relation"] | undefined, extra?: string): string {
+  const structure = relation === "contains" || relation === "routes to";
+  return [`edge-${kind}`, structure ? "relation-structure" : "relation-use", extra].filter(Boolean).join(" ");
 }
 
 function snapshot(nodes: Node[]): Positions {
@@ -336,10 +390,21 @@ function CanvasInner(props: CanvasProps) {
 
   const byId = useMemo(() => new Map(graph.nodes.map((node) => [node.id, node])), [graph.nodes]);
   const kinds = useMemo(() => new Map(graph.nodes.map((node) => [node.id, node.kind] as const)), [graph.nodes]);
-  const graphEdges = useMemo(
-    () => graph.edges.map((edge) => toEdge(edge, kinds.get(edge.target) ?? "tool")),
-    [graph.edges, kinds],
-  );
+  const graphEdges = useMemo(() => {
+    const incoming = new Map<string, number>();
+    const outgoing = new Map<string, number>();
+    for (const edge of graph.edges) {
+      incoming.set(edge.target, (incoming.get(edge.target) ?? 0) + 1);
+      outgoing.set(edge.source, (outgoing.get(edge.source) ?? 0) + 1);
+    }
+    return graph.edges.map((edge) =>
+      toEdge(
+        edge,
+        kinds.get(edge.target) ?? "tool",
+        (incoming.get(edge.target) ?? 0) > 1 ? "target" : (outgoing.get(edge.source) ?? 0) > 1 ? "source" : "middle",
+      ),
+    );
+  }, [graph.edges, kinds]);
 
   const [nodes, setNodes, onGraphNodesChange] = useNodesState<CapabilityNode>(
     useMemo(() => {
@@ -356,14 +421,40 @@ function CanvasInner(props: CanvasProps) {
   );
   const [edges, setEdges, onEdgesChange] = useEdgesState<RelationEdge>(graphEdges);
 
+  /** Rendered card sizes, so layouts space real cards rather than estimates. */
+  const measuredSizes = useCallback((): NodeSizes => {
+    const sizes: NodeSizes = new Map();
+    for (const node of getNodes()) {
+      if (isCapability(node) && node.measured?.width && node.measured.height) {
+        sizes.set(node.id, { width: node.measured.width, height: node.measured.height });
+      }
+    }
+    return sizes;
+  }, [getNodes]);
+
   // Fit once the cards have real sizes; fitting on mount measures placeholder boxes.
   const initialized = useNodesInitialized();
   const fitted = useRef(false);
   useEffect(() => {
     if (!initialized || fitted.current) return;
     fitted.current = true;
-    requestAnimationFrame(() => void fitView({ padding: FIT_PADDING, maxZoom: 1 }));
-  }, [fitView, initialized]);
+    const initialMode = layoutState.current.mode;
+    // Nothing arranged by hand yet: lay out again with the measured sizes before fitting.
+    if (Object.keys(positions).length === 0 && initialMode !== "freeform") {
+      const placed = autoLayout(graph, initialMode, undefined, measuredSizes());
+      setNodes((current) => current.map((node) => (placed[node.id] ? { ...node, position: placed[node.id]! } : node)));
+    }
+    requestAnimationFrame(() => requestAnimationFrame(() => void fitView({ padding: FIT_PADDING, maxZoom: 1 })));
+    // Runs once, when the cards are first measured.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialized]);
+
+  // Handles move with the layout mode; React Flow keeps measured handle positions until told to measure again.
+  const updateNodeInternals = useUpdateNodeInternals();
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => updateNodeInternals(getNodes().filter(isCapability).map((node) => node.id)));
+    return () => cancelAnimationFrame(frame);
+  }, [getNodes, mode, updateNodeInternals]);
 
   const usesSet = useMemo(() => new Set(edges.map((edge) => `${edge.source}|${edge.target}`)), [edges]);
   const uses = useCallback(
@@ -512,7 +603,7 @@ function CanvasInner(props: CanvasProps) {
       }
       carry(resource);
       const relation = kind === "tool" ? "has tool" : kind === "skill" ? "has skill" : "connects to";
-      setEdges((current) => [...current, toEdge({ source: agent, target: resource, relation }, kind)]);
+      setEdges((current) => [...current, toEdge({ source: agent, target: resource, relation }, kind, "middle")]);
       const ok = await run(() => attachResourceAction({ projectId, resource, agent }));
       if (!ok) {
         setEdges(graphEdges);
@@ -585,14 +676,14 @@ function CanvasInner(props: CanvasProps) {
       setMode(next);
       layoutState.current.mode = next;
       if (next !== "freeform") {
-        const placed = autoLayout(graph, next, foldedNodes(graph, layoutState.current.collapsed).hidden);
+        const placed = autoLayout(graph, next, foldedNodes(graph, layoutState.current.collapsed).hidden, measuredSizes());
         record({ type: "move", before: snapshot(getNodes().filter(isCapability)), after: placed });
         applyPositions(placed);
         requestAnimationFrame(() => void fitView({ duration: 360, padding: FIT_PADDING, maxZoom: 1 }));
       }
       persist();
     },
-    [applyPositions, fitView, getNodes, graph, persist, record],
+    [applyPositions, fitView, getNodes, graph, measuredSizes, persist, record],
   );
 
   const align = useCallback(
@@ -759,6 +850,23 @@ function CanvasInner(props: CanvasProps) {
     const ok = await run(() => removeNodeAction({ projectId, ref: node.id }));
     if (ok) say({ text: `Deleted ${node.name}` });
   }, [clearSelection, confirmDelete, projectId, run, say]);
+
+  /** Selects every card of a kind and brings them into view; an empty kind opens its create form instead. */
+  const focusGroup = useCallback(
+    (match: (node: CanvasNode) => boolean, createKind?: CreateKind) => {
+      const ids = new Set(graph.nodes.filter(match).map((node) => node.id));
+      if (ids.size === 0) {
+        if (createKind) create(createKind);
+        return;
+      }
+      setDraft(undefined);
+      setSummaryOpen(false);
+      setAnnotations((current) => current.map((node) => (node.selected ? ({ ...node, selected: false } as AnnotationNode) : node)));
+      setNodes((current) => current.map((node) => ({ ...node, selected: ids.has(node.id) })));
+      void fitView({ nodes: [...ids].map((id) => ({ id })), duration: 360, padding: FIT_PADDING, maxZoom: 1.1 });
+    },
+    [create, fitView, graph.nodes, setNodes],
+  );
 
   const selectedNodes = nodes.filter((node) => node.selected);
   const selectedEdges = edges.filter((edge) => edge.selected);
@@ -938,13 +1046,15 @@ function CanvasInner(props: CanvasProps) {
   );
 
   const displayEdges = useMemo(() => {
-    const crowded = edges.length > 40;
+    const hoveredWires =
+      hovered?.type === "node" ? edges.filter((edge) => edge.source === hovered.id || edge.target === hovered.id).length : 0;
     const list = edges.map((edge) => {
       const hoveredEdge = hovered?.type === "edge" && hovered.id === edge.id;
       const touches = hoveredEdge || (hovered?.type === "node" && (edge.source === hovered.id || edge.target === hovered.id));
       const kind = kinds.get(edge.target) ?? "tool";
-      const className = [`edge-${kind}`, related ? (touches ? "is-related" : "is-dim") : ""].filter(Boolean).join(" ");
-      const showLabel = Boolean(!crowded || edge.selected || touches);
+      const className = edgeClass(kind, edge.data?.relation, related ? (touches ? "is-related" : "is-dim") : undefined);
+      // A label only where someone is looking, so wires never sit under a wall of words.
+      const showLabel = Boolean(edge.selected || hoveredEdge || (touches && hoveredWires <= 6));
       if (edge.className === className && edge.data?.showLabel === showLabel) return edge;
       return { ...edge, className, data: { ...edge.data!, showLabel } };
     });
@@ -953,7 +1063,7 @@ function CanvasInner(props: CanvasProps) {
       list.push({
         ...toEdge({ source: attachTarget, target: dragging, relation: "has tool" }, kind),
         id: "attach-preview",
-        className: `edge-${kind} is-preview`,
+        className: edgeClass(kind, "has tool", "is-preview"),
         selectable: false,
         data: { detachable: false },
       });
@@ -1037,7 +1147,7 @@ function CanvasInner(props: CanvasProps) {
 
   const context = useMemo<CanvasContextValue>(
     () => ({
-      horizontal: mode === "horizontal",
+      mode,
       uses,
       toggleCollapse,
       detachEdge: (agent, resource) => void detach(resource, agent),
@@ -1058,13 +1168,29 @@ function CanvasInner(props: CanvasProps) {
   const count = (kind: CanvasNodeKind) => graph.nodes.filter((node) => node.kind === kind).length;
   const agents = count("agent") + count("subagent");
   const resources = count("tool") + count("skill") + count("connection");
-  const stats = [
-    { label: "Agents", value: agents },
-    { label: "Tools", value: count("tool") },
-    { label: "Skills", value: count("skill") },
-    { label: "Connections", value: count("connection") },
-    { label: "Channels", value: count("channel") },
-    { label: "Shared", value: graph.nodes.filter((node) => node.shared).length },
+  const kindStat = (kind: Exclude<CanvasNodeKind, "agent" | "subagent">): Stat => ({
+    label: count(kind) === 1 ? KINDS[kind].label : KINDS[kind].plural,
+    value: count(kind),
+    icon: KINDS[kind].icon,
+    kind,
+    match: (node) => node.kind === kind,
+    create: kind,
+  });
+  const sharedCount = graph.nodes.filter((node) => node.shared).length;
+  const stats: Stat[] = [
+    {
+      label: agents === 1 ? "Agent" : "Agents",
+      value: agents,
+      icon: KINDS.subagent.icon,
+      kind: "subagent",
+      match: (node) => isAgentKind(node.kind),
+      create: "subagent",
+    },
+    kindStat("tool"),
+    kindStat("skill"),
+    kindStat("connection"),
+    kindStat("channel"),
+    { label: "Shared", value: sharedCount, icon: IconRoute, match: (node) => node.shared === true },
   ];
   const notes = annotations.length;
   const rootNode = byId.get("agent");
@@ -1075,7 +1201,12 @@ function CanvasInner(props: CanvasProps) {
   return (
     <CanvasContext.Provider value={context}>
       <AnnotationContext.Provider value={annotationContext}>
-        <div className="canvas-layout" data-panel={panelOpen || undefined} data-inspector={showInspector || undefined}>
+        <div
+          className="canvas-layout"
+          data-mode={mode}
+          data-panel={panelOpen || undefined}
+          data-inspector={showInspector || undefined}
+        >
           <div
             className="canvas-surface"
             ref={surfaceRef}
@@ -1166,9 +1297,10 @@ function CanvasInner(props: CanvasProps) {
           <div className="canvas-float canvas-stats" role="toolbar" aria-label="Canvas">
             <DropdownMenu open={addOpen} onOpenChange={setAddOpen}>
               <DropdownMenuTrigger asChild>
-                <Button size="sm" className="gap-1.5">
+                <Button size="sm" className="gap-1.5 pr-1.5">
                   <Icon icon={IconPlus} />
                   Add
+                  <kbd className="button-kbd">A</kbd>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" sideOffset={10} className="w-72">
@@ -1224,15 +1356,32 @@ function CanvasInner(props: CanvasProps) {
             <span className="canvas-stats-separator" aria-hidden="true" />
 
             {stats.map((stat) => (
-              <div key={stat.label} className="canvas-stat">
-                <span className="canvas-stat-label">{stat.label}</span>
-                <span className="canvas-stat-value">{stat.value}</span>
-              </div>
+              <Tooltip key={stat.label}>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className="canvas-stat"
+                    data-kind={stat.kind}
+                    data-empty={stat.value === 0 || undefined}
+                    onClick={() => focusGroup(stat.match, stat.create)}
+                  >
+                    <Icon icon={stat.icon} size={15} />
+                    <span className="canvas-stat-value">{stat.value}</span>
+                    <span className="canvas-stat-label">{stat.label}</span>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" sideOffset={8}>
+                  {stat.value === 0 && stat.create
+                    ? `Add ${stat.create === "subagent" ? "a subagent" : `a ${KINDS[stat.create].label.toLowerCase()}`}`
+                    : `Show on the canvas`}
+                </TooltipContent>
+              </Tooltip>
             ))}
+            <span className="canvas-stats-separator" aria-hidden="true" />
             <button
               type="button"
-              className="canvas-stat canvas-stat-button"
-              data-tone={errors.length > 0 ? "error" : issues.length > 0 ? "warning" : undefined}
+              className="canvas-stat"
+              data-tone={errors.length > 0 ? "error" : issues.length > 0 ? "warning" : "ok"}
               aria-pressed={summaryOpen}
               onClick={() => {
                 clearSelection();
@@ -1240,19 +1389,35 @@ function CanvasInner(props: CanvasProps) {
                 setSummaryOpen((open) => !open);
               }}
             >
-              <span className="canvas-stat-label">Issues</span>
+              <Icon icon={issues.length > 0 ? IconWarning : IconCheckCircle} size={15} />
               <span className="canvas-stat-value">{issues.length}</span>
+              <span className="canvas-stat-label">{issues.length === 1 ? "Issue" : "Issues"}</span>
             </button>
           </div>
 
-          <p className="canvas-hints" aria-hidden="true">
-            <span>Scroll to pan</span>
-            <span>Ctrl+scroll to zoom</span>
-            <span>Shift+drag to select</span>
-            <span>Double-click to write</span>
-          </p>
+
 
           <div className="canvas-float canvas-view-menu">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon-sm" aria-label="Keyboard shortcuts">
+                  <Icon icon={IconInformation} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" sideOffset={10} className="w-64">
+                <DropdownMenuLabel>Shortcuts</DropdownMenuLabel>
+                <dl className="shortcut-list">
+                  {SHORTCUTS.map(([keys, label]) => (
+                    <div key={keys}>
+                      <dt>{label}</dt>
+                      <dd>
+                        <kbd>{keys}</kbd>
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon-sm" aria-label="View options">
@@ -1337,23 +1502,15 @@ function CanvasInner(props: CanvasProps) {
                 <Icon icon={IconSidebarLeft} />
               </ToolbarButton>
             </div>
-            <p className="canvas-float canvas-status">
-              <span>
-                {agents} {agents === 1 ? "agent" : "agents"}
-              </span>
-              <span>
-                {resources} {resources === 1 ? "resource" : "resources"}
-              </span>
-              <span>
-                {graph.edges.length} {graph.edges.length === 1 ? "edge" : "edges"}
-              </span>
-              {notes > 0 && (
-                <span>
-                  {notes} {notes === 1 ? "annotation" : "annotations"}
+            <div className="canvas-float canvas-status" aria-label="Wire legend">
+              {LEGEND.map((item) => (
+                <span key={item.label} className="legend-item" data-kind={item.kind}>
+                  <i data-dashed={item.dashed || undefined} aria-hidden="true" />
+                  {item.label}
                 </span>
-              )}
-              <span className="canvas-status-mode">{mode}</span>
-            </p>
+              ))}
+              <span className="canvas-status-mode">{LAYOUTS.find((layout) => layout.mode === mode)?.label}</span>
+            </div>
           </div>
 
           {selectedAnnotations.length > 0 && (
@@ -1426,6 +1583,7 @@ function CanvasInner(props: CanvasProps) {
                   content={selected ? (contents[selected.filePath] ?? "") : ""}
                   issues={issues}
                   onSelect={select}
+                  onFocus={(id) => void fitView({ nodes: [{ id }], duration: 360, padding: FIT_PADDING, maxZoom: 1.1 })}
                   onClear={() => {
                     clearSelection();
                     setSummaryOpen(false);

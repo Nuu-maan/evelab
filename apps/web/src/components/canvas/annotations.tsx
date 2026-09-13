@@ -76,8 +76,9 @@ export function fromAnnotationNode(node: AnnotationNode): Annotation {
     ...node.data,
     x: Math.round(node.position.x),
     y: Math.round(node.position.y),
-    width: Math.round(node.width ?? node.measured?.width ?? node.data.width),
-    height: Math.round(node.height ?? node.measured?.height ?? node.data.height),
+    // A card not yet measured reports 0; keep the last known size instead of saving an invisible note.
+    width: Math.max(24, Math.round(node.width || node.measured?.width || node.data.width)),
+    height: Math.max(16, Math.round(node.height || node.measured?.height || node.data.height)),
   };
 }
 
