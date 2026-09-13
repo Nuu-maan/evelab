@@ -142,7 +142,8 @@ test("adding a connection writes an MCP connection with Vercel Connect auth", as
   await panel.getByLabel("Connection name").fill("linear");
   await panel.getByLabel("URL").fill("https://mcp.linear.app/mcp");
   await panel.getByLabel("Description").fill("Linear issues.");
-  await panel.getByLabel("Authentication").selectOption("connect");
+  await panel.getByLabel("Authentication").click();
+  await page.getByRole("option", { name: "Vercel Connect" }).click();
   await panel.getByLabel("Connector").fill("mcp.linear.app/linear");
   await panel.getByRole("button", { name: "Create connection" }).click();
 
