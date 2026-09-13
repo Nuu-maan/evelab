@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import {
   Background,
@@ -11,14 +11,17 @@ import {
   useReactFlow,
   useViewport,
   type Connection,
-  type Edge,
   type IsValidConnection,
   type NodeMouseHandler,
 } from "@xyflow/react";
-import "@xyflow/react/dist/base.css";
 import { AnimatePresence } from "motion/react";
-import { Maximize, Minus, Plus } from "lucide-react";
+import { IconFullscreen, IconMinus, IconPlus } from "@/components/icons";
 import type { CanvasGraph, CanvasNode, CanvasNodeKind, CapabilityLink } from "@evelab/eve-project";
+import {
+  OwnershipConnectionLine,
+  OwnershipEdgePath,
+  type OwnershipEdge,
+} from "@/components/canvas/canvas-edge";
 import {
   CanvasNodeCard,
   type CanvasNodeData,
@@ -27,13 +30,17 @@ import {
 import { CanvasInspector } from "@/components/canvas/canvas-inspector";
 import { CanvasCreatePanel, type DraftKind } from "@/components/canvas/canvas-create-panel";
 import { fallbackPositions, type Positions } from "@/components/canvas/layout";
+import { Icon } from "@/components/icon";
 import { KindTile } from "@/components/kinds";
 import { ResizeHandle } from "@/components/resize-handle";
 import { SkillImportDialog } from "@/components/skill-import-dialog";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { changeOwnershipAction, saveLayoutAction } from "@/lib/actions";
 import "@/app/canvas.css";
 
 const nodeTypes = { capability: CanvasNodeCard };
+const edgeTypes = { ownership: OwnershipEdgePath };
 
 export interface CanvasProps {
   projectId: string;
@@ -54,16 +61,53 @@ function nodeData(node: CanvasNode, fresh: boolean): CanvasNodeData {
   return { name: node.name, detail: node.detail, filePath: node.filePath, kind: node.kind, fresh };
 }
 
-function toEdge(source: string, target: string, kind: CanvasNodeKind): Edge {
+function toEdge(source: string, target: string, kind: CanvasNodeKind): OwnershipEdge {
+  // Ownership of tools and skills is editable; a subagent always belongs to the agent.
+  const movable = kind === "tool" || kind === "skill";
   return {
     id: `${source}->${target}`,
     source,
     target,
+    type: "ownership",
     className: `edge-${kind}`,
-    // Ownership of tools and skills is editable; a subagent always belongs to the agent.
-    reconnectable: kind === "tool" || kind === "skill",
+    reconnectable: movable,
     interactionWidth: 24,
+    data: { movable },
   };
+}
+
+function ControlButton({
+  label,
+  tooltip,
+  onClick,
+  className,
+  children,
+}: {
+  label: string;
+  tooltip: string;
+  onClick: () => void;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          type="button"
+          aria-label={label}
+          className={className}
+          onClick={onClick}
+        >
+          {children}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="top" sideOffset={6}>
+        {tooltip}
+      </TooltipContent>
+    </Tooltip>
+  );
 }
 
 function CanvasControls() {
@@ -72,43 +116,28 @@ function CanvasControls() {
 
   return (
     <div className="canvas-controls" role="toolbar" aria-label="Canvas view">
-      <button
-        className="canvas-control"
-        type="button"
-        aria-label="Zoom out"
-        title="Zoom out"
-        onClick={() => void zoomOut({ duration: 200 })}
-      >
-        <Minus aria-hidden="true" strokeWidth={1.5} />
-      </button>
-      <button
-        className="canvas-control canvas-zoom"
-        type="button"
-        aria-label="Reset zoom to 100%"
-        title="Reset zoom"
+      <ControlButton label="Zoom out" tooltip="Zoom out" onClick={() => void zoomOut({ duration: 200 })}>
+        <Icon icon={IconMinus} />
+      </ControlButton>
+      <ControlButton
+        label="Reset zoom to 100%"
+        tooltip="Reset zoom"
+        className="w-12 text-xs tabular-nums text-muted-foreground"
         onClick={() => void zoomTo(1, { duration: 200 })}
       >
         {Math.round(zoom * 100)}%
-      </button>
-      <button
-        className="canvas-control"
-        type="button"
-        aria-label="Zoom in"
-        title="Zoom in"
-        onClick={() => void zoomIn({ duration: 200 })}
-      >
-        <Plus aria-hidden="true" strokeWidth={1.5} />
-      </button>
+      </ControlButton>
+      <ControlButton label="Zoom in" tooltip="Zoom in" onClick={() => void zoomIn({ duration: 200 })}>
+        <Icon icon={IconPlus} />
+      </ControlButton>
       <span className="canvas-controls-separator" aria-hidden="true" />
-      <button
-        className="canvas-control"
-        type="button"
-        aria-label="Fit to screen"
-        title="Fit to screen"
+      <ControlButton
+        label="Fit to screen"
+        tooltip="Fit to screen"
         onClick={() => void fitView({ duration: 240, padding: 0.25, maxZoom: 1 })}
       >
-        <Maximize aria-hidden="true" strokeWidth={1.5} />
-      </button>
+        <Icon icon={IconFullscreen} />
+      </ControlButton>
     </div>
   );
 }
@@ -123,7 +152,7 @@ function CanvasInner({ projectId, graph, contents, positions, defaultModel }: Ca
   const saveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   /** Where a node created from a palette drop should appear once the server has it. */
   const pending = useRef<Positions>({});
-  const reconnecting = useRef<{ edge: Edge; connected: boolean } | undefined>(undefined);
+  const reconnecting = useRef<{ edge: OwnershipEdge; connected: boolean } | undefined>(undefined);
   const renderedGraph = useRef(graph);
 
   const kinds = useMemo(
@@ -150,7 +179,7 @@ function CanvasInner({ projectId, graph, contents, positions, defaultModel }: Ca
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
   );
-  const [edges, setEdges] = useState<Edge[]>(graphEdges);
+  const [edges, setEdges] = useState<OwnershipEdge[]>(graphEdges);
 
   // Merge a refreshed graph into the live nodes, keeping positions, measurements
   // and selection for everything that already exists.
@@ -193,7 +222,10 @@ function CanvasInner({ projectId, graph, contents, positions, defaultModel }: Ca
 
   /** Applies an ownership change optimistically, then lets the server have the last word. */
   const changeOwnership = useCallback(
-    async (change: { remove?: CapabilityLink; add?: CapabilityLink }, optimistic: (edges: Edge[]) => Edge[]) => {
+    async (
+      change: { remove?: CapabilityLink; add?: CapabilityLink },
+      optimistic: (edges: OwnershipEdge[]) => OwnershipEdge[],
+    ) => {
       setEdges(optimistic);
       setNotice(undefined);
       const result = await changeOwnershipAction({ projectId, ...change });
@@ -206,7 +238,7 @@ function CanvasInner({ projectId, graph, contents, positions, defaultModel }: Ca
     [graphEdges, projectId, router],
   );
 
-  const isValidConnection = useCallback<IsValidConnection>(
+  const isValidConnection = useCallback<IsValidConnection<OwnershipEdge>>(
     (connection) => {
       const source = kinds.get(connection.source);
       const target = kinds.get(connection.target);
@@ -240,7 +272,7 @@ function CanvasInner({ projectId, graph, contents, positions, defaultModel }: Ca
   );
 
   const onReconnect = useCallback(
-    (previous: Edge, connection: Connection) => {
+    (previous: OwnershipEdge, connection: Connection) => {
       if (reconnecting.current) reconnecting.current.connected = true;
       if (previous.source === connection.source && previous.target === connection.target) return;
       const kind = kinds.get(connection.target) ?? "tool";
@@ -259,7 +291,7 @@ function CanvasInner({ projectId, graph, contents, positions, defaultModel }: Ca
   );
 
   const onReconnectEnd = useCallback(
-    (_: unknown, edge: Edge) => {
+    (_: unknown, edge: OwnershipEdge) => {
       const state = reconnecting.current;
       reconnecting.current = undefined;
       if (state?.connected) return;
@@ -304,46 +336,48 @@ function CanvasInner({ projectId, graph, contents, positions, defaultModel }: Ca
     ? notice
     : graph.nodes.length === 1
       ? { text: "Drag a tool or subagent from the left to start building" }
-      : { text: "Click a node to open its file. Drag an edge end to move ownership." };
+      : { text: "Click a node to open its file. Select an edge, then drag an end to move ownership." };
 
   return (
     <div className="canvas-layout">
       <aside className="canvas-palette" aria-label="Add to canvas">
-        <p className="canvas-palette-label">Add to canvas</p>
+        <div className="canvas-palette-scroll">
+          <p className="canvas-palette-label">Add to canvas</p>
 
-        {PALETTE.map((item) => (
-          <div
-            key={item.kind}
-            className="palette-chip"
-            data-kind={item.kind}
-            draggable
-            role="button"
-            tabIndex={0}
-            onDragStart={(event) => {
-              event.dataTransfer.setData("application/evelab-kind", item.kind);
-              event.dataTransfer.effectAllowed = "move";
-            }}
-            onClick={() => openDraft(item.kind)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                openDraft(item.kind);
-              }
-            }}
-          >
-            <KindTile kind={item.kind} />
-            <span className="palette-chip-text">
-              <span className="palette-chip-title">{item.title}</span>
-              <span className="palette-chip-detail mono">{item.detail}</span>
-            </span>
-          </div>
-        ))}
+          {PALETTE.map((item) => (
+            <div
+              key={item.kind}
+              className="palette-chip"
+              data-kind={item.kind}
+              draggable
+              role="button"
+              tabIndex={0}
+              onDragStart={(event) => {
+                event.dataTransfer.setData("application/evelab-kind", item.kind);
+                event.dataTransfer.effectAllowed = "move";
+              }}
+              onClick={() => openDraft(item.kind)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  openDraft(item.kind);
+                }
+              }}
+            >
+              <KindTile kind={item.kind} />
+              <span className="palette-chip-text">
+                <span className="palette-chip-title">{item.title}</span>
+                <span className="palette-chip-detail mono">{item.detail}</span>
+              </span>
+            </div>
+          ))}
 
-        <p className="canvas-palette-hint">
-          Drop a chip on the canvas, or press Enter on it. Edges show who can use what: drag the end
-          of one onto a subagent to hand a tool or skill over, or onto empty canvas to give it back
-          to the agent.
-        </p>
+          <p className="canvas-palette-hint">
+            Drop a chip on the canvas, or press Enter on it. Edges show who can use what: drag the end
+            of one onto a subagent to hand a tool or skill over, or onto empty canvas to give it back
+            to the agent.
+          </p>
+        </div>
 
         <ResizeHandle pane="palette" label="Resize palette" />
       </aside>
@@ -363,14 +397,26 @@ function CanvasInner({ projectId, graph, contents, positions, defaultModel }: Ca
           openDraft(kind, screenToFlowPosition({ x: event.clientX, y: event.clientY }));
         }}
       >
-        <ReactFlow<CapabilityNode, Edge>
+        <ReactFlow<CapabilityNode, OwnershipEdge>
           nodes={nodes}
           edges={edges}
           nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
           onNodesChange={onNodesChange}
           onNodeClick={onNodeClick}
           onNodeDragStop={persist}
           onPaneClick={() => setSelectedId(undefined)}
+          onEdgesChange={(changes) =>
+            setEdges((current) => {
+              const selection = new Map(
+                changes.flatMap((change) => (change.type === "select" ? [[change.id, change.selected]] : [])),
+              );
+              if (selection.size === 0) return current;
+              return current.map((edge) =>
+                selection.has(edge.id) ? { ...edge, selected: selection.get(edge.id) } : edge,
+              );
+            })
+          }
           onConnect={onConnect}
           onReconnect={onReconnect}
           onReconnectStart={(_, edge) => {
@@ -379,10 +425,13 @@ function CanvasInner({ projectId, graph, contents, positions, defaultModel }: Ca
           onReconnectEnd={onReconnectEnd}
           isValidConnection={isValidConnection}
           edgesReconnectable
-          reconnectRadius={14}
-          connectionLineStyle={{ strokeDasharray: "4 4" }}
+          reconnectRadius={18}
+          connectionRadius={36}
+          connectionLineComponent={OwnershipConnectionLine}
+          elevateEdgesOnSelect
           // Nodes are files; removing one is a confirmed action in the inspector, never a keypress.
           deleteKeyCode={null}
+          proOptions={{ hideAttribution: true }}
           fitView
           fitViewOptions={{ padding: 0.25, maxZoom: 1 }}
           minZoom={0.3}

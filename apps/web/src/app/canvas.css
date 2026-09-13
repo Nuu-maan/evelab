@@ -1,406 +1,510 @@
 /* Canvas: palette, React Flow surface, nodes, edges, inspector. */
 
-.canvas-layout {
-  display: grid;
-  grid-template-columns: var(--pane-palette, 220px) minmax(0, 1fr);
-  height: 100%;
-}
+/* Layered so Tailwind utilities on shadcn components always win. */
+@layer theme, base, components, utilities;
 
-/* ---------- Palette ---------- */
+/* React Flow's structural styles go in the base layer, under everything below. */
+@import "@xyflow/react/dist/base.css" layer(base);
 
-.canvas-palette {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  min-width: 0;
-  min-height: 0;
-  padding: var(--space-3);
-  border-right: 1px solid var(--border);
-  background: var(--background);
-  overflow-y: auto;
-}
-
-.canvas-palette-label {
-  padding: var(--space-1) var(--space-1) 0;
-  color: var(--foreground-tertiary);
-  font-size: var(--text-label);
-  font-weight: var(--weight-medium);
-}
-
-.palette-chip {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: var(--space-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-large);
-  background: var(--surface);
-  box-shadow: var(--shadow-small);
-  cursor: grab;
-  user-select: none;
-  transition: border-color var(--duration-hover) ease, transform var(--duration-press) var(--ease-out);
-}
-
-.palette-chip:hover {
-  border-color: color-mix(in srgb, var(--kind) 45%, var(--border));
-}
-
-.palette-chip:active {
-  cursor: grabbing;
-  transform: scale(0.97);
-}
-
-.palette-chip-text {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.palette-chip-title {
-  font-size: var(--text-compact);
-  font-weight: var(--weight-medium);
-}
-
-.palette-chip-detail {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--foreground-tertiary);
-  font-size: 11px;
-}
-
-.canvas-palette-hint {
-  margin-top: var(--space-2);
-  padding: 0 var(--space-1);
-  color: var(--foreground-tertiary);
-  font-size: var(--text-label);
-  line-height: 1.5;
-  text-wrap: pretty;
-}
-
-/* ---------- Surface ---------- */
-
-.canvas-surface {
-  position: relative;
-  min-width: 0;
-  min-height: 0;
-  background: var(--background);
-}
-
-.canvas-surface .react-flow {
-  background: transparent;
-}
-
-.canvas-hint {
-  position: absolute;
-  left: 50%;
-  bottom: var(--space-4);
-  z-index: 5;
-  max-width: calc(100% - 320px);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  padding: 6px var(--space-3);
-  transform: translateX(-50%);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  background: var(--surface-raised);
-  box-shadow: var(--shadow-small);
-  color: var(--foreground-secondary);
-  font-size: var(--text-label);
-}
-
-.canvas-hint[data-tone="error"] {
-  border-color: color-mix(in srgb, var(--danger) 35%, var(--border));
-  color: var(--danger);
-}
-
-.canvas-controls {
-  position: absolute;
-  left: var(--space-4);
-  bottom: var(--space-4);
-  z-index: 5;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  padding: 3px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-large);
-  background: var(--surface-raised);
-  box-shadow: var(--shadow);
-}
-
-/* Outer radius 8, padding 3: buttons take 5. */
-.canvas-control {
-  display: grid;
-  place-items: center;
-  min-width: 28px;
-  height: 28px;
-  padding: 0 6px;
-  border: none;
-  border-radius: 5px;
-  background: none;
-  color: var(--foreground-secondary);
-  cursor: pointer;
-  transition: background-color var(--duration-hover) ease, color var(--duration-hover) ease,
-    transform var(--duration-press) var(--ease-out);
-}
-
-.canvas-control svg {
-  width: 14px;
-  height: 14px;
-}
-
-.canvas-control:hover {
-  background: var(--surface-hover);
-  color: var(--foreground);
-}
-
-.canvas-control:active {
-  transform: scale(0.96);
-}
-
-.canvas-zoom {
-  min-width: 48px;
-  font-size: var(--text-label);
-  font-variant-numeric: tabular-nums;
-}
-
-.canvas-controls-separator {
-  width: 1px;
-  height: 16px;
-  margin: 0 2px;
-  background: var(--border);
-}
-
-/* ---------- Nodes ---------- */
-
-.node {
-  width: 220px;
-  padding: 10px var(--space-3) var(--space-3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  background: var(--surface);
-  box-shadow: var(--shadow-small);
-  cursor: pointer;
-  transition: border-color var(--duration-hover) ease, box-shadow var(--duration-hover) ease;
-}
-
-.node[data-kind="agent"] {
-  width: 240px;
-  border-color: var(--border-strong);
-}
-
-.node:hover {
-  border-color: color-mix(in srgb, var(--kind) 45%, var(--border));
-}
-
-.node[data-selected] {
-  border-color: var(--kind);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--kind) 20%, transparent), var(--shadow);
-}
-
-.react-flow__node.dragging .node {
-  box-shadow: var(--shadow-large);
-  cursor: grabbing;
-}
-
-/* Only nodes created while the canvas is open get an entrance. */
-.node[data-fresh] {
-  animation: node-in 240ms var(--ease-out) both;
-}
-
-@keyframes node-in {
-  from {
-    opacity: 0;
-    transform: scale(0.96);
+@layer components {
+  .canvas-layout {
+    display: grid;
+    grid-template-columns: var(--pane-palette, 220px) minmax(0, 1fr);
+    height: 100%;
   }
-}
 
-.node-head {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
+  /* ---------- Palette ---------- */
 
-.node-kind {
-  color: var(--kind, var(--foreground-tertiary));
-  font-size: var(--text-label);
-  font-weight: var(--weight-medium);
-}
+  .canvas-palette {
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+    border-right: 1px solid var(--border);
+    background: var(--background);
+  }
 
-.node[data-kind="agent"] .node-kind,
-.node-kind[data-kind="agent"] {
-  color: var(--foreground-secondary);
-}
+  /* Scrolls inside the pane so the resize handle on its edge is never clipped. */
+  .canvas-palette-scroll {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    height: 100%;
+    padding: var(--space-3);
+    overflow-y: auto;
+  }
 
-.node-name {
-  margin-top: var(--space-2);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-weight: var(--weight-medium);
-  letter-spacing: -0.01em;
-}
+  .canvas-palette-label {
+    padding: var(--space-1) var(--space-1) 0;
+    color: var(--foreground-tertiary);
+    font-size: var(--text-label);
+    font-weight: var(--weight-medium);
+  }
 
-.node-meta {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--foreground-secondary);
-  font-size: var(--text-label);
-}
+  .palette-chip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: var(--space-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-large);
+    background: var(--surface);
+    box-shadow: var(--shadow-small);
+    cursor: grab;
+    user-select: none;
+    transition: border-color var(--duration-hover) ease, transform var(--duration-press) var(--ease-out);
+  }
 
-.node-path {
-  margin-top: var(--space-2);
-  padding-top: var(--space-2);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  border-top: 1px solid var(--border);
-  color: var(--foreground-tertiary);
-  font-size: 11px;
-}
+  .palette-chip:hover {
+    border-color: color-mix(in srgb, var(--kind) 45%, var(--border));
+  }
 
-/* ---------- Handles and edges ---------- */
+  .palette-chip:active {
+    cursor: grabbing;
+    transform: scale(0.97);
+  }
 
-.react-flow__handle.node-handle {
-  width: 10px;
-  height: 10px;
-  min-width: 0;
-  min-height: 0;
-  border: 1.5px solid color-mix(in srgb, var(--kind) 75%, var(--border-strong));
-  border-radius: 50%;
-  background: var(--surface);
-  transition: scale var(--duration-hover) var(--ease-out), background-color var(--duration-hover) ease;
-}
+  .palette-chip-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
 
-.react-flow__handle.node-handle.source {
-  cursor: crosshair;
-}
+  .palette-chip-title {
+    font-size: var(--text-compact);
+    font-weight: var(--weight-medium);
+  }
 
-.react-flow__handle.node-handle.source:hover,
-.react-flow__handle.node-handle.connectingfrom,
-.react-flow__handle.node-handle.connectingto.valid {
-  scale: 1.4;
-  background: var(--kind);
-}
+  .palette-chip-detail {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--foreground-tertiary);
+    font-size: 11px;
+  }
 
-.react-flow__edge {
-  --kind: var(--foreground-tertiary);
-}
+  .canvas-palette-hint {
+    margin-top: var(--space-2);
+    padding: 0 var(--space-1);
+    color: var(--foreground-tertiary);
+    font-size: var(--text-label);
+    line-height: 1.5;
+    text-wrap: pretty;
+  }
 
-.react-flow__edge.edge-tool {
-  --kind: var(--kind-tool);
-}
+  /* ---------- Surface ---------- */
 
-.react-flow__edge.edge-skill {
-  --kind: var(--kind-skill);
-}
+  .canvas-surface {
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+    background: var(--background);
+  }
 
-.react-flow__edge.edge-subagent {
-  --kind: var(--kind-subagent);
-}
+  .canvas-surface .react-flow {
+    background: transparent;
+  }
 
-.react-flow__edge-path {
-  fill: none;
-  stroke: color-mix(in srgb, var(--kind) 40%, var(--border-strong));
-  stroke-width: 1.5;
-  transition: stroke var(--duration-hover) ease;
-}
+  .canvas-hint {
+    position: absolute;
+    left: 50%;
+    bottom: var(--space-4);
+    z-index: 5;
+    max-width: calc(100% - 320px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 6px var(--space-3);
+    transform: translateX(-50%);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-pill);
+    background: var(--surface-raised);
+    box-shadow: var(--shadow-small);
+    color: var(--foreground-secondary);
+    font-size: var(--text-label);
+  }
 
-.react-flow__edge:hover .react-flow__edge-path,
-.react-flow__edge.selected .react-flow__edge-path {
-  stroke: var(--kind);
-}
+  .canvas-hint[data-tone="error"] {
+    border-color: color-mix(in srgb, var(--danger) 35%, var(--border));
+    color: var(--danger);
+  }
 
-.react-flow__edge.selected .react-flow__edge-path {
-  stroke-width: 2;
-}
+  /* Outer radius 10, padding 3: buttons take 7 so the corners stay concentric. */
+  .canvas-controls {
+    position: absolute;
+    left: var(--space-4);
+    bottom: var(--space-4);
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 3px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface-raised);
+    box-shadow: var(--shadow);
+  }
 
-.react-flow__edge.updating .react-flow__edge-path {
-  stroke-dasharray: 4 4;
-}
+  .canvas-controls-separator {
+    width: 1px;
+    height: 16px;
+    margin: 0 2px;
+    background: var(--border);
+  }
 
-.react-flow__edgeupdater {
-  cursor: grab;
-}
+  /* ---------- Nodes ---------- */
 
-.react-flow__connection-path {
-  fill: none;
-  stroke: var(--foreground-secondary);
-  stroke-width: 1.5;
-}
+  .node {
+    --node-border: color-mix(in srgb, var(--kind) 30%, var(--border));
+    position: relative;
+    width: 220px;
+    border: 2px solid var(--node-border);
+    border-radius: 14px;
+    background: var(--surface);
+    box-shadow: var(--shadow-small);
+    cursor: pointer;
+    transition: border-color var(--duration-hover) ease, box-shadow 200ms var(--ease-out);
+  }
 
-.react-flow__attribution {
-  padding: 2px 6px;
-  background: transparent;
-  font-size: 10px;
-}
+  .node[data-kind="agent"] {
+    --node-border: var(--border-strong);
+    width: 240px;
+  }
 
-.react-flow__attribution a {
-  color: var(--foreground-tertiary);
-}
+  @media (hover: hover) and (pointer: fine) {
+    .node:hover {
+      border-color: color-mix(in srgb, var(--kind) 60%, var(--border));
+    }
+  }
 
-/* ---------- Inspector ---------- */
+  .node[data-selected] {
+    border-color: var(--kind);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--kind) 16%, transparent), var(--shadow);
+  }
 
-.inspector {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 15;
-  display: flex;
-  flex-direction: column;
-  width: min(var(--pane-inspector, 560px), calc(100% - 64px));
-  border-left: 1px solid var(--border);
-  background: var(--surface);
-  box-shadow: var(--shadow-large);
-}
+  /* While a connection is dragged, the nodes that can own it say so. */
+  .node[data-receiving] {
+    border-color: color-mix(in srgb, var(--kind) 55%, var(--border));
+  }
 
-.inspector-head {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  border-bottom: 1px solid var(--border);
-}
+  .node[data-targeted] {
+    border-color: var(--kind);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--kind) 22%, transparent), var(--shadow);
+  }
 
-.inspector-title {
-  flex: 1;
-  min-width: 0;
-}
+  .react-flow__node.dragging .node {
+    box-shadow: var(--shadow-large);
+    cursor: grabbing;
+  }
 
-.inspector-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--space-2) var(--space-4);
-  border-bottom: 1px solid var(--border);
-  background: var(--background);
-}
+  /* Only nodes created while the canvas is open get an entrance. */
+  .node[data-fresh] {
+    animation: node-in 240ms var(--ease-out) both;
+  }
 
-.inspector-body {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-}
+  @keyframes node-in {
+    from {
+      opacity: 0;
+      transform: scale(0.96);
+    }
+  }
 
-.inspector-editor {
-  flex: 1;
-  min-height: 0;
-}
+  .node-body {
+    padding: 10px var(--space-3) var(--space-3);
+  }
 
-.inspector-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  border-top: 1px solid var(--border);
-  background: var(--background);
+  .node-head {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .node-kind {
+    color: var(--kind, var(--foreground-tertiary));
+    font-size: var(--text-label);
+    font-weight: var(--weight-medium);
+  }
+
+  .node[data-kind="agent"] .node-kind,
+  .node-kind[data-kind="agent"] {
+    color: var(--foreground-secondary);
+  }
+
+  .node-name {
+    margin-top: var(--space-2);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 15px;
+    font-weight: var(--weight-semibold);
+    letter-spacing: -0.015em;
+  }
+
+  .node-meta {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--foreground-secondary);
+    font-size: var(--text-label);
+  }
+
+  .node-foot {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 30px;
+    padding: 0 var(--space-3);
+    border-top: 1px solid var(--node-border);
+    border-radius: 0 0 12px 12px;
+    background: color-mix(in srgb, var(--kind) 5%, var(--background));
+  }
+
+  .node-foot .file-icon {
+    margin: 0;
+  }
+
+  .node-path {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--foreground-tertiary);
+    font-size: 11px;
+  }
+
+  /* ---------- Handles ---------- */
+
+  .react-flow__handle.node-handle {
+    width: 14px;
+    height: 14px;
+    min-width: 0;
+    min-height: 0;
+    border: 2px solid color-mix(in srgb, var(--kind) 70%, var(--border-strong));
+    border-radius: 50%;
+    background: var(--surface);
+    transition: scale 200ms var(--ease-out), background-color var(--duration-hover) ease,
+      border-color var(--duration-hover) ease, box-shadow 200ms var(--ease-out);
+  }
+
+  .react-flow__handle.node-handle.source {
+    cursor: crosshair;
+  }
+
+  /*
+   * Hover grows a ring, not the handle: a scaled handle would cover the reconnect
+   * anchor of the edge leaving it, and a press meant for the edge would start a
+   * new connection instead.
+   */
+  @media (hover: hover) and (pointer: fine) {
+    .react-flow__handle.node-handle.source:hover {
+      background: var(--kind);
+      border-color: var(--kind);
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--kind) 22%, transparent);
+    }
+  }
+
+  .react-flow__handle.node-handle.connectingfrom {
+    background: var(--kind);
+    border-color: var(--kind);
+  }
+
+  .node[data-receiving] .react-flow__handle.node-handle.source {
+    border-color: var(--kind);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--kind) 18%, transparent);
+  }
+
+  .react-flow__handle.node-handle.connectingto.valid {
+    scale: 1.45;
+    background: var(--kind);
+    border-color: var(--kind);
+  }
+
+  /* ---------- Edges ---------- */
+
+  .react-flow__edge {
+    --kind: var(--foreground-tertiary);
+  }
+
+  .react-flow__edge.edge-tool {
+    --kind: var(--kind-tool);
+  }
+
+  .react-flow__edge.edge-skill {
+    --kind: var(--kind-skill);
+  }
+
+  .react-flow__edge.edge-subagent {
+    --kind: var(--kind-subagent);
+  }
+
+  .react-flow__edge-path {
+    fill: none;
+    stroke: color-mix(in srgb, var(--kind) 50%, var(--border-strong));
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: stroke var(--duration-hover) ease, stroke-width var(--duration-hover) ease;
+  }
+
+  .react-flow__edge:hover .react-flow__edge-path,
+  .react-flow__edge.selected .react-flow__edge-path {
+    stroke: var(--kind);
+  }
+
+  .react-flow__edge.selected .react-flow__edge-path {
+    stroke-width: 2.5;
+  }
+
+  .react-flow__edge.updating .react-flow__edge-path {
+    stroke-dasharray: 6 6;
+    opacity: 0.45;
+  }
+
+  .edge-grip {
+    fill: var(--surface);
+    stroke: var(--kind);
+    stroke-width: 2;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--duration-hover) ease;
+  }
+
+  .react-flow__edge:hover .edge-grip,
+  .react-flow__edge.selected .edge-grip {
+    opacity: 1;
+  }
+
+  .react-flow__edge.updating .edge-grip {
+    opacity: 0;
+  }
+
+  /* React Flow's reconnect anchors: invisible, generous targets over the grips. */
+  .react-flow__edgeupdater {
+    fill: transparent;
+    stroke: none;
+    cursor: grab;
+  }
+
+  .react-flow__edgeupdater:active {
+    cursor: grabbing;
+  }
+
+  .edge-label {
+    position: absolute;
+    z-index: 10;
+    padding: 2px var(--space-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-pill);
+    background: var(--surface-raised);
+    box-shadow: var(--shadow-small);
+    color: var(--foreground-secondary);
+    font-size: 11px;
+    white-space: nowrap;
+    pointer-events: none;
+    animation: edge-label-in 160ms var(--ease-out) both;
+  }
+
+  @keyframes edge-label-in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  .connection-line path {
+    fill: none;
+    stroke: var(--foreground-tertiary);
+    stroke-width: 2;
+    stroke-dasharray: 6 5;
+    stroke-linecap: round;
+  }
+
+  .connection-line circle {
+    fill: var(--surface);
+    stroke: var(--foreground-tertiary);
+    stroke-width: 2;
+  }
+
+  .connection-line[data-status="valid"] path {
+    stroke: var(--focus);
+    stroke-dasharray: none;
+  }
+
+  .connection-line[data-status="valid"] circle {
+    fill: var(--focus);
+    stroke: var(--focus);
+  }
+
+  .connection-line[data-status="invalid"] path,
+  .connection-line[data-status="invalid"] circle {
+    stroke: var(--danger);
+  }
+
+  /* ---------- Inspector ---------- */
+
+  .inspector {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 15;
+    display: flex;
+    flex-direction: column;
+    width: min(var(--pane-inspector, 560px), calc(100% - 64px));
+    border-left: 1px solid var(--border);
+    background: var(--surface);
+    box-shadow: var(--shadow-large);
+  }
+
+  .inspector-head {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .inspector-title {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .inspector-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-4);
+    border-bottom: 1px solid var(--border);
+    background: var(--background);
+  }
+
+  .inspector-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .inspector-editor {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .inspector-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    padding: var(--space-5) var(--space-4);
+    overflow-y: auto;
+  }
+
+  .inspector-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border-top: 1px solid var(--border);
+    background: var(--background);
+  }
 }
