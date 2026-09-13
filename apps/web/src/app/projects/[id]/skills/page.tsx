@@ -53,8 +53,8 @@ export default async function SkillsPage({ params }: { params: Promise<{ id: str
             title="No skills yet."
             action={<SkillImportButton projectId={id} label="Import your first skill" variant="ghost" />}
           >
-            Paste a GitHub link to a directory containing SKILL.md, such as a skill listed on skills.sh.
-            EveLab reads it, flags files that can run code, and installs only after you confirm.
+            Paste a skills.sh link, an @skills/owner/repo/skill name, or a GitHub directory with a SKILL.md.
+            EveLab reads every file, flags files that can run code, and installs only after you confirm.
           </EmptyState>
         </Reveal>
       ) : (

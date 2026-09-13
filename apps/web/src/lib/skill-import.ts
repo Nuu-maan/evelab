@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { SkillCandidate, SkillCandidateFile } from "./skill-types.js";
 
 /**
- * Skill import from GitHub.
+ * Skill import from GitHub and skills.sh.
  *
  * Importing code is not the same as executing it, and it is not the same as
  * trusting it either. This module only fetches and describes a candidate skill.
@@ -12,7 +12,7 @@ import type { SkillCandidate, SkillCandidateFile } from "./skill-types.js";
 
 export type { SkillCandidate, SkillCandidateFile } from "./skill-types.js";
 
-const MAX_FILES = 60;
+const MAX_FILES = 120;
 const MAX_DEPTH = 3;
 const MAX_FILE_BYTES = 256 * 1024;
 const MAX_TOTAL_BYTES = 1024 * 1024;
@@ -57,7 +57,7 @@ export function parseGitHubUrl(input: string): Target {
 
   if (url.protocol !== "https:") throw new SkillImportError("Use an https URL.");
   if (url.hostname !== "github.com" && url.hostname !== "www.github.com") {
-    throw new SkillImportError("Only github.com URLs are supported today.");
+    throw new SkillImportError("Use a github.com link, a skills.sh link, or @skills/owner/repo/skill.");
   }
 
   const segments = url.pathname.split("/").filter(Boolean);
@@ -110,8 +110,117 @@ function isExecutable(path: string): boolean {
   return dot === -1 ? false : EXECUTABLE_EXTENSIONS.has(path.slice(dot).toLowerCase());
 }
 
-/** Reads a skill directory and reports what it contains, without installing it. */
+const NAME_PART = /^[A-Za-z0-9._-]+$/;
+
+/**
+ * A skills.sh reference in either form `eve add` accepts: `@skills/owner/repo/skill`,
+ * or the skill's page URL. Returns `owner/repo/skill`, or undefined for anything else.
+ */
+export function parseSkillsShReference(input: string): string | undefined {
+  const trimmed = input.trim();
+  let parts: string[] | undefined;
+  if (trimmed.startsWith("@skills/")) {
+    parts = trimmed.slice("@skills/".length).split("/");
+  } else {
+    let url: URL;
+    try {
+      url = new URL(trimmed);
+    } catch {
+      return undefined;
+    }
+    if (url.hostname !== "skills.sh" && url.hostname !== "www.skills.sh") return undefined;
+    if (url.protocol !== "https:") throw new SkillImportError("Use an https URL.");
+    parts = url.pathname.split("/").filter(Boolean);
+    if (parts[0] === "r") parts.shift();
+  }
+  if (parts.length !== 3 || !parts.every((part) => NAME_PART.test(part) && part !== "." && part !== "..")) {
+    throw new SkillImportError("A skills.sh skill is owner/repo/skill.");
+  }
+  return parts.join("/");
+}
+
+const skillsShItemSchema = z.object({
+  name: z.string(),
+  description: z.string().optional(),
+  files: z.array(z.object({ path: z.string(), content: z.string().default("") })).min(1),
+});
+
+function executableWarning(files: SkillCandidateFile[], warnings: string[]): void {
+  const executableCount = files.filter((file) => file.executable).length;
+  if (executableCount > 0) {
+    warnings.unshift(
+      `${executableCount} file${executableCount === 1 ? "" : "s"} can run code. Read them before installing.`,
+    );
+  }
+}
+
+/**
+ * Reads a skill from the skills.sh registry, the same item `eve add @skills/...`
+ * installs. The registry answers with every file inline, so nothing else is fetched.
+ */
+async function fetchSkillsShCandidate(name: string, source: string): Promise<SkillCandidate> {
+  let response: Response;
+  try {
+    response = await fetch(`https://www.skills.sh/r/${name}?agent=eve`, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(15_000),
+    });
+  } catch {
+    throw new SkillImportError("Could not reach skills.sh.");
+  }
+  if (response.status === 404) throw new SkillImportError(`skills.sh has no skill ${name}.`);
+  if (!response.ok) throw new SkillImportError(`skills.sh returned ${response.status}.`);
+  const text = await response.text();
+  if (text.length > MAX_TOTAL_BYTES * 2) throw new SkillImportError("That skill is larger than 1 MB in total.");
+
+  let item: z.infer<typeof skillsShItemSchema>;
+  try {
+    item = skillsShItemSchema.parse(JSON.parse(text));
+  } catch {
+    throw new SkillImportError("skills.sh returned something that is not a skill.");
+  }
+
+  const warnings: string[] = [];
+  const files: SkillCandidateFile[] = [];
+  let bytes = 0;
+  for (const file of item.files) {
+    if (!isSafeRelativePath(file.path)) {
+      warnings.push(`Skipped "${file.path}": unsafe path.`);
+      continue;
+    }
+    if (files.length >= MAX_FILES) {
+      warnings.push(`Only the first ${MAX_FILES} files were read.`);
+      break;
+    }
+    if (file.content.length > MAX_FILE_BYTES) {
+      warnings.push(`"${file.path}" is larger than 256 KB and was skipped.`);
+      continue;
+    }
+    bytes += file.content.length;
+    if (bytes > MAX_TOTAL_BYTES) throw new SkillImportError("That skill is larger than 1 MB in total.");
+    files.push({ path: file.path, content: file.content, executable: isExecutable(file.path) });
+  }
+
+  const markdown = files.find((file) => file.path === "SKILL.md");
+  if (!markdown) throw new SkillImportError("That skills.sh item has no SKILL.md.");
+  executableWarning(files, warnings);
+  const frontmatter = readFrontmatterFields(markdown.content);
+
+  return {
+    id: slugifySkillId(frontmatter.name ?? item.name),
+    name: frontmatter.name ?? item.name,
+    description: frontmatter.description ?? item.description ?? "",
+    source: source.trim(),
+    files,
+    warnings,
+  };
+}
+
+/** Reads a skill and reports what it contains, without installing it. */
 export async function fetchSkillCandidate(input: string): Promise<SkillCandidate> {
+  const skillsSh = parseSkillsShReference(input);
+  if (skillsSh) return fetchSkillsShCandidate(skillsSh, input);
+
   const target = parseGitHubUrl(input);
   const base = `repos/${target.owner}/${target.repo}/contents`;
   const directory = target.path ? `${base}/${target.path}` : base;
@@ -132,12 +241,7 @@ export async function fetchSkillCandidate(input: string): Promise<SkillCandidate
   const markdown = files.find((file) => file.path === "SKILL.md");
   if (!markdown) throw new SkillImportError("SKILL.md could not be read.");
 
-  const executableCount = files.filter((file) => file.executable).length;
-  if (executableCount > 0) {
-    warnings.unshift(
-      `${executableCount} file${executableCount === 1 ? "" : "s"} can run code. Read them before installing.`,
-    );
-  }
+  executableWarning(files, warnings);
 
   const frontmatter = readFrontmatterFields(markdown.content);
   const fallbackId = (target.path.split("/").pop() || target.repo).toLowerCase();
