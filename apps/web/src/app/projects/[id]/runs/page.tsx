@@ -1,22 +1,30 @@
-import { IconChartActivity } from "@/components/icons";
-import { EmptyState } from "@/components/empty-state";
+import { RunConsole } from "@/components/runs/run-console";
+import { listRuns, readRunEvents, sessionIdSchema } from "@/lib/runs";
+import { getRuntime, localRuntimeAllowed } from "@/lib/runtime";
 
 export const dynamic = "force-dynamic";
 
-export default function RunsPage() {
+export default async function RunsPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ session?: string }>;
+}) {
+  const { id } = await params;
+  const { session } = await searchParams;
+  const sessionId = session && sessionIdSchema.safeParse(session).success ? session : undefined;
+  const [runs, events] = await Promise.all([listRuns(id), sessionId ? readRunEvents(id, sessionId) : []]);
+
   return (
-    <div className="page">
-      <header className="page-header">
-        <div className="page-heading">
-          <h1 className="page-title">Runs</h1>
-          <p className="page-description">Execution history and timelines.</p>
-        </div>
-      </header>
-      <EmptyState icon={IconChartActivity} title="No runs yet.">
-          Running an agent needs one decision first: where the Eve runtime executes during
-          development. EveLab will drive Eve rather than re-implement it, so this page stays empty
-          until that runtime target is picked. See docs/decisions.md.
-      </EmptyState>
-    </div>
+    <RunConsole
+      key={sessionId ?? "new"}
+      projectId={id}
+      initialRuntime={getRuntime(id)}
+      allowed={localRuntimeAllowed()}
+      runs={runs}
+      sessionId={sessionId}
+      initialEvents={events}
+    />
   );
 }

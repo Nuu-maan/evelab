@@ -3,6 +3,7 @@ import { agentPath } from "@evelab/eve-project";
 import { IconClock } from "@/components/icons";
 import { ConfirmSubmit } from "@/components/confirm";
 import { EmptyState } from "@/components/empty-state";
+import { ScheduleRunButton } from "@/components/schedule-run-button";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -63,6 +64,7 @@ export default async function SchedulesPage({ params }: { params: Promise<{ id: 
                       <Badge variant="secondary" className="font-mono">
                         {schedule.cron || "missing cron"}
                       </Badge>
+                      <ScheduleRunButton projectId={id} scheduleId={schedule.id} />
                       <Button asChild variant="ghost">
                         <Link href={`/projects/${id}/files?path=${encodeURIComponent(path)}`}>Edit</Link>
                       </Button>

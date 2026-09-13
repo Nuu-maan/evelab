@@ -53,6 +53,8 @@ export default defineConfig({
         // GitHub is an in-memory mock started by e2e/github.spec.ts.
         GITHUB_API_URL: `http://127.0.0.1:${process.env.E2E_GITHUB_PORT ?? 3399}`,
         GITHUB_TOKEN: "e2e-token",
+        // `eve dev` and `eve deploy` are a local stand-in that serves eve's session API.
+        EVELAB_EVE_BIN: `${process.cwd()}/e2e/fake-eve.mjs`,
       },
     },
     ...(DATABASE_URL
