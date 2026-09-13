@@ -1,9 +1,47 @@
 import * as dagre from "@dagrejs/dagre";
+import { z } from "zod";
 import type { CanvasEdge, CanvasGraph, CanvasNodeKind } from "@evelab/eve-project";
 
 export type Positions = Record<string, { x: number; y: number }>;
 
 export const LAYOUT_MODES = ["hierarchical", "horizontal", "vertical", "freeform"] as const;
+
+export const ANNOTATION_COLORS = [
+  "default",
+  "gray",
+  "blue",
+  "cyan",
+  "teal",
+  "green",
+  "lime",
+  "yellow",
+  "amber",
+  "orange",
+  "red",
+  "pink",
+  "purple",
+  "violet",
+  "indigo",
+] as const;
+
+/** A note or section drawn on the canvas. Presentation only: it never touches the project. */
+export const annotationSchema = z.object({
+  id: z.string().regex(/^(note|section):[A-Za-z0-9-]{1,40}$/),
+  type: z.enum(["note", "section"]),
+  x: z.number().finite(),
+  y: z.number().finite(),
+  width: z.number().finite().min(24).max(10000),
+  height: z.number().finite().min(16).max(10000),
+  text: z.string().max(20000).default(""),
+  size: z.enum(["s", "m", "l"]).default("m"),
+  bold: z.boolean().default(false),
+  italic: z.boolean().default(false),
+  underline: z.boolean().default(false),
+  font: z.enum(["hand", "sans", "mono", "serif"]).default("hand"),
+  color: z.enum(ANNOTATION_COLORS).default("default"),
+});
+
+export type Annotation = z.infer<typeof annotationSchema>;
 export type LayoutMode = (typeof LAYOUT_MODES)[number];
 
 /** Card sizes by tier, so the root reads largest and resources smallest. Heights are what layout reserves. */
