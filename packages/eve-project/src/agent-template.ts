@@ -15,10 +15,41 @@ export function renderAgentConfig(model: string, reasoning?: Reasoning): string 
   return `import { defineAgent } from "eve";\n\nexport default defineAgent({\n  model: ${JSON.stringify(model)},\n${reasoningLine(reasoning)}});\n`;
 }
 
-/** A declared subagent's `agent.ts`. Eve requires `description`. */
-export function renderSubagentConfig(description: string, model?: string, reasoning?: Reasoning): string {
-  const modelLine = model ? `  model: ${JSON.stringify(model)},\n` : "";
-  return `import { defineAgent } from "eve";\n\nexport default defineAgent({\n  description: ${JSON.stringify(description)},\n${modelLine}${reasoningLine(reasoning)}});\n`;
+/** What `eve init` picks when no model is chosen. */
+export const DEFAULT_AGENT_MODEL_ID = "openai/gpt-5.6-luna-fast";
+
+/**
+ * A declared subagent's `agent.ts`. Eve's compiler requires both `description`
+ * and `model` on a subagent, so a model is always written.
+ */
+export function renderSubagentConfig(description: string, model: string, reasoning?: Reasoning): string {
+  return `import { defineAgent } from "eve";\n\nexport default defineAgent({\n  description: ${JSON.stringify(description)},\n  model: ${JSON.stringify(model)},\n${reasoningLine(reasoning)}});\n`;
+}
+
+/** A slot file that uses a shared definition from `lib/`. */
+export function renderSharedReexport(specifier: string): string {
+  return `export { default } from ${JSON.stringify(specifier)};\n`;
+}
+
+/**
+ * A skill as a `defineSkill` module, which is how a markdown or packaged skill
+ * becomes shareable: a module can be re-exported, a markdown file cannot.
+ */
+export function renderSkillModule(input: { description: string; markdown: string; files: { path: string; content: string }[] }): string {
+  const lines = [
+    `import { defineSkill } from "eve/skills";`,
+    ``,
+    `export default defineSkill({`,
+    `  description: ${JSON.stringify(input.description)},`,
+    `  markdown: ${JSON.stringify(input.markdown)},`,
+  ];
+  if (input.files.length > 0) {
+    lines.push(`  files: {`);
+    for (const file of input.files) lines.push(`    ${JSON.stringify(file.path)}: ${JSON.stringify(file.content)},`);
+    lines.push(`  },`);
+  }
+  lines.push(`});`, ``);
+  return lines.join("\n");
 }
 
 /** An authored tool, as the Eve tools guide writes one. */

@@ -104,7 +104,7 @@ describe("generateProject", () => {
     });
     const output = generateProject(project);
     expect(contentOf(output, "agent/subagents/reviewer/agent.ts")).toBe(
-      'import { defineAgent } from "eve";\n\nexport default defineAgent({\n  description: "Check claims before the parent replies.",\n});\n',
+      'import { defineAgent } from "eve";\n\nexport default defineAgent({\n  description: "Check claims before the parent replies.",\n  model: "openai/gpt-5.6-luna-fast",\n});\n',
     );
     expect(contentOf(output, "agent/subagents/reviewer/instructions.md")).toBe("Reject unsupported claims.\n");
   });

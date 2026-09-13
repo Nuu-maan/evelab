@@ -23,6 +23,50 @@ export function agentPath(root: AgentRoot, relative: string): string {
   return root ? `${root}/${relative}` : relative;
 }
 
+/**
+ * Where `#` imports resolve, from package.json's `imports["#*"]`: `"./agent/*"`
+ * gives `"agent/"`, `"./*"` gives `""`. Undefined when the project has no such map.
+ */
+export function hashImportBase(packageJson: string | undefined): string | undefined {
+  if (!packageJson) return undefined;
+  try {
+    const parsed = JSON.parse(packageJson) as { imports?: Record<string, unknown> };
+    const target = parsed.imports?.["#*"];
+    if (typeof target !== "string") return undefined;
+    const match = /^\.\/(?:(.+)\/)?\*$/.exec(target);
+    if (!match) return undefined;
+    return match[1] ? `${match[1]}/` : "";
+  } catch {
+    return undefined;
+  }
+}
+
+/** Joins a directory and a relative specifier, resolving `.` and `..`. */
+export function resolveRelative(dir: string, specifier: string): string | undefined {
+  const parts = dir.split("/").filter(Boolean);
+  for (const segment of specifier.split("/")) {
+    if (segment === "" || segment === ".") continue;
+    if (segment === "..") {
+      if (parts.length === 0) return undefined;
+      parts.pop();
+    } else {
+      parts.push(segment);
+    }
+  }
+  return parts.join("/");
+}
+
+/** A relative import specifier from a directory to a file, always starting with `./` or `../`. */
+export function relativeSpecifier(fromDir: string, toFile: string): string {
+  const from = fromDir.split("/").filter(Boolean);
+  const to = toFile.split("/").filter(Boolean);
+  let common = 0;
+  while (common < from.length && common < to.length - 1 && from[common] === to[common]) common += 1;
+  const up = from.length - common;
+  const rest = to.slice(common).join("/");
+  return up === 0 ? `./${rest}` : `${"../".repeat(up)}${rest}`;
+}
+
 /** True when a set of paths is recognisably an Eve project, in either layout. */
 export function looksLikeEveProject(paths: readonly string[]): boolean {
   const all = new Set(paths);
