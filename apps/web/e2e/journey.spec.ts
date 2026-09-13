@@ -50,7 +50,7 @@ test("create, build, run, deploy and open the project", async ({ page }) => {
   // Run it.
   await page.goto(`/projects/${PROJECT_ID}/runs`);
   await page.getByRole("button", { name: "Start dev server" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "Running" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("status").filter({ hasText: "Ready" })).toBeVisible({ timeout: 30_000 });
   await page.getByLabel("Message").fill("How do I reset my password?");
   await page.getByLabel("Message").press("Control+Enter");
   const timeline = page.getByRole("list", { name: "Run timeline" });

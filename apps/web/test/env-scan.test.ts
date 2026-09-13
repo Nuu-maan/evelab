@@ -2,6 +2,13 @@ import { describe, expect, it } from "vitest";
 import { scanRequiredEnv } from "../src/lib/env-scan";
 
 describe("scanRequiredEnv", () => {
+  it("knows what a Chat SDK channel reads from the environment", () => {
+    const result = scanRequiredEnv([
+      { path: "agent/channels/telegram.ts", content: "adapters: { telegram: createTelegramAdapter() },\n  state: createRedisState()," },
+    ]);
+    expect(result.map((entry) => entry.name)).toEqual(["REDIS_URL", "TELEGRAM_BOT_TOKEN", "TELEGRAM_WEBHOOK_SECRET_TOKEN"]);
+  });
+
   it("lists what the source reads, with the files that read it", () => {
     const result = scanRequiredEnv([
       { path: "agent/connections/petstore.ts", content: "auth: { getToken: async () => ({ token: process.env.PETSTORE_TOKEN! }) }" },

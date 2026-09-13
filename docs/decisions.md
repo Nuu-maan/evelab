@@ -109,11 +109,12 @@ roles (`--primary`, `--muted`, `--border` and the rest) are aliases of the Geist
 tokens rather than a second palette, and hand-written surface CSS lives in
 `@layer components` so utilities never lose a specificity fight to it.
 
-**Canvas edges show where to grab.** Ownership edges are rounded orthogonal
-paths in the capability's colour. A movable edge shows a dot at each end on
-hover, sitting over React Flow's reconnect anchor, and handles grow a ring
-rather than scaling, because a scaled handle covers the anchor and turns a drag
-meant for the edge into a new connection.
+**Canvas edges show where to grab.** Ownership edges are soft curves that stay a
+quiet hairline at rest; hover or selection colours them with the capability's
+kind and runs a slow flow from owner to capability. A movable edge shows a dot at
+each end on hover, sitting over React Flow's reconnect anchor, and handles grow a
+ring rather than scaling, because a scaled handle covers the anchor and turns a
+drag meant for the edge into a new connection.
 
 **Sign-in is all or nothing.** Better Auth with GitHub turns on only when
 `DATABASE_URL`, the OAuth client id and secret, and `BETTER_AUTH_SECRET` are all
@@ -156,6 +157,64 @@ for any Eve project.
 **skills.sh is read through its registry.** A skills.sh reference resolves to the
 same registry item `eve add @skills/...` installs, with every file inline. It
 passes the same path, size and executable checks as a GitHub import.
+
+**Vercel first, with a fallback for everything.** Each backend concern uses the
+Vercel product built for it: Sandbox for running agents, AI Gateway through the
+AI SDK for the assistant, Blob for EveLab's own state, Connect for credentials,
+Chat SDK for channels eve has no native route for, and Observability for deployed
+agents. `lib/vercel-platform.ts` reads the environment and the Settings page says
+what is on. Nothing is required: without credentials EveLab runs agents locally,
+stores state beside the workspace, and the assistant explains how to connect.
+
+**The dev runtime prefers a sandbox.** With Sandbox credentials, Start creates a
+microVM, uploads the project, installs dependencies there and runs `eve dev` on
+the sandbox's own domain. Saves are pushed into the running sandbox through a
+project change event. Only without credentials does a local EveLab run `eve dev`
+as a child process, and a shared EveLab refuses that unless opted in.
+
+**The assistant edits through the same operations as the UI.** Creating a tool,
+subagent, connection or schedule goes through `lib/project-ops.ts` whether a
+person or the assistant asks, so the files are identical either way. The
+assistant has no general file-write tool.
+
+**Canvas drag is pointer-driven.** A palette chip is carried by a spring-driven
+copy that leans into horizontal movement, settles on drop and flies back on a
+miss. Native drag and drop cannot tilt or animate its drag image.
+
+**Shared resources live in `lib/`, and agents re-export them.** Eve gives a
+subagent nothing from its parent and shares code through `lib/`. A tool, skill or
+connection used by several agents is defined once in `agent/lib/<kind>/<name>.ts`,
+and each agent that uses it gets a one-line `export { default } from
+"#lib/<kind>/<name>.ts"` in its own slot, or a relative path when package.json has
+no `#*` import map. Markdown and packaged skills become `defineSkill` modules when
+they are first shared, because only a module can be re-exported. Detaching never
+deletes a definition. `attachResource` and `detachResource` in
+`packages/eve-project` hold the rule, and the canvas draws each shared resource
+once, with an edge from every agent that uses it. This shape was compiled against
+eve 0.54.3 with no diagnostics.
+
+**Every subagent is written with a model.** Eve's compiler rejects a subagent
+`agent.ts` without one, so a new subagent takes its own model, then the root
+agent's, then eve init's default, and validation flags one that has none.
+
+**The canvas is an architecture editor, not a workflow builder.** Three regions:
+resources on the left, the graph in the middle, the selection on the right. Edges
+are relationships ("has tool", "contains", "routes to"), and attaching is an
+explicit action from a handle, a drop onto an agent, the Add menu or the
+inspector. Layout is dagre, with positions, layout mode and folded agents stored
+as presentation state beside the workspace. Undo covers moves, attaches and
+detaches; deleting files always asks first.
+
+**New projects ask what eve init asks.** Provider first (AI Gateway via project,
+AI Gateway key, ChatGPT subscription, or a provider's own SDK), then a searchable
+model list with eve init's recommended models first, then reasoning effort. The
+agent.ts written for each answer matches eve init's, and EveLab still never
+stores a key.
+
+**Chat SDK is the default way to add a channel.** Slack, Discord, Teams, GitHub,
+Linear, WhatsApp, Google Chat and Telegram all go through eve's `chatSdkChannel`
+with a Chat SDK adapter, credentials read from the environment. Eve's native
+channels remain available beside them.
 
 ## Open
 

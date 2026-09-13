@@ -1,4 +1,4 @@
-/* Canvas: palette, React Flow surface, nodes, edges, inspector. */
+/* Canvas: resource browser, React Flow surface, nodes, edges, inspector. */
 
 /* Layered so Tailwind utilities on shadcn components always win. */
 @layer theme, base, components, utilities;
@@ -7,69 +7,224 @@
 @import "@xyflow/react/dist/base.css" layer(base);
 
 @layer components {
+  /* Three regions: what exists, the picture, what is selected. */
   .canvas-layout {
     display: grid;
-    grid-template-columns: var(--pane-palette, 220px) minmax(0, 1fr);
+    grid-template-columns: var(--pane-palette, 256px) minmax(0, 1fr) var(--pane-inspector, 360px);
     height: 100%;
+    min-height: 0;
   }
 
-  /* ---------- Palette ---------- */
+  /* ---------- Resource browser ---------- */
 
-  .canvas-palette {
+  .canvas-browser {
     position: relative;
+    display: flex;
+    flex-direction: column;
     min-width: 0;
     min-height: 0;
     border-right: 1px solid var(--border);
     background: var(--background);
   }
 
-  /* Scrolls inside the pane so the resize handle on its edge is never clipped. */
-  .canvas-palette-scroll {
-    display: flex;
-    flex-direction: column;
+  .browser-head {
+    display: grid;
     gap: var(--space-2);
-    height: 100%;
-    padding: var(--space-3);
+    padding: var(--space-3) var(--space-3) var(--space-2);
+  }
+
+  .browser-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-left: var(--space-1);
+  }
+
+  .browser-title {
+    font-size: var(--text-compact);
+    font-weight: var(--weight-medium);
+  }
+
+  .browser-search {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    height: 32px;
+    padding: 0 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--foreground-tertiary);
+    transition: border-color var(--duration-hover) ease, box-shadow var(--duration-hover) ease;
+  }
+
+  .browser-search:focus-within {
+    border-color: var(--border-strong);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 16%, transparent);
+  }
+
+  .browser-search input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: var(--foreground);
+    font-size: var(--text-compact);
+  }
+
+  .browser-search input::-webkit-search-cancel-button {
+    display: none;
+  }
+
+  .browser-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .browser-filter {
+    flex: none;
+    height: 24px;
+    padding: 0 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--foreground-secondary);
+    font-size: 12px;
+    transition: background-color var(--duration-hover) ease, color var(--duration-hover) ease,
+      border-color var(--duration-hover) ease, transform var(--duration-press) var(--ease-out);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .browser-filter:hover {
+      color: var(--foreground);
+      border-color: var(--border-strong);
+    }
+  }
+
+  .browser-filter:active {
+    transform: scale(0.97);
+  }
+
+  .browser-filter[aria-pressed="true"] {
+    border-color: var(--foreground);
+    background: var(--foreground);
+    color: var(--background);
+  }
+
+  .browser-list {
+    flex: 1;
+    min-height: 0;
+    padding: var(--space-1) var(--space-2) var(--space-3);
     overflow-y: auto;
   }
 
-  .canvas-palette-label {
-    padding: var(--space-1) var(--space-1) 0;
+  .browser-group + .browser-group {
+    margin-top: var(--space-3);
+  }
+
+  .browser-group-label {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px var(--space-2) 4px;
     color: var(--foreground-tertiary);
-    font-size: var(--text-label);
+    font-size: 12px;
     font-weight: var(--weight-medium);
   }
+
+  .browser-empty,
+  .browser-hint {
+    padding: var(--space-3);
+    color: var(--foreground-tertiary);
+    font-size: 12px;
+    line-height: 1.5;
+    text-wrap: pretty;
+  }
+
+  .browser-hint {
+    border-top: 1px solid var(--border);
+  }
+
+  /* ---------- Chips and rows ---------- */
 
   .palette-chip {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: var(--space-2);
+    padding: 8px 10px;
     border: 1px solid var(--border);
-    border-radius: var(--radius-large);
+    border-radius: 10px;
     background: var(--surface);
     box-shadow: var(--shadow-small);
-    cursor: grab;
+    cursor: pointer;
+    touch-action: none;
     user-select: none;
-    transition: border-color var(--duration-hover) ease, transform var(--duration-press) var(--ease-out);
+    transition: border-color var(--duration-hover) ease, background-color var(--duration-hover) ease,
+      box-shadow var(--duration-hover) ease, opacity var(--duration-hover) ease,
+      transform var(--duration-press) var(--ease-out);
   }
 
-  .palette-chip:hover {
-    border-color: color-mix(in srgb, var(--kind) 45%, var(--border));
+  .palette-chip[data-draggable] {
+    cursor: grab;
+  }
+
+  .palette-chip[data-variant="row"] {
+    gap: 8px;
+    padding: 5px var(--space-2);
+    border-color: transparent;
+    border-radius: 8px;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .palette-chip:hover {
+      border-color: var(--border-strong);
+      box-shadow: var(--shadow);
+    }
+
+    .palette-chip[data-variant="row"]:hover {
+      border-color: transparent;
+      background: var(--surface-hover);
+      box-shadow: none;
+    }
+  }
+
+  .palette-chip[data-variant="row"][data-selected] {
+    background: var(--surface-active);
   }
 
   .palette-chip:active {
+    transform: scale(0.98);
+  }
+
+  .palette-chip[data-draggable]:active {
     cursor: grabbing;
-    transform: scale(0.97);
+  }
+
+  .palette-chip:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: -2px;
+  }
+
+  /* The row stays behind as a faint placeholder while its copy is carried. */
+  .palette-chip[data-lifted] {
+    opacity: 0.4;
+    transform: none;
   }
 
   .palette-chip-text {
     display: flex;
+    flex: 1;
     flex-direction: column;
     min-width: 0;
   }
 
   .palette-chip-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     font-size: var(--text-compact);
     font-weight: var(--weight-medium);
   }
@@ -82,13 +237,41 @@
     font-size: 11px;
   }
 
-  .canvas-palette-hint {
-    margin-top: var(--space-2);
-    padding: 0 var(--space-1);
+  .palette-chip-badge {
+    flex: none;
     color: var(--foreground-tertiary);
-    font-size: var(--text-label);
-    line-height: 1.5;
-    text-wrap: pretty;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /*
+   * The carried copy. Its transform (position, lean, lift) is written by a
+   * spring every frame, so nothing here transitions transform.
+   */
+  .palette-chip.drag-ghost {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+    margin: 0;
+    border-color: var(--border);
+    background: var(--surface-raised);
+    box-shadow: var(--shadow-large);
+    cursor: grabbing;
+    pointer-events: none;
+    will-change: transform;
+    transition: border-color var(--duration-hover) ease, box-shadow var(--duration-hover) ease;
+  }
+
+  .palette-chip.drag-ghost[data-over] {
+    border-color: color-mix(in srgb, var(--kind) 55%, var(--border));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--kind) 16%, transparent), var(--shadow-large);
+  }
+
+  body[data-palette-dragging],
+  body[data-palette-dragging] * {
+    cursor: grabbing !important;
+    user-select: none;
   }
 
   /* ---------- Surface ---------- */
@@ -104,110 +287,353 @@
     background: transparent;
   }
 
-  .canvas-hint {
-    position: absolute;
-    left: 50%;
-    bottom: var(--space-4);
-    z-index: 5;
-    max-width: calc(100% - 320px);
+  .canvas-surface .react-flow__attribution {
+    padding: 2px 6px;
+    background: transparent;
+    font-size: 10px;
+  }
+
+  .canvas-surface .react-flow__attribution a {
+    color: var(--foreground-tertiary);
+  }
+
+  .canvas-surface .react-flow__selection,
+  .canvas-surface .react-flow__nodesselection-rect {
+    border: 1px solid color-mix(in srgb, var(--focus) 60%, transparent);
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--focus) 6%, transparent);
+  }
+
+  .canvas-surface .react-flow__minimap {
+    margin: var(--space-3);
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    padding: 6px var(--space-3);
-    transform: translateX(-50%);
     border: 1px solid var(--border);
-    border-radius: var(--radius-pill);
-    background: var(--surface-raised);
+    border-radius: 10px;
+    background: var(--surface);
     box-shadow: var(--shadow-small);
-    color: var(--foreground-secondary);
-    font-size: var(--text-label);
   }
 
-  .canvas-hint[data-tone="error"] {
-    border-color: color-mix(in srgb, var(--danger) 35%, var(--border));
-    color: var(--danger);
+  .canvas-surface .react-flow__minimap-mask {
+    fill: color-mix(in srgb, var(--background) 72%, transparent);
   }
 
-  /* Outer radius 10, padding 3: buttons take 7 so the corners stay concentric. */
-  .canvas-controls {
+  .minimap-node {
+    fill: var(--border-strong);
+  }
+
+  .minimap-agent {
+    fill: var(--foreground);
+  }
+
+  .minimap-subagent {
+    fill: var(--kind-subagent);
+  }
+
+  .minimap-tool {
+    fill: var(--kind-tool);
+  }
+
+  .minimap-skill {
+    fill: var(--kind-skill);
+  }
+
+  .minimap-connection {
+    fill: var(--kind-connection);
+  }
+
+  .minimap-channel {
+    fill: var(--kind-channel);
+  }
+
+  /* Outer radius 10, padding 3: controls take 7 so the corners stay concentric. */
+  .canvas-toolbar {
     position: absolute;
-    left: var(--space-4);
-    bottom: var(--space-4);
+    top: var(--space-3);
+    left: 50%;
     z-index: 5;
     display: flex;
     align-items: center;
     gap: 2px;
+    max-width: calc(100% - var(--space-6, 32px));
     padding: 3px;
+    transform: translateX(-50%);
     border: 1px solid var(--border);
     border-radius: 10px;
     background: var(--surface-raised);
     box-shadow: var(--shadow);
+    white-space: nowrap;
   }
 
-  .canvas-controls-separator {
+  .canvas-toolbar [data-slot="button"] {
+    border-radius: 7px;
+  }
+
+  .canvas-toolbar-separator {
+    flex: none;
     width: 1px;
     height: 16px;
-    margin: 0 2px;
+    margin: 0 3px;
     background: var(--border);
+  }
+
+  .sync-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 10px 0 8px;
+    border-radius: 7px;
+    color: var(--foreground-secondary);
+    font-size: 12px;
+    transition: background-color var(--duration-hover) ease;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .sync-status:hover {
+      background: var(--surface-hover);
+    }
+  }
+
+  .sync-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--success);
+  }
+
+  .sync-status[data-tone="busy"] .sync-dot {
+    background: var(--focus);
+    animation: sync-pulse 900ms ease-in-out infinite alternate;
+  }
+
+  .sync-status[data-tone="warning"] .sync-dot {
+    background: var(--warning);
+  }
+
+  .sync-status[data-tone="error"] {
+    color: var(--danger);
+  }
+
+  .sync-status[data-tone="error"] .sync-dot {
+    background: var(--danger);
+  }
+
+  @keyframes sync-pulse {
+    to {
+      opacity: 0.35;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sync-status[data-tone="busy"] .sync-dot {
+      animation: none;
+    }
+  }
+
+  .menu-text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.3;
+  }
+
+  .menu-hint {
+    color: var(--foreground-tertiary);
+    font-size: 12px;
+  }
+
+  .menu-meta {
+    margin-left: auto;
+    color: var(--foreground-tertiary);
+    font-size: 11px;
+  }
+
+  .canvas-empty {
+    position: absolute;
+    top: 64%;
+    left: 50%;
+    z-index: 4;
+    display: grid;
+    justify-items: center;
+    gap: var(--space-2);
+    width: min(360px, calc(100% - 48px));
+    padding: var(--space-5) var(--space-4);
+    transform: translate(-50%, -50%);
+    border: 1px dashed var(--border-strong);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--background) 88%, transparent);
+    text-align: center;
+    animation: canvas-empty-in 320ms var(--ease-out) both;
+  }
+
+  @keyframes canvas-empty-in {
+    from {
+      opacity: 0;
+      transform: translate(-50%, calc(-50% + 6px));
+    }
+  }
+
+  .canvas-empty-title {
+    font-size: 15px;
+    font-weight: var(--weight-semibold);
+    letter-spacing: -0.01em;
+  }
+
+  .canvas-empty-text {
+    margin-bottom: var(--space-2);
+    color: var(--foreground-secondary);
+    font-size: var(--text-compact);
+    line-height: 1.5;
+    text-wrap: pretty;
+  }
+
+  .canvas-notice {
+    position: absolute;
+    bottom: var(--space-4);
+    left: 50%;
+    z-index: 6;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    max-width: calc(100% - 320px);
+    padding: 6px 6px 6px var(--space-3);
+    transform: translateX(-50%);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-pill);
+    background: var(--surface-raised);
+    box-shadow: var(--shadow);
+    color: var(--foreground-secondary);
+    font-size: var(--text-label);
+    white-space: nowrap;
+    animation: notice-in 200ms var(--ease-out) both;
+  }
+
+  .canvas-notice > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-right: var(--space-2);
+  }
+
+  @keyframes notice-in {
+    from {
+      opacity: 0;
+      transform: translate(-50%, 6px);
+    }
+  }
+
+  .canvas-notice[data-tone="error"] {
+    border-color: color-mix(in srgb, var(--danger) 35%, var(--border));
+    color: var(--danger);
+  }
+
+  .canvas-notice-action {
+    height: 24px;
+    padding: 0 10px;
+    border-radius: var(--radius-pill);
+    background: var(--surface-hover);
+    color: var(--foreground);
+    font-size: 12px;
+    font-weight: var(--weight-medium);
+    transition: background-color var(--duration-hover) ease, transform var(--duration-press) var(--ease-out);
+  }
+
+  .canvas-notice-action:active {
+    transform: scale(0.96);
   }
 
   /* ---------- Nodes ---------- */
 
   /*
-   * A node is its kind: a thick border in the kind's colour over a faint tint
-   * of it, with a hairline of the same hue under the title. Colour carries the
-   * category, so the text inside stays neutral apart from the kind label.
+   * Neutral cards. Size carries the hierarchy and colour carries only the kind,
+   * in the icon and the type label, so a full canvas stays calm.
    */
   .node {
-    --node-border: color-mix(in srgb, var(--kind) 60%, var(--surface));
-    --node-rule: color-mix(in srgb, var(--kind) 22%, var(--surface));
     position: relative;
-    width: 248px;
-    border: 2px solid var(--node-border);
+    width: 220px;
+    border: 1px solid var(--border);
     border-radius: 10px;
-    background: color-mix(in srgb, var(--kind) 7%, var(--surface));
+    background: var(--surface);
     box-shadow: var(--shadow-small);
-    cursor: pointer;
-    transition: border-color var(--duration-hover) ease, box-shadow 200ms var(--ease-out);
+    transition: border-color var(--duration-hover) ease, box-shadow 200ms var(--ease-out), opacity 200ms ease;
   }
 
-  /* The agent's kind colour is the foreground, which at full strength would shout. */
-  .node[data-kind="agent"] {
-    --node-border: color-mix(in srgb, var(--kind) 38%, var(--surface));
-    --node-rule: color-mix(in srgb, var(--kind) 14%, var(--surface));
-    width: 264px;
-    background: color-mix(in srgb, var(--kind) 4%, var(--surface));
+  .node[data-tier="agent"] {
+    width: 260px;
+    border-radius: 12px;
+  }
+
+  .node[data-tier="root"] {
+    width: 300px;
+    border-color: var(--border-strong);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
   }
 
   @media (hover: hover) and (pointer: fine) {
     .node:hover {
-      border-color: color-mix(in srgb, var(--kind) 85%, var(--surface));
+      border-color: var(--border-strong);
+      box-shadow: var(--shadow);
     }
   }
 
   .node[data-selected] {
-    border-color: var(--kind);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--kind) 20%, transparent), var(--shadow);
+    border-color: var(--focus);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 18%, transparent), var(--shadow);
   }
 
-  /* While a connection is dragged, the nodes that can own it say so. */
-  .node[data-receiving] {
-    border-color: color-mix(in srgb, var(--kind) 80%, var(--surface));
+  .react-flow__node.is-dim .node {
+    opacity: 0.4;
+  }
+
+  .react-flow__node.is-settling {
+    transition: transform 320ms var(--ease-out);
+  }
+
+  /* While an attach is dragged, resources that can take it say so; the rest step back. */
+  .node[data-valid] {
+    border-style: dashed;
+    border-color: color-mix(in srgb, var(--focus) 55%, var(--border));
+  }
+
+  .node[data-invalid] {
+    opacity: 0.45;
   }
 
   .node[data-targeted] {
-    border-color: var(--kind);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--kind) 26%, transparent), var(--shadow);
+    border-style: solid;
+    border-color: var(--focus);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--focus) 20%, transparent), var(--shadow);
+  }
+
+  .react-flow__node.is-attach-target .node {
+    border-color: var(--focus);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--focus) 20%, transparent), var(--shadow-large);
+  }
+
+  .react-flow__node.is-attach-target .node::after {
+    content: "Release to attach";
+    position: absolute;
+    top: -30px;
+    left: 50%;
+    padding: 3px 8px;
+    transform: translateX(-50%);
+    border-radius: var(--radius-pill);
+    background: var(--focus);
+    color: #fff;
+    font-size: 11px;
+    font-weight: var(--weight-medium);
+    white-space: nowrap;
+    animation: notice-in 160ms var(--ease-out) both;
   }
 
   .react-flow__node.dragging .node {
     box-shadow: var(--shadow-large);
-    cursor: grabbing;
   }
 
   /* Only nodes created while the canvas is open get an entrance. */
   .node[data-fresh] {
-    animation: node-in 240ms var(--ease-out) both;
+    animation: node-in 260ms var(--ease-out) both;
   }
 
   @keyframes node-in {
@@ -217,148 +643,257 @@
     }
   }
 
+  @media (prefers-reduced-motion: reduce) {
+    .node[data-fresh] {
+      animation-name: node-fade;
+    }
+
+    .react-flow__node.is-settling {
+      transition: none;
+    }
+
+    @keyframes node-fade {
+      from {
+        opacity: 0;
+      }
+    }
+  }
+
   .node-head {
     display: flex;
     align-items: center;
-    gap: var(--space-2);
-    height: 42px;
-    margin: 0 var(--space-3);
-    border-bottom: 1px solid var(--node-rule);
+    gap: 10px;
+    padding: 10px 10px 6px 12px;
   }
 
-  .node-icon {
-    width: 16px;
-    height: 16px;
-    color: var(--kind);
-  }
-
-  .node-label {
+  .node-tile {
+    display: grid;
+    place-items: center;
     flex: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    color: var(--kind);
+    background: var(--surface-hover);
+    box-shadow: inset 0 0 0 1px var(--border);
+  }
+
+  .node[data-tier="agent"] .node-tile {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+  }
+
+  /* The root reads as the anchor: a solid tile. */
+  .node[data-tier="root"] .node-tile {
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    color: var(--background);
+    background: var(--foreground);
+    box-shadow: none;
+  }
+
+  .node-titles {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .node-type {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--foreground-tertiary);
+    font-size: 11px;
+    line-height: 16px;
+  }
+
+  .node-type::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 2px;
+    background: var(--kind);
+  }
+
+  .node[data-tier="root"] .node-type::before {
+    display: none;
+  }
+
+  .node-shared {
+    display: inline-flex;
+    align-items: center;
+    height: 16px;
+    padding: 0 6px;
+    border: 1px solid color-mix(in srgb, var(--kind) 35%, var(--border));
+    border-radius: var(--radius-pill);
     color: var(--kind);
     font-size: 10px;
-    font-weight: var(--weight-semibold);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-
-  .node[data-kind="agent"] .node-label {
-    color: var(--foreground-tertiary);
-  }
-
-  .node-body {
-    display: grid;
-    gap: 6px;
-    padding: 10px var(--space-3) var(--space-3);
-  }
-
-  .node-kind {
-    color: var(--kind, var(--foreground-tertiary));
-    font-size: var(--text-label);
     font-weight: var(--weight-medium);
-  }
-
-  .node[data-kind="agent"] .node-kind,
-  .node-kind[data-kind="agent"] {
-    color: var(--foreground-secondary);
+    line-height: 1;
   }
 
   .node-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    font-weight: var(--weight-medium);
+    line-height: 18px;
+    letter-spacing: -0.01em;
+  }
+
+  .node[data-tier="agent"] .node-name {
+    font-size: 14px;
+    line-height: 20px;
+  }
+
+  .node[data-tier="root"] .node-name {
+    font-size: 15px;
+    font-weight: var(--weight-semibold);
+    line-height: 20px;
+  }
+
+  .node-collapse {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    flex: none;
+    align-self: flex-start;
+    height: 22px;
+    padding: 0 4px;
+    border-radius: 6px;
+    color: var(--foreground-tertiary);
+    font-size: 11px;
+    transition: background-color var(--duration-hover) ease, color var(--duration-hover) ease;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .node-collapse:hover {
+      background: var(--surface-hover);
+      color: var(--foreground);
+    }
+  }
+
+  .node-description {
+    display: -webkit-box;
+    margin: 0 12px 6px;
+    overflow: hidden;
+    color: var(--foreground-secondary);
+    font-size: 12px;
+    line-height: 17px;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .node-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 0;
+    margin: 0 12px 8px;
+    color: var(--foreground-secondary);
+    font-size: 12px;
+  }
+
+  .node-detail {
     flex: 1;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 15px;
-    font-weight: var(--weight-medium);
-    letter-spacing: -0.01em;
   }
 
-  .node-meta {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    color: var(--foreground-secondary);
-    font-size: var(--text-compact);
-  }
-
-  .node-file {
-    display: flex;
+  .node-usage {
+    display: inline-flex;
     align-items: center;
-    gap: 6px;
-    min-width: 0;
+    gap: 3px;
+    flex: none;
+    color: var(--foreground-tertiary);
+    font-size: 11px;
   }
 
-  .node-file .file-icon {
-    width: 14px;
-    height: 14px;
-    margin: 0;
-  }
-
-  .node-file .file-icon svg {
-    width: 14px;
-    height: 14px;
+  .node-counts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin: 0 12px 8px;
   }
 
   .node-path {
-    min-width: 0;
+    margin: 0;
+    padding: 5px 12px;
     overflow: hidden;
+    border-top: 1px solid var(--border);
+    border-radius: 0 0 9px 9px;
+    background: var(--background);
+    color: var(--foreground-tertiary);
+    font-size: 10.5px;
     text-overflow: ellipsis;
     white-space: nowrap;
-    color: var(--foreground-tertiary);
-    font-size: 11px;
+  }
+
+  .node[data-tier="agent"] .node-path {
+    border-radius: 0 0 11px 11px;
+  }
+
+  .node[data-tier="root"] .node-path {
+    border-radius: 0 0 13px 13px;
   }
 
   /* ---------- Handles ---------- */
 
   .react-flow__handle.node-handle {
-    width: 14px;
-    height: 14px;
+    width: 9px;
+    height: 9px;
     min-width: 0;
     min-height: 0;
-    border: 2px solid color-mix(in srgb, var(--kind) 70%, var(--border-strong));
+    border: 1.5px solid var(--border-strong);
     border-radius: 50%;
     background: var(--surface);
-    transition: scale 200ms var(--ease-out), background-color var(--duration-hover) ease,
+    transition: opacity var(--duration-hover) ease, background-color var(--duration-hover) ease,
       border-color var(--duration-hover) ease, box-shadow 200ms var(--ease-out);
+  }
+
+  .react-flow__handle.node-handle.target {
+    opacity: 0;
   }
 
   .react-flow__handle.node-handle.source {
     cursor: crosshair;
   }
 
-  /*
-   * Hover grows a ring, not the handle: a scaled handle would cover the reconnect
-   * anchor of the edge leaving it, and a press meant for the edge would start a
-   * new connection instead.
-   */
+  /* Hover grows a ring, not the handle, so the handle never jumps under the pointer. */
   @media (hover: hover) and (pointer: fine) {
     .react-flow__handle.node-handle.source:hover {
-      background: var(--kind);
-      border-color: var(--kind);
-      box-shadow: 0 0 0 4px color-mix(in srgb, var(--kind) 22%, transparent);
+      background: var(--focus);
+      border-color: var(--focus);
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--focus) 20%, transparent);
     }
   }
 
   .react-flow__handle.node-handle.connectingfrom {
-    background: var(--kind);
-    border-color: var(--kind);
+    background: var(--focus);
+    border-color: var(--focus);
   }
 
-  .node[data-receiving] .react-flow__handle.node-handle.source {
-    border-color: var(--kind);
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--kind) 18%, transparent);
+  .node[data-valid] .react-flow__handle.node-handle.target {
+    opacity: 1;
+    border-color: var(--focus);
   }
 
   .react-flow__handle.node-handle.connectingto.valid {
-    scale: 1.45;
-    background: var(--kind);
-    border-color: var(--kind);
+    opacity: 1;
+    background: var(--focus);
+    border-color: var(--focus);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--focus) 20%, transparent);
   }
 
   /* ---------- Edges ---------- */
 
   .react-flow__edge {
     --kind: var(--foreground-tertiary);
+    transition: opacity 200ms ease;
   }
 
   .react-flow__edge.edge-tool {
@@ -377,62 +912,75 @@
     --kind: var(--kind-connection);
   }
 
+  .react-flow__edge.edge-channel {
+    --kind: var(--kind-channel);
+  }
+
+  .react-flow__edge.is-dim {
+    opacity: 0.25;
+  }
+
   .react-flow__edge-path {
     fill: none;
-    stroke: color-mix(in srgb, var(--kind) 50%, var(--border-strong));
-    stroke-width: 2;
+    stroke: var(--border-strong);
+    stroke-width: 1.25;
     stroke-linecap: round;
-    stroke-linejoin: round;
     transition: stroke var(--duration-hover) ease, stroke-width var(--duration-hover) ease;
   }
 
-  .react-flow__edge:hover .react-flow__edge-path,
-  .react-flow__edge.selected .react-flow__edge-path {
-    stroke: var(--kind);
+  .react-flow__edge.is-related .react-flow__edge-path,
+  .react-flow__edge:hover .react-flow__edge-path {
+    stroke: color-mix(in srgb, var(--kind) 70%, var(--border-strong));
   }
 
   .react-flow__edge.selected .react-flow__edge-path {
-    stroke-width: 2.5;
-  }
-
-  .react-flow__edge.updating .react-flow__edge-path {
-    stroke-dasharray: 6 6;
-    opacity: 0.45;
-  }
-
-  .edge-grip {
-    fill: var(--surface);
     stroke: var(--kind);
     stroke-width: 2;
+  }
+
+  .react-flow__edge.is-preview .react-flow__edge-path {
+    stroke: var(--focus);
+    stroke-dasharray: 5 5;
+  }
+
+  /* Flow runs from agent to what it uses, shown only where the eye already is. */
+  .edge-flow {
+    fill: none;
+    stroke: var(--kind);
+    stroke-width: 1.5;
+    stroke-dasharray: 2 10;
+    stroke-linecap: round;
     opacity: 0;
     pointer-events: none;
     transition: opacity var(--duration-hover) ease;
   }
 
-  .react-flow__edge:hover .edge-grip,
-  .react-flow__edge.selected .edge-grip {
+  .react-flow__edge.is-related .edge-flow,
+  .react-flow__edge.selected .edge-flow {
     opacity: 1;
+    animation: edge-flow 900ms linear infinite;
   }
 
-  .react-flow__edge.updating .edge-grip {
-    opacity: 0;
+  @keyframes edge-flow {
+    to {
+      stroke-dashoffset: -12;
+    }
   }
 
-  /* React Flow's reconnect anchors: invisible, generous targets over the grips. */
-  .react-flow__edgeupdater {
-    fill: transparent;
-    stroke: none;
-    cursor: grab;
-  }
-
-  .react-flow__edgeupdater:active {
-    cursor: grabbing;
+  @media (prefers-reduced-motion: reduce) {
+    .react-flow__edge.is-related .edge-flow,
+    .react-flow__edge.selected .edge-flow {
+      animation: none;
+    }
   }
 
   .edge-label {
     position: absolute;
     z-index: 10;
-    padding: 2px var(--space-2);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
     border: 1px solid var(--border);
     border-radius: var(--radius-pill);
     background: var(--surface-raised);
@@ -441,7 +989,34 @@
     font-size: 11px;
     white-space: nowrap;
     pointer-events: none;
-    animation: edge-label-in 160ms var(--ease-out) both;
+    animation: edge-label-in 140ms var(--ease-out) both;
+  }
+
+  .edge-label[data-actionable] {
+    padding-right: 2px;
+    pointer-events: all;
+  }
+
+  .edge-label-action {
+    height: 18px;
+    padding: 0 7px;
+    border-radius: var(--radius-pill);
+    background: var(--surface-hover);
+    color: var(--foreground);
+    font-size: 11px;
+    font-weight: var(--weight-medium);
+    transition: background-color var(--duration-hover) ease, transform var(--duration-press) var(--ease-out);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .edge-label-action:hover {
+      background: color-mix(in srgb, var(--danger) 12%, transparent);
+      color: var(--danger);
+    }
+  }
+
+  .edge-label-action:active {
+    transform: scale(0.95);
   }
 
   @keyframes edge-label-in {
@@ -453,15 +1028,15 @@
   .connection-line path {
     fill: none;
     stroke: var(--foreground-tertiary);
-    stroke-width: 2;
-    stroke-dasharray: 6 5;
+    stroke-width: 1.5;
+    stroke-dasharray: 5 5;
     stroke-linecap: round;
   }
 
   .connection-line circle {
     fill: var(--surface);
     stroke: var(--foreground-tertiary);
-    stroke-width: 2;
+    stroke-width: 1.5;
   }
 
   .connection-line[data-status="valid"] path {
@@ -481,49 +1056,297 @@
 
   /* ---------- Inspector ---------- */
 
-  .inspector {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 15;
+  .canvas-inspector {
+    position: relative;
     display: flex;
     flex-direction: column;
-    width: min(var(--pane-inspector, 560px), calc(100% - 64px));
+    min-width: 0;
+    min-height: 0;
     border-left: 1px solid var(--border);
     background: var(--surface);
-    box-shadow: var(--shadow-large);
   }
 
-  .inspector-head {
+  .inspector-content {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    animation: inspector-in 180ms var(--ease-out) both;
+  }
+
+  @keyframes inspector-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .inspector-content {
+      animation: none;
+    }
+  }
+
+  .inspector-header {
     display: flex;
     align-items: flex-start;
     gap: var(--space-3);
     padding: var(--space-4);
-    border-bottom: 1px solid var(--border);
   }
 
-  .inspector-title {
+  .inspector-titles {
     flex: 1;
     min-width: 0;
   }
 
-  .inspector-meta {
+  .inspector-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--foreground-tertiary);
+    font-size: 12px;
+  }
+
+  .inspector-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 16px;
+    font-weight: var(--weight-semibold);
+    letter-spacing: -0.01em;
+  }
+
+  .inspector-detail {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--foreground-secondary);
+    font-size: 12px;
+  }
+
+  .inspector-tabs {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 0;
+    min-height: 0;
+  }
+
+  .inspector-tab-list {
+    padding: 0 var(--space-4);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .inspector-scroll {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: var(--space-4);
+    min-height: 0;
+    padding: var(--space-4);
+    overflow-y: auto;
+  }
+
+  .inspector-header + .inspector-scroll {
+    padding-top: 0;
+  }
+
+  .inspector-description,
+  .inspector-note,
+  .inspector-empty {
+    color: var(--foreground-secondary);
+    font-size: var(--text-compact);
+    line-height: 1.55;
+    text-wrap: pretty;
+  }
+
+  .inspector-empty {
+    color: var(--foreground-tertiary);
+  }
+
+  .inspector-actions {
+    display: flex;
+    gap: var(--space-2);
+  }
+
+  .inspector-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .inspector-section-title {
+    display: flex;
+    justify-content: space-between;
+    color: var(--foreground-tertiary);
+    font-size: 12px;
+    font-weight: var(--weight-medium);
+  }
+
+  .inspector-list {
+    display: grid;
+    margin: 0 calc(var(--space-2) * -1);
+  }
+
+  .inspector-row {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding-right: 2px;
+    border-radius: 8px;
+    transition: background-color var(--duration-hover) ease;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .inspector-row:hover {
+      background: var(--surface-hover);
+    }
+  }
+
+  .inspector-row-main {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    gap: var(--space-2);
+    min-width: 0;
+    padding: 6px var(--space-2);
+    text-align: left;
+  }
+
+  .inspector-row-text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .inspector-row-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--text-compact);
+    font-weight: var(--weight-medium);
+  }
+
+  .inspector-row-detail {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--foreground-tertiary);
+    font-size: 11px;
+  }
+
+  .inspector-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+
+  .inspector-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .inspector-stat:nth-child(odd) {
+    border-right: 1px solid var(--border);
+  }
+
+  .inspector-stat:nth-last-child(-n + 2) {
+    border-bottom: none;
+  }
+
+  .inspector-stat dt {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--foreground-secondary);
+    font-size: 12px;
+  }
+
+  .inspector-stat dd {
+    font-size: 18px;
+    font-weight: var(--weight-semibold);
+    letter-spacing: -0.02em;
+  }
+
+  .inspector-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--foreground-secondary);
+    font-size: var(--text-compact);
+  }
+
+  .inspector-status[data-tone="ok"] svg {
+    color: var(--success);
+  }
+
+  .inspector-issues {
+    display: grid;
+    gap: var(--space-2);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .inspector-issues li {
+    display: flex;
+    gap: 6px;
+    color: var(--foreground-secondary);
+  }
+
+  .inspector-issues li svg {
+    flex: none;
+    margin-top: 2px;
+    color: var(--warning);
+  }
+
+  .inspector-issues li[data-level="error"] svg {
+    color: var(--danger);
+  }
+
+  .inspector-keys {
+    display: grid;
+    gap: 6px;
+    font-size: 12px;
+  }
+
+  .inspector-keys div {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: var(--space-3);
-    padding: var(--space-2) var(--space-4);
-    border-bottom: 1px solid var(--border);
-    background: var(--background);
   }
 
-  .inspector-body {
-    flex: 1;
-    min-height: 0;
+  .inspector-keys dt {
     display: flex;
+    gap: 4px;
+  }
+
+  .inspector-keys dd {
+    color: var(--foreground-secondary);
+    text-align: right;
+  }
+
+  .inspector-keys kbd {
+    padding: 1px 5px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--background);
+    color: var(--foreground-secondary);
+    font-family: var(--font-mono);
+    font-size: 11px;
+  }
+
+  .inspector-source {
+    display: flex;
+    flex: 1;
     flex-direction: column;
-    overflow-y: auto;
+    min-height: 0;
   }
 
   .inspector-editor {
@@ -531,21 +1354,46 @@
     min-height: 0;
   }
 
+  .inspector-source-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-2) var(--space-4);
+    border-top: 1px solid var(--border);
+  }
+
+  .inspector-conflict {
+    display: grid;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid color-mix(in srgb, var(--warning) 30%, var(--border));
+    background: color-mix(in srgb, var(--warning) 8%, transparent);
+    color: var(--foreground);
+    font-size: 12px;
+  }
+
   .inspector-form {
     display: flex;
     flex-direction: column;
     gap: var(--space-5);
-    padding: var(--space-5) var(--space-4);
-    overflow-y: auto;
   }
 
   .inspector-foot {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--space-3);
-    padding: var(--space-3) var(--space-4);
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
     border-top: 1px solid var(--border);
     background: var(--background);
+  }
+
+  .inspector-path {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--foreground-tertiary);
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }

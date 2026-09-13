@@ -134,9 +134,9 @@ describe("getCanvasGraph", () => {
     const { project } = parseProject(loadFixture("full-agent"));
     const graph = getCanvasGraph(project);
     expect(graph.nodes.map((node) => node.id)).toContain("tool:researcher/browse");
-    expect(graph.edges).toContainEqual({ source: "subagent:researcher", target: "tool:researcher/browse" });
-    expect(graph.edges).toContainEqual({ source: "agent", target: "connection:linear" });
-    expect(graph.edges).not.toContainEqual({ source: "agent", target: "tool:researcher/browse" });
+    expect(graph.edges).toContainEqual({ source: "subagent:researcher", target: "tool:researcher/browse", relation: "has tool" });
+    expect(graph.edges).toContainEqual({ source: "agent", target: "connection:linear", relation: "connects to" });
+    expect(graph.edges).not.toContainEqual(expect.objectContaining({ source: "agent", target: "tool:researcher/browse" }));
   });
 
   it("points every node at a file that exists", () => {

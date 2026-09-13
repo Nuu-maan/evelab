@@ -1,5 +1,5 @@
 import { patchAgentSource, readAgentSource, readStringValue } from "./agent-source.js";
-import { renderAgentConfig, renderSubagentConfig } from "./agent-template.js";
+import { DEFAULT_AGENT_MODEL_ID, renderAgentConfig, renderSubagentConfig } from "./agent-template.js";
 import type { Connection, EveProject, ModelConfig, ProjectFile, Reasoning, Skill, Subagent, Tool } from "./types.js";
 
 /**
@@ -33,7 +33,11 @@ export function generateProject(project: EveProject): ProjectFile[] {
     output.set(instructionsPath, agent.instructions);
   }
 
-  writeCapabilities(output, base, project);
+  // A new subagent without its own model runs on the root agent's, as eve init would configure it.
+  writeCapabilities(output, base, project, agent.model?.id || DEFAULT_AGENT_MODEL_ID);
+  for (const tool of project.library.tools) output.set(`${base}lib/tools/${tool.file}`, tool.source);
+  for (const skill of project.library.skills) output.set(`${base}lib/skills/${skill.id}.ts`, skill.content);
+  for (const connection of project.library.connections) output.set(`${base}lib/connections/${connection.file}`, connection.source);
   for (const channel of project.channels) output.set(`${base}channels/${channel.file}`, channel.source);
   for (const schedule of project.schedules) output.set(`${base}schedules/${schedule.file}`, schedule.source);
 
@@ -108,7 +112,7 @@ export function skillFilePath(base: string, skill: Skill): string {
   }
 }
 
-function writeCapabilities(output: Map<string, string>, base: string, owner: CapabilityOwner): void {
+function writeCapabilities(output: Map<string, string>, base: string, owner: CapabilityOwner, fallbackModel: string): void {
   for (const tool of owner.tools) output.set(`${base}tools/${tool.file}`, tool.source);
 
   for (const skill of owner.skills) {
@@ -130,11 +134,11 @@ function writeCapabilities(output: Map<string, string>, base: string, owner: Cap
       `${dir}agent.ts`,
       subagent.source
         ? patchSettings(subagent.source, subagent)
-        : renderSubagentConfig(subagent.description, subagent.model?.id, subagent.reasoning),
+        : renderSubagentConfig(subagent.description, subagent.model?.id || fallbackModel, subagent.reasoning),
     );
     if (subagent.hasInstructions || subagent.instructions.length > 0) {
       output.set(`${dir}instructions.md`, subagent.instructions);
     }
-    writeCapabilities(output, dir, subagent);
+    writeCapabilities(output, dir, subagent, fallbackModel);
   }
 }

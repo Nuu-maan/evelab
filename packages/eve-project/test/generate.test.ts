@@ -4,7 +4,10 @@ import {
   parseProject,
   patchAgentSource,
   renderAgentConfig,
+  addPackageDependencies,
+  chatSdkDependencies,
   renderChannelModule,
+  renderChatSdkChannelModule,
   renderProjectScaffold,
   setFrontmatterValue,
   type ProjectFile,
@@ -101,7 +104,7 @@ describe("generateProject", () => {
     });
     const output = generateProject(project);
     expect(contentOf(output, "agent/subagents/reviewer/agent.ts")).toBe(
-      'import { defineAgent } from "eve";\n\nexport default defineAgent({\n  description: "Check claims before the parent replies.",\n});\n',
+      'import { defineAgent } from "eve";\n\nexport default defineAgent({\n  description: "Check claims before the parent replies.",\n  model: "openai/gpt-5.6-luna-fast",\n});\n',
     );
     expect(contentOf(output, "agent/subagents/reviewer/instructions.md")).toBe("Reject unsupported claims.\n");
   });
@@ -132,6 +135,30 @@ describe("renderChannelModule", () => {
   });
 });
 
+describe("Chat SDK channels", () => {
+  it("writes a channel that parses back as a Chat SDK channel, with credentials left to the environment", () => {
+    const source = renderChatSdkChannelModule({ adapter: "whatsapp", state: "redis", userName: "support-triage" });
+    expect(source).toContain('import { createWhatsAppAdapter } from "@chat-adapter/whatsapp";');
+    expect(source).toContain("    whatsapp: createWhatsAppAdapter(),");
+    expect(source).toContain("  state: createRedisState(),");
+    expect(source).not.toMatch(/process\.env|TOKEN/);
+    const { project } = parseProject([...loadFixture("basic-agent"), { path: "agent/channels/whatsapp.ts", content: source }]);
+    expect(project.channels.find((channel) => channel.id === "whatsapp")?.kind).toBe("chat-sdk");
+  });
+
+  it("adds the packages it imports without overriding the project's own versions", () => {
+    const packageJson = `${JSON.stringify({ name: "demo", dependencies: { zod: "4.5.4", chat: "4.1.0" } }, null, 2)}\n`;
+    const next = JSON.parse(addPackageDependencies(packageJson, chatSdkDependencies("gchat", "memory")));
+    expect(next.name).toBe("demo");
+    expect(next.dependencies).toEqual({
+      "@chat-adapter/gchat": "^4.40.0",
+      "@chat-adapter/state-memory": "^4.40.0",
+      chat: "4.1.0",
+      zod: "4.5.4",
+    });
+  });
+});
+
 describe("patchAgentSource", () => {
   it("adds a missing property without disturbing the rest", () => {
     const source = 'export default defineAgent({\n  model: "a/b",\n});\n';
@@ -156,5 +183,23 @@ describe("setFrontmatterValue", () => {
     const added = setFrontmatterValue("Body.\n", "description", "Use when asked.");
     expect(added).toBe("---\ndescription: Use when asked.\n---\n\nBody.\n");
     expect(setFrontmatterValue(added, "description", undefined)).toBe("Body.\n");
+  });
+});
+
+describe("renderAgentConfigFor", () => {
+  it("writes each provider the way eve init does", async () => {
+    const { renderAgentConfigFor, renderProjectScaffold, parseProject } = await import("../src/index.js");
+    expect(renderAgentConfigFor("ai-gateway-key", "anthropic/claude-opus-4.8", "high")).toBe(
+      'import { defineAgent } from "eve";\n\nexport default defineAgent({\n  model: "anthropic/claude-opus-4.8",\n  reasoning: "high",\n});\n',
+    );
+    expect(renderAgentConfigFor("chatgpt", "gpt-5.6-sol")).toContain('model: chatgpt("gpt-5.6-sol"),');
+    const direct = renderAgentConfigFor("anthropic", "anthropic/claude-opus-4.8");
+    expect(direct).toContain('import { anthropic } from "@ai-sdk/anthropic";');
+    expect(direct).toContain('model: anthropic("claude-opus-4.8"),');
+
+    const scaffold = renderProjectScaffold({ packageName: "direct", model: "anthropic/claude-opus-4.8", provider: "anthropic" });
+    expect(JSON.parse(scaffold.find((file) => file.path === "package.json")!.content).dependencies).toHaveProperty("@ai-sdk/anthropic");
+    const { project } = parseProject(scaffold);
+    expect(project.agent.model?.expression).toBe('anthropic("claude-opus-4.8")');
   });
 });

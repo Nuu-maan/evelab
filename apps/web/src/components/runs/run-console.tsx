@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { RuntimeCard } from "@/components/runs/runtime-card";
 import { Timeline } from "@/components/runs/timeline";
 import { Shortcut } from "@/components/shortcut";
 import { Button } from "@/components/ui/button";
@@ -11,14 +12,6 @@ import { buildTimeline, sessionStatus, type EveEvent } from "@/lib/run-timeline"
 import type { RunRecord } from "@/lib/runs";
 import type { RuntimeSnapshot } from "@/lib/runtime";
 import "@/app/runs.css";
-
-const STATUS_LABEL: Record<RuntimeSnapshot["status"], string> = {
-  stopped: "Stopped",
-  installing: "Installing dependencies",
-  starting: "Starting",
-  running: "Running",
-  failed: "Failed",
-};
 
 async function post(url: string, body?: unknown): Promise<{ ok: boolean; data: Record<string, unknown> }> {
   const response = await fetch(url, {
@@ -115,10 +108,21 @@ export function RunConsole({
     };
   }, [api, sessionId]);
 
+  // A sandbox boot takes a while; follow its steps while the start request is open.
+  useEffect(() => {
+    if (runtime.status !== "starting" && runtime.status !== "installing") return;
+    const timer = setInterval(async () => {
+      const response = await fetch(`${api}/runtime`, { cache: "no-store" });
+      const data = (await response.json().catch(() => ({}))) as { runtime?: RuntimeSnapshot };
+      if (data.runtime) setRuntime(data.runtime);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [api, runtime.status]);
+
   const changeRuntime = async (action: "start" | "stop") => {
     setRuntimeBusy(true);
     setError(undefined);
-    if (action === "start") setRuntime((current) => ({ ...current, status: "starting" }));
+    if (action === "start") setRuntime((current) => ({ ...current, status: "starting", steps: [], log: [] }));
     const { data } = await post(`${api}/runtime`, { action });
     setRuntimeBusy(false);
     if (data.runtime) setRuntime(data.runtime as RuntimeSnapshot);
@@ -171,40 +175,13 @@ export function RunConsole({
   return (
     <div className="runs-layout">
       <aside className="runs-history" aria-label="Run history">
-        <div className="runtime-card" data-status={runtime.status}>
-          <div className="row" style={{ justifyContent: "space-between" }}>
-            <div>
-              <p className="timeline-label">Dev server</p>
-              <p className="runtime-status" role="status">
-                <span className="status" data-tone={live ? "ready" : runtime.status === "failed" ? "error" : "modified"}>
-                  {STATUS_LABEL[runtime.status]}
-                </span>
-              </p>
-            </div>
-            {live ? (
-              <Button size="sm" variant="outline" disabled={runtimeBusy} onClick={() => void changeRuntime("stop")}>
-                Stop
-              </Button>
-            ) : (
-              <Button size="sm" disabled={runtimeBusy || !allowed} onClick={() => void changeRuntime("start")}>
-                Start dev server
-              </Button>
-            )}
-          </div>
-          <p className="hint">
-            {!allowed
-              ? "Runs need a Vercel deployment when EveLab is shared."
-              : live
-                ? `eve dev at ${runtime.url}`
-                : runtime.message ?? "Runs eve dev --no-ui in the project directory."}
-          </p>
-          {runtime.log.length > 0 && (
-            <details>
-              <summary className="hint">Log</summary>
-              <pre className="code mono runtime-log">{runtime.log.slice(-40).join("\n")}</pre>
-            </details>
-          )}
-        </div>
+        <RuntimeCard
+          runtime={runtime}
+          available={allowed}
+          busy={runtimeBusy}
+          onStart={() => void changeRuntime("start")}
+          onStop={() => void changeRuntime("stop")}
+        />
 
         <div className="row" style={{ justifyContent: "space-between" }}>
           <p className="timeline-label">Runs</p>

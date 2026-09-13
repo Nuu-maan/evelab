@@ -10,9 +10,8 @@ import {
   IconFileText,
   IconGitBranch,
   IconGridSquare,
-  IconLink,
   IconMagnifyingGlass,
-  IconMessage,
+  IconPlay,
   IconRoute,
   IconSettingsGear,
 } from "@/components/icons";
@@ -34,6 +33,11 @@ interface Item {
   count?: number;
 }
 
+interface Group {
+  label?: string;
+  items: Item[];
+}
+
 export function Sidebar({
   project,
   projects,
@@ -42,34 +46,44 @@ export function Sidebar({
 }: {
   project: SwitcherProject;
   projects: SwitcherProject[];
-  counts: { tools: number; skills: number; subagents: number };
+  counts: { tools: number; skills: number; subagents: number; connections?: number; channels?: number };
   /** The signed-in user; absent in local mode. */
   account?: { name: string };
 }) {
   const pathname = usePathname();
   const base = `/projects/${project.id}`;
 
-  const groups: Item[][] = [
-    [
-      { label: "Overview", segment: "", icon: IconGridSquare },
-      { label: "Canvas", segment: "canvas", icon: IconRoute },
-      { label: "Agent", segment: "agent", icon: KINDS.agent.icon },
-      { label: "Files", segment: "files", icon: IconFileText },
-      { label: "Source control", segment: "source", icon: IconGitBranch },
-    ],
-    [
-      { label: "Tools", segment: "tools", icon: KINDS.tool.icon, count: counts.tools },
-      { label: "Skills", segment: "skills", icon: KINDS.skill.icon, count: counts.skills },
-      { label: "Subagents", segment: "subagents", icon: KINDS.subagent.icon, count: counts.subagents },
-      { label: "Connections", segment: "connections", icon: IconLink },
-      { label: "Channels", segment: "channels", icon: IconMessage },
-      { label: "Schedules", segment: "schedules", icon: IconClock },
-    ],
-    [
-      { label: "Runs", segment: "runs", icon: IconChartActivity },
-      { label: "Deployments", segment: "deployments", icon: IconCloudUpload },
-    ],
-    [{ label: "Settings", segment: "settings", icon: IconSettingsGear }],
+  const groups: Group[] = [
+    {
+      label: "Project",
+      items: [
+        { label: "Overview", segment: "", icon: IconGridSquare },
+        { label: "Canvas", segment: "canvas", icon: IconRoute },
+        { label: "Agent", segment: "agent", icon: KINDS.agent.icon },
+        { label: "Files", segment: "files", icon: IconFileText },
+        { label: "Source control", segment: "source", icon: IconGitBranch },
+      ],
+    },
+    {
+      label: "Resources",
+      items: [
+        { label: "Tools", segment: "tools", icon: KINDS.tool.icon, count: counts.tools },
+        { label: "Skills", segment: "skills", icon: KINDS.skill.icon, count: counts.skills },
+        { label: "Subagents", segment: "subagents", icon: KINDS.subagent.icon, count: counts.subagents },
+        { label: "Connections", segment: "connections", icon: KINDS.connection.icon, count: counts.connections },
+        { label: "Channels", segment: "channels", icon: KINDS.channel.icon, count: counts.channels },
+        { label: "Schedules", segment: "schedules", icon: IconClock },
+      ],
+    },
+    {
+      label: "Runtime",
+      items: [
+        { label: "Runs", segment: "runs", icon: IconPlay },
+        { label: "Observability", segment: "observability", icon: IconChartActivity },
+        { label: "Deployments", segment: "deployments", icon: IconCloudUpload },
+      ],
+    },
+    { items: [{ label: "Settings", segment: "settings", icon: IconSettingsGear }] },
   ];
 
   return (
@@ -90,9 +104,15 @@ export function Sidebar({
         </div>
 
         <nav className="sidebar-nav" aria-label="Project sections">
-          {groups.map((items, index) => (
-            <div key={items[0]!.label} style={{ display: "contents" }}>
-              {index > 0 && <hr className="sidebar-separator" />}
+          {groups.map(({ label: groupLabel, items }, index) => (
+            <div key={items[0]!.label} className="sidebar-group" role="group" aria-label={groupLabel}>
+              {groupLabel ? (
+                <p className="sidebar-group-label" aria-hidden="true">
+                  {groupLabel}
+                </p>
+              ) : (
+                index > 0 && <hr className="sidebar-separator" />
+              )}
               {items.map(({ label, segment, icon, count }) => {
                 const href = segment ? `${base}/${segment}` : base;
                 const current = segment ? pathname.startsWith(href) : pathname === base;

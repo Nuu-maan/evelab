@@ -1,0 +1,368 @@
+/* New project: the eve init questions as a stepped form. */
+
+@layer components {
+  .wizard-steps {
+    display: grid;
+    list-style: none;
+  }
+
+  .wizard-step {
+    position: relative;
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr);
+    column-gap: var(--space-4);
+    padding-bottom: var(--space-5);
+  }
+
+  /* The rail between markers, so the questions read as one sequence. */
+  .wizard-step:not(:last-child)::before {
+    content: "";
+    position: absolute;
+    top: 28px;
+    bottom: 4px;
+    left: 11.5px;
+    width: 1px;
+    background: var(--border);
+  }
+
+  .wizard-marker {
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border: 1px solid var(--border-strong);
+    border-radius: 50%;
+    background: var(--background);
+    color: var(--foreground-tertiary);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    transition: background-color 200ms var(--ease-out), border-color 200ms var(--ease-out), color 200ms var(--ease-out);
+  }
+
+  .wizard-step[data-state="current"] .wizard-marker {
+    border-color: var(--foreground);
+    color: var(--foreground);
+  }
+
+  .wizard-step[data-state="done"] .wizard-marker {
+    border-color: var(--foreground);
+    background: var(--foreground);
+    color: var(--background);
+  }
+
+  .wizard-body {
+    min-width: 0;
+    padding-top: 2px;
+  }
+
+  .wizard-question-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+
+  .wizard-question {
+    font-size: var(--text-body);
+    font-weight: var(--weight-medium);
+  }
+
+  .wizard-step[data-state="todo"] .wizard-question {
+    color: var(--foreground-tertiary);
+  }
+
+  .wizard-change {
+    color: var(--foreground-secondary);
+    font-size: 12px;
+    transition: color var(--duration-hover) ease;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .wizard-change:hover {
+      color: var(--foreground);
+    }
+  }
+
+  .wizard-answer {
+    margin-top: 2px;
+    color: var(--foreground-secondary);
+    font-size: var(--text-compact);
+  }
+
+  .wizard-answer-muted {
+    color: var(--foreground-tertiary);
+  }
+
+  .wizard-panel {
+    display: grid;
+    gap: var(--space-4);
+    margin-top: var(--space-3);
+    padding: var(--space-4);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+    box-shadow: var(--shadow-small);
+    animation: wizard-in 220ms var(--ease-out) both;
+  }
+
+  @keyframes wizard-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .wizard-panel {
+      animation: none;
+    }
+  }
+
+  .wizard-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-2);
+  }
+
+  .wizard-hint {
+    margin-right: auto;
+    color: var(--foreground-tertiary);
+    font-size: 12px;
+  }
+
+  .wizard-options {
+    display: grid;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+
+  .wizard-option,
+  .wizard-model {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    width: 100%;
+    padding: 10px var(--space-3);
+    text-align: left;
+    transition: background-color var(--duration-hover) ease;
+  }
+
+  .wizard-option + .wizard-option {
+    border-top: 1px solid var(--border);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .wizard-option:hover,
+    .wizard-model:hover {
+      background: var(--surface-hover);
+    }
+  }
+
+  .wizard-option[aria-checked="true"],
+  .wizard-model[aria-selected="true"] {
+    background: var(--surface-hover);
+  }
+
+  .wizard-option:focus-visible,
+  .wizard-model:focus-visible,
+  .wizard-segment:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: -2px;
+  }
+
+  .wizard-radio {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    margin-top: 2px;
+    border: 1px solid var(--border-strong);
+    border-radius: 50%;
+    transition: border-color var(--duration-hover) ease, border-width 160ms var(--ease-out);
+  }
+
+  [aria-checked="true"] > .wizard-radio,
+  [aria-selected="true"] > .wizard-radio {
+    border-width: 5px;
+    border-color: var(--foreground);
+  }
+
+  .wizard-option-text,
+  .wizard-model-text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .wizard-option-label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-compact);
+    font-weight: var(--weight-medium);
+  }
+
+  .wizard-option-hint {
+    color: var(--foreground-secondary);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .wizard-badge {
+    padding: 0 6px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-pill);
+    color: var(--foreground-secondary);
+    font-size: 11px;
+    font-weight: var(--weight-normal, 400);
+    line-height: 18px;
+  }
+
+  .wizard-subchoice {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    justify-self: start;
+    padding: 2px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--background);
+  }
+
+  .wizard-segment {
+    height: 26px;
+    padding: 0 10px;
+    border-radius: 6px;
+    color: var(--foreground-secondary);
+    font-size: 12px;
+    text-transform: capitalize;
+    transition: background-color var(--duration-hover) ease, color var(--duration-hover) ease,
+      box-shadow var(--duration-hover) ease;
+  }
+
+  .wizard-segment[aria-checked="true"] {
+    background: var(--surface);
+    box-shadow: var(--shadow-small), inset 0 0 0 1px var(--border);
+    color: var(--foreground);
+  }
+
+  .wizard-search {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    height: 36px;
+    padding: 0 var(--space-3);
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    color: var(--foreground-tertiary);
+    transition: box-shadow var(--duration-hover) ease;
+  }
+
+  .wizard-search:focus-within {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 18%, transparent);
+  }
+
+  .wizard-search input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: var(--foreground);
+    font-size: var(--text-compact);
+  }
+
+  .wizard-count {
+    color: var(--foreground-tertiary);
+    font-size: 12px;
+  }
+
+  .wizard-models {
+    max-height: 320px;
+    margin: 0 calc(var(--space-4) * -1);
+    padding: 0 var(--space-2);
+    overflow-y: auto;
+    outline: none;
+  }
+
+  .wizard-model {
+    align-items: center;
+    padding: 7px var(--space-2);
+    border-radius: 8px;
+  }
+
+  .wizard-model .wizard-radio {
+    margin-top: 0;
+  }
+
+  .wizard-model-name {
+    font-size: var(--text-compact);
+    font-weight: var(--weight-medium);
+  }
+
+  .wizard-model-id {
+    overflow: hidden;
+    color: var(--foreground-tertiary);
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .wizard-model-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    flex: none;
+    color: var(--foreground-tertiary);
+    font-size: 11px;
+  }
+
+  .wizard-group-label {
+    padding: var(--space-2) var(--space-2) 4px;
+    color: var(--foreground-tertiary);
+    font-size: 12px;
+    font-weight: var(--weight-medium);
+  }
+
+  .wizard-reasoning .wizard-group-label,
+  .wizard-next .wizard-group-label {
+    padding: 0 0 6px;
+  }
+
+  .wizard-empty {
+    padding: var(--space-4) var(--space-2);
+    color: var(--foreground-tertiary);
+    font-size: var(--text-compact);
+  }
+
+  .wizard-preview {
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--background);
+  }
+
+  .wizard-preview-path {
+    padding: 6px var(--space-3);
+    border-bottom: 1px solid var(--border);
+    color: var(--foreground-tertiary);
+    font-size: 11px;
+  }
+
+  .wizard-preview pre {
+    margin: 0;
+    padding: var(--space-3);
+    overflow-x: auto;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+
+  .wizard-next p:last-child {
+    color: var(--foreground-secondary);
+    font-size: var(--text-compact);
+    line-height: 1.55;
+    text-wrap: pretty;
+  }
+}

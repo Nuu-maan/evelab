@@ -1,4 +1,4 @@
-import type { ProjectFile } from "@evelab/eve-project";
+import { CHAT_SDK_ADAPTERS, CHAT_SDK_STATES, type ProjectFile } from "@evelab/eve-project";
 
 /**
  * Environment variables a project's source reads, so the Deployments page can
@@ -12,8 +12,15 @@ const READ = /process\.env\.([A-Z_][A-Z0-9_]*)|process\.env\[\s*["']([A-Z_][A-Z0
 const PROVIDED = new Set(["NODE_ENV", "VERCEL", "VERCEL_ENV", "VERCEL_URL", "VERCEL_OIDC_TOKEN", "PORT", "CI"]);
 
 /** Read by eve itself when a channel is written without explicit credentials. */
-const CHANNEL_DEFAULTS: Record<string, { pattern: RegExp; names: string[] }> = {
+const CHANNEL_DEFAULTS: Record<string, { pattern: RegExp; names: readonly string[] }> = {
   slack: { pattern: /slackChannel\(\s*\)/, names: ["SLACK_BOT_TOKEN", "SLACK_SIGNING_SECRET"] },
+  // Chat SDK adapters and state stores called without options read their credentials from the environment.
+  ...Object.fromEntries(
+    [...Object.values(CHAT_SDK_ADAPTERS), ...Object.values(CHAT_SDK_STATES)].map((entry) => [
+      entry.factory,
+      { pattern: new RegExp(`${entry.factory}\\(\\s*\\)`), names: entry.env },
+    ]),
+  ),
 };
 
 export interface RequiredEnv {

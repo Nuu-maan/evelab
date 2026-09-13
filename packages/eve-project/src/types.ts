@@ -58,6 +58,11 @@ export const toolSchema = z.object({
   description: z.string().default(""),
   kind: toolKindSchema,
   source: z.string(),
+  /**
+   * The shared definition this slot file re-exports, by name under `lib/tools/`.
+   * Absent for a tool defined in place.
+   */
+  shared: z.string().optional(),
 });
 export type Tool = z.infer<typeof toolSchema>;
 
@@ -73,6 +78,8 @@ export const skillSchema = z.object({
   content: z.string(),
   /** Package siblings (references, assets, scripts), relative to the skill directory. */
   files: z.array(projectFileSchema).default([]),
+  /** The shared definition this skill module re-exports, by name under `lib/skills/`. */
+  shared: z.string().optional(),
 });
 export type Skill = z.infer<typeof skillSchema>;
 
@@ -97,6 +104,8 @@ export const connectionSchema = z.object({
   connector: z.string().optional(),
   filter: z.object({ mode: z.enum(["allow", "block"]), names: z.array(z.string()) }).optional(),
   source: z.string(),
+  /** The shared definition this slot file re-exports, by name under `lib/connections/`. */
+  shared: z.string().optional(),
 });
 export type Connection = z.infer<typeof connectionSchema>;
 
@@ -201,6 +210,19 @@ export const agentConfigSchema = z.object({
 });
 export type AgentConfig = z.infer<typeof agentConfigSchema>;
 
+/**
+ * Canonical definitions that several agents use. Eve gives each declared
+ * subagent only what lives in its own directory, and shares code through
+ * `lib/`, so a shared resource is defined once under `lib/<kind>/` and every
+ * agent that uses it gets a one-line re-export in its own slot.
+ */
+export const librarySchema = z.object({
+  tools: z.array(toolSchema).default([]),
+  skills: z.array(skillSchema).default([]),
+  connections: z.array(connectionSchema).default([]),
+});
+export type Library = z.infer<typeof librarySchema>;
+
 export const eveProjectSchema = z.object({
   root: agentRootSchema,
   agent: agentConfigSchema,
@@ -210,6 +232,7 @@ export const eveProjectSchema = z.object({
   connections: z.array(connectionSchema).default([]),
   channels: z.array(channelSchema).default([]),
   schedules: z.array(scheduleSchema).default([]),
+  library: librarySchema.default({ tools: [], skills: [], connections: [] }),
   /**
    * Every file of the source project, including ones EveLab does not interpret
    * (package.json, lib/, hooks/, sandbox/, evals/, lockfiles). Generation

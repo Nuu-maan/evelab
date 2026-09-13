@@ -43,6 +43,7 @@ export function validateProject(project: EveProject): ValidationIssue[] {
   }
 
   checkOwner(issues, "", value);
+  checkShared(issues, "", value, value.library);
 
   for (const schedule of value.schedules) {
     const at = `schedules.${schedule.id}`;
@@ -81,6 +82,10 @@ function checkOwner(issues: ValidationIssue[], prefix: string, owner: Capability
       if (!subagent.description.trim() && subagent.raw.description === undefined) {
         issues.push({ level: "error", at: `${at}.description`, message: "A subagent needs a description." });
       }
+      // A subagent EveLab has not written yet gets a model when it is generated.
+      if (subagent.source && !subagent.model?.id && !subagent.model?.expression && subagent.raw.model === undefined) {
+        issues.push({ level: "error", at: `${at}.model`, message: "Eve requires a model in every subagent's agent.ts." });
+      }
       checkOwner(issues, `${at}.`, subagent);
     }
   }
@@ -93,6 +98,31 @@ function checkOwner(issues: ValidationIssue[], prefix: string, owner: Capability
         message: "The model finds connection tools through their description.",
       });
     }
+  }
+}
+
+function checkShared(
+  issues: ValidationIssue[],
+  prefix: string,
+  owner: CapabilityOwner,
+  library: { tools: Tool[]; skills: Skill[]; connections: Connection[] },
+): void {
+  const check = (entries: Array<{ id: string; shared?: string }>, defined: Array<{ id: string }>, kind: string) => {
+    for (const entry of entries) {
+      if (entry.shared && !defined.some((definition) => definition.id === entry.shared)) {
+        issues.push({
+          level: "error",
+          at: `${prefix}${kind}.${entry.id}`,
+          message: `This re-exports lib/${kind}/${entry.shared}, which does not exist.`,
+        });
+      }
+    }
+  };
+  check(owner.tools, library.tools, "tools");
+  check(owner.skills, library.skills, "skills");
+  check(owner.connections, library.connections, "connections");
+  for (const subagent of owner.subagents) {
+    if (subagent.kind === "local") checkShared(issues, `${prefix}subagents.${subagent.id}.`, subagent, library);
   }
 }
 

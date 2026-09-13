@@ -674,6 +674,25 @@ writing.
 
 ---
 
+### Vercel-native phase (in progress, on `feat/vercel-native`)
+
+Built on top of `feat/deployments`, which is pushed but not merged because the
+clean build and e2e run keep being killed for memory on this machine.
+
+- Canvas redesign: card nodes with counts and descriptions, curved edges with a
+  flow on hover, pointer-driven palette drag with velocity tilt. Explorer chevron
+  fix and Vercel's code theme (Geist syntax roles) in Monaco.
+- Vercel Sandbox dev runtime with boot steps and file sync; local fallback.
+- AI SDK assistant through AI Gateway (`lib/assistant.ts`, `ToolLoopAgent`),
+  sharing `lib/project-ops.ts` with the server actions.
+- Observability page from recorded runs, with Vercel Observability links.
+- `lib/state-store.ts`: Vercel Blob or files beside the workspace.
+- Chat SDK channels (WhatsApp, Google Chat, Telegram) with dependency updates.
+- Vercel status on project Settings.
+
+Next: deploys as a Vercel Workflow run executed in a Sandbox, Vercel Connect
+connector listing, then a clean verification run and the merges.
+
 ### Phase 10: Polish for the public demo
 
 The launch sequence from the spec, end to end, on one agent:

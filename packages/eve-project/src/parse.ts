@@ -8,7 +8,7 @@ import {
   readStringProperty,
   readStringValue,
 } from "./agent-source.js";
-import { detectAgentRoot } from "./layout.js";
+import { detectAgentRoot, hashImportBase, resolveRelative } from "./layout.js";
 import {
   eveProjectSchema,
   reasoningSchema,
@@ -53,6 +53,10 @@ interface Context {
   paths: string[];
   claimed: Set<string>;
   warnings: ParseWarning[];
+  /** The agent root, such as "agent/", which `lib/` sits under. */
+  agentBase: string;
+  /** Where `#` imports resolve, or undefined without an imports map. */
+  hashBase?: string;
 }
 
 interface Settings {
@@ -66,10 +70,16 @@ interface Settings {
 export function parseProject(files: ProjectFile[], options: ParseOptions = {}): ParseResult {
   const contents = new Map(files.map((file) => [file.path, file.content]));
   const paths = [...contents.keys()];
-  const context: Context = { contents, paths, claimed: new Set(), warnings: [] };
-
   const root = detectAgentRoot(paths);
   const base = root ? `${root}/` : "";
+  const context: Context = {
+    contents,
+    paths,
+    claimed: new Set(),
+    warnings: [],
+    agentBase: base,
+    hashBase: hashImportBase(contents.get("package.json")),
+  };
 
   const configPath = `${base}agent.ts`;
   const configSource = contents.get(configPath);
@@ -98,10 +108,12 @@ export function parseProject(files: ProjectFile[], options: ParseOptions = {}): 
     connections: readConnections(context, base),
     channels: readChannels(context, base),
     schedules: readSchedules(context, base),
+    library: readLibrary(context, base),
     files: [...files].sort((a, b) => a.path.localeCompare(b.path)),
     generatedPaths: [...context.claimed].sort(),
   });
 
+  linkShared(project, project, base, context.warnings);
   return { project, warnings: context.warnings };
 }
 
@@ -171,6 +183,27 @@ function isSlug(value: string): boolean {
   return slugSchema.safeParse(value).success;
 }
 
+const REEXPORT = /^export\s*\{\s*default\s*\}\s*from\s*["']([^"']+)["']\s*;?$/;
+
+/**
+ * The shared definition a slot file re-exports, when the whole file is
+ * `export { default } from "<lib path>"`. Accepts the `#` import map and
+ * relative paths, and only paths that land in `lib/<kind>/`.
+ */
+function sharedName(context: Context, filePath: string, source: string, kind: "tools" | "skills" | "connections"): string | undefined {
+  const code = source.replace(/^\s*(?:\/\/[^\n]*\n\s*)*/, "").trim();
+  const specifier = REEXPORT.exec(code)?.[1];
+  if (!specifier) return undefined;
+  const bare = specifier.replace(/\.(?:ts|mts|js|mjs)$/, "");
+  let target: string | undefined;
+  if (bare.startsWith("#") && context.hashBase !== undefined) target = `${context.hashBase}${bare.slice(1)}`;
+  else if (bare.startsWith(".")) target = resolveRelative(filePath.slice(0, filePath.lastIndexOf("/")), bare);
+  const prefix = `${context.agentBase}lib/${kind}/`;
+  if (!target?.startsWith(prefix)) return undefined;
+  const name = target.slice(prefix.length);
+  return isSlug(name) ? name : undefined;
+}
+
 const PROVIDED_TOOL_MODULE = /^eve\/tools\/(?!approval$)[a-z_]+$/;
 
 function toolKind(source: string): ToolKind {
@@ -199,7 +232,15 @@ function readTools(context: Context, base: string): Tool[] {
     }
     const source = context.contents.get(path) ?? "";
     context.claimed.add(path);
-    tools.push({ id, file: fileName(path), description: readStringProperty(source, "description") ?? "", kind: toolKind(source), source });
+    const shared = sharedName(context, path, source, "tools");
+    tools.push({
+      id,
+      file: fileName(path),
+      description: shared ? "" : (readStringProperty(source, "description") ?? ""),
+      kind: shared ? "tool" : toolKind(source),
+      source,
+      shared,
+    });
   }
   return tools;
 }
@@ -234,12 +275,18 @@ function readSkills(context: Context, base: string): Skill[] {
       continue;
     }
     context.claimed.add(path);
+    const shared = format === "module" ? sharedName(context, path, content, "skills") : undefined;
     skills.push({
       id,
       format,
-      description: format === "markdown" ? markdownSkillDescription(content) : (readStringProperty(content, "description") ?? ""),
+      description: shared
+        ? ""
+        : format === "markdown"
+          ? markdownSkillDescription(content)
+          : (readStringProperty(content, "description") ?? ""),
       content,
       files: [],
+      shared,
     });
   }
 
@@ -287,7 +334,18 @@ function readConnections(context: Context, base: string): Connection[] {
     if (!isSlug(id)) continue;
     const source = context.contents.get(path) ?? "";
     context.claimed.add(path);
+    const shared = sharedName(context, path, source, "connections");
+    if (shared) {
+      connections.push({ id, file: fileName(path), kind: "other", description: "", auth: "none", source, shared });
+      continue;
+    }
+    connections.push(connectionFromSource(id, fileName(path), source));
+  }
+  return connections;
+}
 
+function connectionFromSource(id: string, file: string, source: string): Connection {
+  {
     const kind = connectionKind(source);
     const config = readAgentSource(source);
     const authText = config?.properties.get("auth")?.text;
@@ -303,9 +361,9 @@ function readConnections(context: Context, base: string): Connection[] {
             : "custom";
     const filterText = config?.properties.get(kind === "openapi" ? "operations" : "tools")?.text;
 
-    connections.push({
+    return {
       id,
-      file: fileName(path),
+      file,
       kind,
       description: readStringProperty(source, "description") ?? "",
       url: readStringProperty(source, "url"),
@@ -314,9 +372,83 @@ function readConnections(context: Context, base: string): Connection[] {
       connector: auth === "connect" && authText ? readConnectorValue(authText) : undefined,
       filter: filterText ? readFilterValue(filterText) : undefined,
       source,
-    });
+    };
   }
-  return connections;
+}
+
+const LIBRARY_TOOL_CALLEES = new Set(["defineTool", "defineWorkflowTool", "defineDynamic"]);
+const LIBRARY_CONNECTION_CALLEES = new Set(["defineMcpClientConnection", "defineOpenAPIConnection", "defineDynamic"]);
+
+/**
+ * Shared definitions under `lib/tools/`, `lib/skills/` and `lib/connections/`.
+ * Only modules that define a tool, skill or connection are read; any other
+ * helper in those folders stays an ordinary file.
+ */
+function readLibrary(context: Context, base: string): { tools: Tool[]; skills: Skill[]; connections: Connection[] } {
+  const library = { tools: [] as Tool[], skills: [] as Skill[], connections: [] as Connection[] };
+  const modules = (kind: string) =>
+    listDirectory(context.paths, `${base}lib/${kind}/`).files.filter((path) => isDefinitionModule(path) && isSlug(stem(path)));
+
+  for (const path of modules("tools")) {
+    const source = context.contents.get(path) ?? "";
+    if (!LIBRARY_TOOL_CALLEES.has(readDefinitionCallee(source) ?? "")) continue;
+    context.claimed.add(path);
+    library.tools.push({ id: stem(path), file: fileName(path), description: readStringProperty(source, "description") ?? "", kind: toolKind(source), source });
+  }
+  for (const path of modules("skills")) {
+    const source = context.contents.get(path) ?? "";
+    if (readDefinitionCallee(source) !== "defineSkill" || !path.endsWith(".ts")) continue;
+    context.claimed.add(path);
+    library.skills.push({ id: stem(path), format: "module", description: readStringProperty(source, "description") ?? "", content: source, files: [] });
+  }
+  for (const path of modules("connections")) {
+    const source = context.contents.get(path) ?? "";
+    if (!LIBRARY_CONNECTION_CALLEES.has(readDefinitionCallee(source) ?? "")) continue;
+    context.claimed.add(path);
+    library.connections.push(connectionFromSource(stem(path), fileName(path), source));
+  }
+  return library;
+}
+
+interface SharedOwner {
+  tools: Tool[];
+  skills: Skill[];
+  connections: Connection[];
+  subagents: Subagent[];
+}
+
+/** Fills each re-export with what its shared definition says, and warns about ones that point nowhere. */
+function linkShared(
+  project: { library: { tools: Tool[]; skills: Skill[]; connections: Connection[] } },
+  owner: SharedOwner,
+  base: string,
+  warnings: ParseWarning[],
+): void {
+  const missing = (kind: string, name: string) =>
+    warnings.push({ path: `${base}lib/${kind}/${name}`, message: `Something re-exports a shared ${kind.slice(0, -1)} "${name}" that does not exist.` });
+  for (const tool of owner.tools) {
+    if (!tool.shared) continue;
+    const definition = project.library.tools.find((entry) => entry.id === tool.shared);
+    if (definition) Object.assign(tool, { description: definition.description, kind: definition.kind });
+    else missing("tools", tool.shared);
+  }
+  for (const skill of owner.skills) {
+    if (!skill.shared) continue;
+    const definition = project.library.skills.find((entry) => entry.id === skill.shared);
+    if (definition) skill.description = definition.description;
+    else missing("skills", skill.shared);
+  }
+  for (const connection of owner.connections) {
+    if (!connection.shared) continue;
+    const definition = project.library.connections.find((entry) => entry.id === connection.shared);
+    if (definition) {
+      const { kind, description, url, spec, auth, connector, filter } = definition;
+      Object.assign(connection, { kind, description, url, spec, auth, connector, filter });
+    } else {
+      missing("connections", connection.shared);
+    }
+  }
+  for (const subagent of owner.subagents) if (subagent.kind === "local") linkShared(project, subagent, base, warnings);
 }
 
 function readSubagents(context: Context, base: string): Subagent[] {

@@ -15,10 +15,70 @@ export function renderAgentConfig(model: string, reasoning?: Reasoning): string 
   return `import { defineAgent } from "eve";\n\nexport default defineAgent({\n  model: ${JSON.stringify(model)},\n${reasoningLine(reasoning)}});\n`;
 }
 
-/** A declared subagent's `agent.ts`. Eve requires `description`. */
-export function renderSubagentConfig(description: string, model?: string, reasoning?: Reasoning): string {
-  const modelLine = model ? `  model: ${JSON.stringify(model)},\n` : "";
-  return `import { defineAgent } from "eve";\n\nexport default defineAgent({\n  description: ${JSON.stringify(description)},\n${modelLine}${reasoningLine(reasoning)}});\n`;
+/**
+ * How the agent reaches its model, as `eve init` asks it: through AI Gateway
+ * (a linked Vercel project or AI_GATEWAY_API_KEY), a ChatGPT subscription, or
+ * a provider's own SDK and key.
+ */
+export type ModelProvider = "ai-gateway-project" | "ai-gateway-key" | "chatgpt" | "anthropic" | "openai";
+
+export const DIRECT_PROVIDERS = {
+  anthropic: { package: "@ai-sdk/anthropic", factory: "anthropic", env: "ANTHROPIC_API_KEY", version: "^4.0.0" },
+  openai: { package: "@ai-sdk/openai", factory: "openai", env: "OPENAI_API_KEY", version: "^4.0.0" },
+} as const;
+
+/** The model id without its gateway prefix: "anthropic/claude-opus-4.8" to "claude-opus-4.8". */
+function bareModelId(model: string): string {
+  return model.slice(model.indexOf("/") + 1);
+}
+
+/** `agent/agent.ts` for a provider. Gateway projects get the plain model string, as `eve init` writes. */
+export function renderAgentConfigFor(provider: ModelProvider, model: string, reasoning?: Reasoning): string {
+  if (provider === "chatgpt") {
+    return `import { defineAgent } from "eve";\nimport { chatgpt } from "eve/models/openai";\n\nexport default defineAgent({\n  model: chatgpt(${JSON.stringify(bareModelId(model))}),\n${reasoningLine(reasoning)}});\n`;
+  }
+  if (provider === "anthropic" || provider === "openai") {
+    const direct = DIRECT_PROVIDERS[provider];
+    return `import { ${direct.factory} } from "${direct.package}";\nimport { defineAgent } from "eve";\n\nexport default defineAgent({\n  model: ${direct.factory}(${JSON.stringify(bareModelId(model))}),\n${reasoningLine(reasoning)}});\n`;
+  }
+  return renderAgentConfig(model, reasoning);
+}
+
+/** What `eve init` picks when no model is chosen. */
+export const DEFAULT_AGENT_MODEL_ID = "openai/gpt-5.6-luna-fast";
+
+/**
+ * A declared subagent's `agent.ts`. Eve's compiler requires both `description`
+ * and `model` on a subagent, so a model is always written.
+ */
+export function renderSubagentConfig(description: string, model: string, reasoning?: Reasoning): string {
+  return `import { defineAgent } from "eve";\n\nexport default defineAgent({\n  description: ${JSON.stringify(description)},\n  model: ${JSON.stringify(model)},\n${reasoningLine(reasoning)}});\n`;
+}
+
+/** A slot file that uses a shared definition from `lib/`. */
+export function renderSharedReexport(specifier: string): string {
+  return `export { default } from ${JSON.stringify(specifier)};\n`;
+}
+
+/**
+ * A skill as a `defineSkill` module, which is how a markdown or packaged skill
+ * becomes shareable: a module can be re-exported, a markdown file cannot.
+ */
+export function renderSkillModule(input: { description: string; markdown: string; files: { path: string; content: string }[] }): string {
+  const lines = [
+    `import { defineSkill } from "eve/skills";`,
+    ``,
+    `export default defineSkill({`,
+    `  description: ${JSON.stringify(input.description)},`,
+    `  markdown: ${JSON.stringify(input.markdown)},`,
+  ];
+  if (input.files.length > 0) {
+    lines.push(`  files: {`);
+    for (const file of input.files) lines.push(`    ${JSON.stringify(file.path)}: ${JSON.stringify(file.content)},`);
+    lines.push(`  },`);
+  }
+  lines.push(`});`, ``);
+  return lines.join("\n");
 }
 
 /** An authored tool, as the Eve tools guide writes one. */
@@ -82,6 +142,9 @@ export interface ProjectScaffoldInput {
   /** npm package name, which Eve uses as the agent's name. */
   packageName: string;
   model: string;
+  /** Defaults to AI Gateway, which is what `eve init` recommends. */
+  provider?: ModelProvider;
+  reasoning?: Reasoning;
   instructions?: string;
 }
 
@@ -204,7 +267,15 @@ export function renderProjectScaffold(input: ProjectScaffoldInput): ProjectFile[
       start: "eve start",
       typecheck: "tsc",
     },
-    dependencies: { "@vercel/connect": "1.0.0", ai: "^7.0.93", eve: "^0.54.3", zod: "4.5.4" },
+    dependencies: {
+      "@vercel/connect": "1.0.0",
+      ai: "^7.0.93",
+      eve: "^0.54.3",
+      zod: "4.5.4",
+      ...(input.provider === "anthropic" || input.provider === "openai"
+        ? { [DIRECT_PROVIDERS[input.provider].package]: DIRECT_PROVIDERS[input.provider].version }
+        : {}),
+    },
     devDependencies: { "@types/node": "24.x", typescript: "7.0.2" },
     engines: { node: "24.x" },
   };
@@ -212,7 +283,7 @@ export function renderProjectScaffold(input: ProjectScaffoldInput): ProjectFile[
     { path: ".gitignore", content: SCAFFOLD_GITIGNORE },
     { path: "AGENTS.md", content: SCAFFOLD_AGENTS_MD },
     { path: "CLAUDE.md", content: "@AGENTS.md\n" },
-    { path: "agent/agent.ts", content: renderAgentConfig(input.model) },
+    { path: "agent/agent.ts", content: renderAgentConfigFor(input.provider ?? "ai-gateway-project", input.model, input.reasoning) },
     { path: "agent/channels/eve.ts", content: SCAFFOLD_EVE_CHANNEL },
     { path: "agent/instructions.md", content: input.instructions ?? "# Identity\n\nYou are a helpful assistant.\n" },
     { path: "package.json", content: `${JSON.stringify(packageJson, null, 2)}\n` },
@@ -265,4 +336,130 @@ export function renderChannelModule(input: ChannelTemplateInput): string {
 
   const call = options.length > 0 ? `${template.factory}({\n${options.join("\n")}\n})` : `${template.factory}()`;
   return `${imports.join("\n")}\n\nexport default ${call};\n`;
+}
+
+/**
+ * Chat SDK adapters for services eve has no first-class channel for. Each reads
+ * its credentials from the environment variables listed, so nothing secret is
+ * written into the channel file.
+ */
+export const CHAT_SDK_ADAPTERS = {
+  slack: {
+    label: "Slack",
+    package: "@chat-adapter/slack",
+    factory: "createSlackAdapter",
+    env: ["SLACK_BOT_TOKEN", "SLACK_SIGNING_SECRET"],
+  },
+  discord: {
+    label: "Discord",
+    package: "@chat-adapter/discord",
+    factory: "createDiscordAdapter",
+    env: ["DISCORD_BOT_TOKEN", "DISCORD_PUBLIC_KEY", "DISCORD_APPLICATION_ID"],
+  },
+  teams: {
+    label: "Microsoft Teams",
+    package: "@chat-adapter/teams",
+    factory: "createTeamsAdapter",
+    env: ["TEAMS_APP_ID", "TEAMS_APP_PASSWORD", "TEAMS_APP_TENANT_ID"],
+  },
+  github: {
+    label: "GitHub",
+    package: "@chat-adapter/github",
+    factory: "createGitHubAdapter",
+    env: ["GITHUB_TOKEN", "GITHUB_WEBHOOK_SECRET"],
+  },
+  linear: {
+    label: "Linear",
+    package: "@chat-adapter/linear",
+    factory: "createLinearAdapter",
+    env: ["LINEAR_API_KEY", "LINEAR_WEBHOOK_SECRET"],
+  },
+  whatsapp: {
+    label: "WhatsApp",
+    package: "@chat-adapter/whatsapp",
+    factory: "createWhatsAppAdapter",
+    env: ["WHATSAPP_ACCESS_TOKEN", "WHATSAPP_APP_SECRET", "WHATSAPP_PHONE_NUMBER_ID", "WHATSAPP_VERIFY_TOKEN"],
+  },
+  gchat: {
+    label: "Google Chat",
+    package: "@chat-adapter/gchat",
+    factory: "createGoogleChatAdapter",
+    env: ["GOOGLE_CHAT_CREDENTIALS"],
+  },
+  telegram: {
+    label: "Telegram",
+    package: "@chat-adapter/telegram",
+    factory: "createTelegramAdapter",
+    env: ["TELEGRAM_BOT_TOKEN", "TELEGRAM_WEBHOOK_SECRET_TOKEN"],
+  },
+} as const;
+
+/** Where a Chat SDK channel keeps thread subscriptions and dedupe state. */
+export const CHAT_SDK_STATES = {
+  memory: { label: "In memory (development)", package: "@chat-adapter/state-memory", factory: "createMemoryState", env: [] },
+  redis: { label: "Redis (production)", package: "@chat-adapter/state-redis", factory: "createRedisState", env: ["REDIS_URL"] },
+} as const;
+
+export type ChatSdkAdapter = keyof typeof CHAT_SDK_ADAPTERS;
+export type ChatSdkState = keyof typeof CHAT_SDK_STATES;
+
+export const CHAT_SDK_VERSION = "^4.40.0";
+
+/** The npm packages a Chat SDK channel imports, for the project's package.json. */
+export function chatSdkDependencies(adapter: ChatSdkAdapter, state: ChatSdkState): Record<string, string> {
+  return {
+    chat: CHAT_SDK_VERSION,
+    [CHAT_SDK_ADAPTERS[adapter].package]: CHAT_SDK_VERSION,
+    [CHAT_SDK_STATES[state].package]: CHAT_SDK_VERSION,
+  };
+}
+
+/** A Chat SDK channel in the shape Eve's chat-sdk channel docs write it. */
+export function renderChatSdkChannelModule(input: { adapter: ChatSdkAdapter; state: ChatSdkState; userName: string }): string {
+  const adapter = CHAT_SDK_ADAPTERS[input.adapter];
+  const state = CHAT_SDK_STATES[input.state];
+  return [
+    `import { ${adapter.factory} } from "${adapter.package}";`,
+    `import { ${state.factory} } from "${state.package}";`,
+    `import type { Message, Thread } from "chat";`,
+    `import { chatSdkChannel } from "eve/channels/chat-sdk";`,
+    ``,
+    `export const { bot, channel, send } = chatSdkChannel({`,
+    `  userName: ${JSON.stringify(input.userName)},`,
+    `  adapters: {`,
+    `    ${input.adapter}: ${adapter.factory}(),`,
+    `  },`,
+    `  state: ${state.factory}(),`,
+    `});`,
+    ``,
+    `bot.onNewMention(async (thread: Thread, message: Message) => {`,
+    `  await thread.subscribe();`,
+    `  await send(message.text, { thread });`,
+    `});`,
+    ``,
+    `bot.onDirectMessage(async (thread: Thread, message: Message) => {`,
+    `  await thread.subscribe();`,
+    `  await send(message.text, { thread });`,
+    `});`,
+    ``,
+    `bot.onSubscribedMessage(async (thread: Thread, message: Message) => {`,
+    `  await send(message.text, { thread });`,
+    `});`,
+    ``,
+    `export default channel;`,
+    ``,
+  ].join("\n");
+}
+
+/**
+ * Adds dependencies to a package.json without dropping anything else in it.
+ * Versions already present are kept: the project's own pin wins.
+ */
+export function addPackageDependencies(packageJson: string, dependencies: Record<string, string>): string {
+  const parsed = JSON.parse(packageJson) as Record<string, unknown> & { dependencies?: Record<string, string> };
+  const current = parsed.dependencies ?? {};
+  const merged: Record<string, string> = { ...current };
+  for (const [name, version] of Object.entries(dependencies)) merged[name] ??= version;
+  parsed.dependencies = Object.fromEntries(Object.entries(merged).sort(([a], [b]) => a.localeCompare(b)));
+  return `${JSON.stringify(parsed, null, 2)}\n`;
 }

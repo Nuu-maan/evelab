@@ -6,10 +6,13 @@ import {
   generateProject,
   parseProject,
   renderProjectScaffold,
+  type ModelProvider,
+  type Reasoning,
   validateProject,
   type EveProject,
   type ProjectFile,
 } from "@evelab/eve-project";
+import { emitProjectFilesChanged, type FileChange } from "@/lib/project-events";
 
 /**
  * File-backed project storage.
@@ -121,9 +124,12 @@ export async function writeProject(id: string, project: EveProject): Promise<voi
   const next = generateProject(project);
   const previous = await readProjectFiles(id);
   const nextPaths = new Set(next.map((file) => file.path));
+  const changes: FileChange[] = [];
 
   for (const file of previous) {
-    if (!nextPaths.has(file.path)) await rm(resolveInProject(id, file.path), { force: true });
+    if (nextPaths.has(file.path)) continue;
+    await rm(resolveInProject(id, file.path), { force: true });
+    changes.push({ path: file.path });
   }
 
   for (const file of next) {
@@ -132,7 +138,9 @@ export async function writeProject(id: string, project: EveProject): Promise<voi
     const absolute = resolveInProject(id, file.path);
     await mkdir(dirname(absolute), { recursive: true });
     await writeFile(absolute, file.content, "utf8");
+    changes.push({ path: file.path, content: file.content });
   }
+  emitProjectFilesChanged(id, changes);
 }
 
 export async function readProjectFile(id: string, path: string): Promise<string> {
@@ -147,10 +155,12 @@ export async function writeProjectFile(
   const absolute = resolveInProject(id, path);
   await mkdir(dirname(absolute), { recursive: true });
   await writeFile(absolute, content, "utf8");
+  emitProjectFilesChanged(id, [{ path, content }]);
 }
 
 export async function deleteProjectFile(id: string, path: string): Promise<void> {
   await rm(resolveInProject(id, path), { force: true });
+  emitProjectFilesChanged(id, [{ path }]);
 }
 
 /** True for paths EveLab never reads into a project: dependencies, build output, Git internals. */
@@ -203,6 +213,8 @@ export interface CreateProjectInput {
   name: string;
   description?: string;
   modelId: string;
+  provider?: ModelProvider;
+  reasoning?: Reasoning;
 }
 
 /**
@@ -219,6 +231,8 @@ export async function createProject(input: CreateProjectInput): Promise<string> 
   const scaffold = renderProjectScaffold({
     packageName: id,
     model: input.modelId,
+    provider: input.provider,
+    reasoning: input.reasoning,
     instructions: `# Identity\n\n${identity}\n`,
   });
   const { project } = parseProject(scaffold, { fallbackName: id });

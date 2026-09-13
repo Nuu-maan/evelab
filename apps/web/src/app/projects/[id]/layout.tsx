@@ -1,6 +1,8 @@
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
+import { AssistantPanel } from "@/components/assistant/assistant-panel";
 import { CommandPalette } from "@/components/command-palette";
+import { ASSISTANT_MODEL, assistantAvailable } from "@/lib/assistant";
 import { ProjectHeader } from "@/components/project-header";
 import { QuickOpen } from "@/components/quick-open";
 import { Sidebar } from "@/components/sidebar";
@@ -51,6 +53,8 @@ export default async function ProjectLayout({
           tools: project.tools.length,
           skills: project.skills.length,
           subagents: project.subagents.length,
+          connections: project.connections.length,
+          channels: project.channels.length,
         }}
         account={account && { name: account.name }}
       />
@@ -70,6 +74,7 @@ export default async function ProjectLayout({
 
       <CommandPalette projectId={id} root={project.root} />
       <QuickOpen projectId={id} paths={project.files.map((file) => file.path)} />
+      <AssistantPanel projectId={id} available={assistantAvailable()} model={ASSISTANT_MODEL} />
     </div>
   );
 }

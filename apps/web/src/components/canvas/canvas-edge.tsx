@@ -1,42 +1,37 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useContext } from "react";
 import {
   BaseEdge,
   EdgeLabelRenderer,
-  getSmoothStepPath,
-  Position,
+  getBezierPath,
   type ConnectionLineComponentProps,
   type Edge,
   type EdgeProps,
 } from "@xyflow/react";
+import type { CanvasRelation } from "@evelab/eve-project";
+import { CanvasContext } from "@/components/canvas/canvas-node";
 
-export type OwnershipEdge = Edge<{ movable: boolean }, "ownership">;
+export type RelationEdgeData = {
+  relation?: CanvasRelation;
+  /** An agent using a resource, which can be undone from the edge. */
+  detachable: boolean;
+  showLabel?: boolean;
+};
 
-const RADIUS = 16;
-/** How far along the edge the grab dots sit, so a node's handle never covers them. */
-const GRIP_OFFSET = 10;
+export type RelationEdge = Edge<RelationEdgeData, "relation">;
 
-function along(x: number, y: number, position: Position, distance: number) {
-  switch (position) {
-    case Position.Top:
-      return { x, y: y - distance };
-    case Position.Bottom:
-      return { x, y: y + distance };
-    case Position.Left:
-      return { x: x - distance, y };
-    default:
-      return { x: x + distance, y };
-  }
-}
+const CURVATURE = 0.36;
 
 /**
- * An ownership edge: a rounded orthogonal path in the colour of the capability
- * it points at. Movable edges show a dot at each end on hover, which is where
- * React Flow's reconnect anchors sit, so the thing to grab is visible.
+ * A relationship: "has tool", "contains", "routes to". A quiet hairline at
+ * rest; hovering either end or the edge itself colours it and names it, and a
+ * selected resource edge offers to detach.
  */
-function OwnershipEdgeBase({
+function RelationEdgeBase({
   id,
+  source,
+  target,
   sourceX,
   sourceY,
   targetX,
@@ -44,40 +39,36 @@ function OwnershipEdgeBase({
   sourcePosition,
   targetPosition,
   selected,
-  interactionWidth,
   data,
-}: EdgeProps<OwnershipEdge>) {
-  const [path, labelX, labelY] = getSmoothStepPath({
+}: EdgeProps<RelationEdge>) {
+  const { detachEdge } = useContext(CanvasContext);
+  const [path, labelX, labelY] = getBezierPath({
     sourceX,
     sourceY,
     sourcePosition,
     targetX,
     targetY,
     targetPosition,
-    borderRadius: RADIUS,
-    offset: 24,
+    curvature: CURVATURE,
   });
-  const movable = data?.movable ?? false;
-  const start = along(sourceX, sourceY, sourcePosition, GRIP_OFFSET);
-  const end = along(targetX, targetY, targetPosition, GRIP_OFFSET);
 
   return (
     <>
-      <BaseEdge id={id} path={path} interactionWidth={interactionWidth ?? 24} />
-      {movable && (
-        <>
-          <circle className="edge-grip" cx={start.x} cy={start.y} r={4} />
-          <circle className="edge-grip" cx={end.x} cy={end.y} r={4} />
-        </>
-      )}
-      {selected && movable && (
+      <BaseEdge id={id} path={path} interactionWidth={20} />
+      <path className="edge-flow" d={path} aria-hidden="true" />
+      {data?.showLabel && data.relation && (
         <EdgeLabelRenderer>
           <div
-            className="edge-label"
-            // Above the path, not on it: a selected edge is raised over the label layer.
-            style={{ transform: `translate(${labelX}px, ${labelY}px) translate(-50%, calc(-100% - 8px))` }}
+            className="edge-label nodrag nopan"
+            data-actionable={(selected && data.detachable) || undefined}
+            style={{ transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)` }}
           >
-            Drag an end to reassign
+            <span>{data.relation}</span>
+            {selected && data.detachable && (
+              <button type="button" className="edge-label-action" onClick={() => detachEdge(source, target)}>
+                Detach
+              </button>
+            )}
           </div>
         </EdgeLabelRenderer>
       )}
@@ -85,10 +76,10 @@ function OwnershipEdgeBase({
   );
 }
 
-export const OwnershipEdgePath = memo(OwnershipEdgeBase);
+export const RelationEdgePath = memo(RelationEdgeBase);
 
-/** The line drawn while a connection is dragged: dashed until it can land, then solid. */
-export function OwnershipConnectionLine({
+/** The line drawn while attaching: dashed until it can land, then solid. */
+export function CanvasConnectionLine({
   fromX,
   fromY,
   toX,
@@ -97,20 +88,20 @@ export function OwnershipConnectionLine({
   toPosition,
   connectionStatus,
 }: ConnectionLineComponentProps) {
-  const [path] = getSmoothStepPath({
+  const [path] = getBezierPath({
     sourceX: fromX,
     sourceY: fromY,
     sourcePosition: fromPosition,
     targetX: toX,
     targetY: toY,
     targetPosition: toPosition,
-    borderRadius: RADIUS,
+    curvature: CURVATURE,
   });
 
   return (
     <g className="connection-line" data-status={connectionStatus ?? undefined}>
       <path d={path} />
-      <circle cx={toX} cy={toY} r={5} />
+      <circle cx={toX} cy={toY} r={4} />
     </g>
   );
 }

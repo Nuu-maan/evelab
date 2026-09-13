@@ -32,7 +32,7 @@ test.beforeAll(async () => {
 test("start the dev server, run a message, and read the timeline", async ({ page }) => {
   await page.goto(`/projects/${PROJECT_ID}/runs`);
   await page.getByRole("button", { name: "Start dev server" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "Running" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("status").filter({ hasText: "Ready" })).toBeVisible({ timeout: 30_000 });
 
   const composer = page.getByLabel("Message");
   await composer.fill("Find the refund policy");
@@ -52,7 +52,7 @@ test("start the dev server, run a message, and read the timeline", async ({ page
 
 test("an approval pauses the run until it is answered", async ({ page }) => {
   await page.goto(`/projects/${PROJECT_ID}/runs`);
-  await expect(page.getByRole("status").filter({ hasText: "Running" })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "Ready" })).toBeVisible();
   await page.getByLabel("Message").fill("please approve deleting notes");
   await page.getByRole("button", { name: "Send" }).click();
 
@@ -80,6 +80,16 @@ test("a schedule runs once from the Schedules page", async ({ page }) => {
   await page.getByRole("button", { name: "Run now" }).click();
   await expect(page).toHaveURL(/runs\?session=wrun_/);
   await expect(page.getByRole("list", { name: "Run timeline" }).getByText("You asked: Scheduled run of digest")).toBeVisible();
+});
+
+test("observability adds up the recorded runs", async ({ page }) => {
+  await page.goto(`/projects/${PROJECT_ID}/observability`);
+  const stats = page.getByRole("region", { name: "Last runs at a glance" });
+  await expect(stats.getByText("Runs", { exact: true })).toBeVisible();
+  // The refund, approval and schedule runs each completed a turn through search_docs or delete_file.
+  await expect(page.getByRole("cell", { name: "search_docs" })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "openai/gpt-5.6-luna-fast" })).toBeVisible();
+  await expect(page.getByRole("img", { name: /Turns per day/ })).toBeVisible();
 });
 
 test("stopping the dev server leaves recorded runs readable", async ({ page }) => {

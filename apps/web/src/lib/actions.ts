@@ -8,9 +8,18 @@ import { getAuth } from "@evelab/auth";
 import {
   agentPath,
   applyOwnershipChange,
+  attachResource,
+  detachResource,
   OwnershipError,
   reasoningSchema,
   removeEntity,
+  addPackageDependencies,
+  CHAT_SDK_ADAPTERS,
+  CHAT_SDK_STATES,
+  chatSdkDependencies,
+  renderChatSdkChannelModule,
+  type ChatSdkAdapter,
+  type ChatSdkState,
   renderChannelModule,
   renderConnectionModule,
   renderScheduleMarkdown,
@@ -30,7 +39,9 @@ import {
   sourceControlMessage,
 } from "@/lib/git";
 import { deploySettingsSchema, saveDeploySettings, startDeployment } from "@/lib/deploy";
+import { LAYOUT_MODES } from "@/components/canvas/layout";
 import { writeLayout } from "@/lib/layout";
+import { createConnection, createSchedule, createSubagent, createTool, ProjectOpError } from "@/lib/project-ops";
 import { forgetProject, recordProject, requireProjectAccess, requireSignedIn } from "@/lib/session";
 import {
   fetchSkillCandidate,
@@ -59,7 +70,15 @@ const nameSchema = z
   .string()
   .trim()
   .regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/, "Use letters, digits, - and _");
-const entityRefSchema = z.string().regex(/^(tool|skill|connection|subagent):([A-Za-z0-9][A-Za-z0-9_-]*\/)*[A-Za-z0-9][A-Za-z0-9_-]*$/);
+const SEGMENT = "[A-Za-z0-9][A-Za-z0-9_-]*";
+/** A resource on the canvas: "tool:search_docs", "skill:researcher/cite", or shared, "connection:#github". */
+const resourceRefSchema = z.string().regex(new RegExp(`^(tool|skill|connection):(#${SEGMENT}|(${SEGMENT}/)*${SEGMENT})$`));
+const agentRefSchema = z.string().regex(/^(agent|subagent:[A-Za-z0-9][A-Za-z0-9_\-/]*)$/);
+const entityRefSchema = z.union([
+  resourceRefSchema,
+  z.string().regex(new RegExp(`^subagent:(${SEGMENT}/)*${SEGMENT}$`)),
+  z.string().regex(new RegExp(`^channel:${SEGMENT}$`)),
+]);
 
 /** Parses a project id and refuses callers who may not open that project. */
 async function projectFrom(value: unknown): Promise<string> {
@@ -71,14 +90,6 @@ async function projectFrom(value: unknown): Promise<string> {
 async function save(id: string, project: EveProject): Promise<void> {
   await writeProject(id, project);
   revalidatePath(`/projects/${id}`, "layout");
-}
-
-/** Eve rejects a tool and a subagent with the same name on one agent. */
-function assertNameFree(project: EveProject, name: string): void {
-  if (project.tools.some((tool) => tool.id === name)) throw new Error(`There is already a tool named "${name}".`);
-  if (project.subagents.some((subagent) => subagent.id === name)) {
-    throw new Error(`There is already a subagent named "${name}".`);
-  }
 }
 
 /* Sign-in. Plain forms, so they work before any JavaScript loads. */
@@ -104,6 +115,8 @@ const createSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(80),
   description: z.string().trim().max(280).optional(),
   modelId: z.string().trim().min(1, "Choose a model"),
+  provider: z.enum(["ai-gateway-project", "ai-gateway-key", "chatgpt", "anthropic", "openai"]).default("ai-gateway-project"),
+  reasoning: reasoningSchema.optional(),
 });
 
 export async function createProjectAction(formData: FormData) {
@@ -111,6 +124,8 @@ export async function createProjectAction(formData: FormData) {
     name: formData.get("name"),
     description: formData.get("description") || undefined,
     modelId: formData.get("modelId"),
+    provider: formData.get("provider") || undefined,
+    reasoning: formData.get("reasoning") || undefined,
   });
   await requireSignedIn();
   const id = await createProject(input);
@@ -187,70 +202,28 @@ export async function saveFileAction(projectId: string, path: string, content: s
   revalidatePath(`/projects/${id}`, "layout");
 }
 
-const toolSchema = z.object({
-  id: nameSchema,
-  description: z.string().trim().max(500).default(""),
-});
-
 export async function createToolAction(formData: FormData) {
   const projectId = await projectFrom(formData.get("projectId"));
-  const input = toolSchema.parse({
-    id: formData.get("toolId"),
-    description: formData.get("description") ?? "",
+  const { path } = await createTool(projectId, {
+    name: String(formData.get("toolId") ?? ""),
+    description: String(formData.get("description") ?? ""),
   });
-
-  const project = await readProject(projectId);
-  assertNameFree(project, input.id);
-
-  const description = input.description || `The ${input.id} tool.`;
-  project.tools.push({
-    id: input.id,
-    file: `${input.id}.ts`,
-    description,
-    kind: "tool",
-    source: renderToolModule(description),
-  });
-  await save(projectId, project);
+  revalidatePath(`/projects/${projectId}`, "layout");
   // The canvas keeps the user in place; the Tools page sends them to the source.
   if (formData.get("openSource") === "true") {
-    const path = agentPath(project.root, `tools/${input.id}.ts`);
     redirect(`/projects/${projectId}/files?path=${encodeURIComponent(path)}`);
   }
 }
 
-const subagentSchema = z.object({
-  id: nameSchema,
-  description: z.string().trim().min(1, "Eve needs a description to route work to a subagent").max(500),
-  modelId: z.string().trim().max(200).optional(),
-});
-
 /** A subagent is a directory with its own agent.ts and instructions. It inherits nothing. */
 export async function createSubagentAction(formData: FormData) {
   const projectId = await projectFrom(formData.get("projectId"));
-  const input = subagentSchema.parse({
-    id: formData.get("subagentId"),
-    description: formData.get("description"),
-    modelId: formData.get("modelId") || undefined,
+  await createSubagent(projectId, {
+    name: String(formData.get("subagentId") ?? ""),
+    description: String(formData.get("description") ?? ""),
+    model: String(formData.get("modelId") ?? "") || undefined,
   });
-
-  const project = await readProject(projectId);
-  assertNameFree(project, input.id);
-
-  project.subagents.push({
-    id: input.id,
-    kind: "local",
-    description: input.description,
-    model: input.modelId ? { id: input.modelId } : undefined,
-    raw: {},
-    source: "",
-    instructions: `# ${input.id}\n\n${input.description}\n`,
-    hasInstructions: true,
-    tools: [],
-    skills: [],
-    connections: [],
-    subagents: [],
-  });
-  await save(projectId, project);
+  revalidatePath(`/projects/${projectId}`, "layout");
 }
 
 /** Removes a tool, skill, connection or subagent by its canvas id, and only its files. */
@@ -265,19 +238,76 @@ export async function deleteEntityAction(formData: FormData) {
 export async function saveLayoutAction(
   projectId: string,
   positions: Record<string, { x: number; y: number }>,
+  options: { mode?: string; collapsed?: string[] } = {},
 ) {
   const id = await projectFrom(projectId);
   const parsed = z
     .record(z.object({ x: z.number().finite(), y: z.number().finite() }))
     .parse(positions);
-  await writeLayout(id, { positions: parsed });
+  const settings = z
+    .object({ mode: z.enum(LAYOUT_MODES).optional(), collapsed: z.array(z.string().max(200)).max(500).optional() })
+    .parse(options);
+  await writeLayout(id, { positions: parsed, ...settings });
 }
 
 const ownershipSchema = z.object({
   projectId: idSchema,
-  capability: z.string().regex(/^(tool|skill|connection):([A-Za-z0-9][A-Za-z0-9_-]*\/)*[A-Za-z0-9][A-Za-z0-9_-]*$/),
-  to: z.string().regex(/^(agent|subagent:[A-Za-z0-9][A-Za-z0-9_\-/]*)$/),
+  capability: resourceRefSchema,
+  to: agentRefSchema,
 });
+
+const attachSchema = z.object({ projectId: idSchema, resource: resourceRefSchema, agent: agentRefSchema });
+
+/**
+ * Lets another agent use a tool, skill or connection without copying it. The
+ * definition moves to `lib/` once, and each agent gets a one-line re-export.
+ */
+export async function attachResourceAction(
+  input: z.input<typeof attachSchema>,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const { projectId, resource, agent } = attachSchema.parse(input);
+  await requireProjectAccess(projectId);
+  try {
+    await writeProject(projectId, attachResource(await readProject(projectId), { resource, to: agent }));
+  } catch (error) {
+    if (error instanceof OwnershipError) return { ok: false, message: error.message };
+    throw error;
+  }
+  revalidatePath(`/projects/${projectId}`, "layout");
+  return { ok: true };
+}
+
+/** Stops an agent using a resource. The definition stays in `lib/`, ready to attach again. */
+export async function detachResourceAction(
+  input: z.input<typeof attachSchema>,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const { projectId, resource, agent } = attachSchema.parse(input);
+  await requireProjectAccess(projectId);
+  try {
+    await writeProject(projectId, detachResource(await readProject(projectId), { resource, from: agent }));
+  } catch (error) {
+    if (error instanceof OwnershipError) return { ok: false, message: error.message };
+    throw error;
+  }
+  revalidatePath(`/projects/${projectId}`, "layout");
+  return { ok: true };
+}
+
+/** Removes a node from the canvas by its id, and only its files. Returns instead of throwing, for the canvas. */
+export async function removeNodeAction(input: {
+  projectId: string;
+  ref: string;
+}): Promise<{ ok: true } | { ok: false; message: string }> {
+  const projectId = await projectFrom(input.projectId);
+  const ref = entityRefSchema.parse(input.ref);
+  try {
+    await save(projectId, removeEntity(await readProject(projectId), ref));
+  } catch (error) {
+    if (error instanceof OwnershipError) return { ok: false, message: error.message };
+    throw error;
+  }
+  return { ok: true };
+}
 
 /**
  * Hands a tool, skill or connection to another agent: an edge dragged on the
@@ -299,75 +329,43 @@ export async function changeOwnershipAction(
   return { ok: true };
 }
 
-const connectionSchema = z
-  .object({
-    id: nameSchema,
-    kind: z.enum(["mcp", "openapi"]),
-    url: z.string().trim().url().refine((value) => value.startsWith("https://") || value.startsWith("http://localhost"), {
-      message: "Use an https URL",
-    }),
-    description: z.string().trim().max(500).default(""),
-    auth: z.enum(["none", "connect", "token"]),
-    connector: z.string().trim().max(200).optional(),
-    tokenEnv: z
-      .string()
-      .trim()
-      .regex(/^[A-Z_][A-Z0-9_]*$/, "Use an environment variable name like LINEAR_API_KEY")
-      .optional(),
-    allow: z.string().trim().max(2000).optional(),
-  })
-  .refine((input) => input.auth !== "connect" || input.connector, {
-    message: "Enter the Vercel Connect connector",
-    path: ["connector"],
-  })
-  .refine((input) => input.auth !== "token" || input.tokenEnv, {
-    message: "Enter the environment variable that holds the token",
-    path: ["tokenEnv"],
-  });
-
 /**
  * Writes `connections/<id>.ts`. Credentials never touch EveLab: Vercel Connect
  * resolves them at run time, or the token comes from the deployment's environment.
  */
-export async function createConnectionAction(
-  input: z.input<typeof connectionSchema> & { projectId: string },
-): Promise<{ ok: true } | { ok: false; message: string }> {
+export async function createConnectionAction(input: {
+  projectId: string;
+  id: string;
+  kind: "mcp" | "openapi";
+  url: string;
+  description?: string;
+  auth: "none" | "connect" | "token";
+  connector?: string;
+  tokenEnv?: string;
+  allow?: string;
+}): Promise<{ ok: true } | { ok: false; message: string }> {
   const projectId = await projectFrom(input.projectId);
-  const parsed = connectionSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Check the form." };
-  const value = parsed.data;
-
-  const project = await readProject(projectId);
-  if (project.connections.some((connection) => connection.id === value.id)) {
-    return { ok: false, message: `There is already a connection named "${value.id}".` };
-  }
-  const names = (value.allow ?? "")
+  const allow = (input.allow ?? "")
     .split(/[\s,]+/)
     .map((name) => name.trim())
     .filter(Boolean);
-  const filter = names.length > 0 ? { mode: "allow" as const, names } : undefined;
-
-  project.connections.push({
-    id: value.id,
-    file: `${value.id}.ts`,
-    kind: value.kind,
-    description: value.description,
-    url: value.kind === "mcp" ? value.url : undefined,
-    spec: value.kind === "openapi" ? value.url : undefined,
-    auth: value.auth,
-    connector: value.auth === "connect" ? value.connector : undefined,
-    filter,
-    source: renderConnectionModule({
-      kind: value.kind,
-      url: value.url,
-      description: value.description,
-      auth: value.auth,
-      connector: value.connector,
-      tokenEnv: value.tokenEnv,
-      filter,
-    }),
-  });
-  await save(projectId, project);
+  try {
+    await createConnection(projectId, {
+      name: input.id,
+      kind: input.kind,
+      url: input.url,
+      description: input.description,
+      auth: input.auth,
+      connector: input.connector,
+      tokenEnv: input.tokenEnv,
+      allow,
+    });
+  } catch (error) {
+    if (error instanceof ProjectOpError) return { ok: false, message: error.message };
+    if (error instanceof z.ZodError) return { ok: false, message: error.issues[0]?.message ?? "Check the form." };
+    throw error;
+  }
+  revalidatePath(`/projects/${projectId}`, "layout");
   return { ok: true };
 }
 
@@ -408,6 +406,43 @@ export async function createChannelAction(
   return { ok: true };
 }
 
+/**
+ * Writes a Chat SDK channel for a service eve has no first-class channel for,
+ * and adds the packages it imports to the project's package.json.
+ */
+export async function createChatSdkChannelAction(input: {
+  projectId: string;
+  adapter: string;
+  state: string;
+}): Promise<{ ok: true } | { ok: false; message: string }> {
+  const projectId = await projectFrom(input.projectId);
+  if (!(input.adapter in CHAT_SDK_ADAPTERS) || !(input.state in CHAT_SDK_STATES)) {
+    return { ok: false, message: "Choose a Chat SDK adapter and a state store." };
+  }
+  const adapter = input.adapter as ChatSdkAdapter;
+  const state = input.state as ChatSdkState;
+
+  const project = await readProject(projectId);
+  if (project.channels.some((channel) => channel.id === adapter)) {
+    return { ok: false, message: `A ${adapter} channel is already set up.` };
+  }
+  const packageFile = project.files.find((file) => file.path === "package.json");
+  if (!packageFile) return { ok: false, message: "This project has no package.json to add the Chat SDK packages to." };
+  try {
+    packageFile.content = addPackageDependencies(packageFile.content, chatSdkDependencies(adapter, state));
+  } catch {
+    return { ok: false, message: "package.json is not valid JSON, so the Chat SDK packages could not be added." };
+  }
+  project.channels.push({
+    id: adapter,
+    file: `${adapter}.ts`,
+    kind: "chat-sdk",
+    source: renderChatSdkChannelModule({ adapter, state, userName: project.agent.name }),
+  });
+  await save(projectId, project);
+  return { ok: true };
+}
+
 export async function deleteChannelAction(formData: FormData) {
   const projectId = await projectFrom(formData.get("projectId"));
   const channelId = nameSchema.parse(formData.get("channelId"));
@@ -416,38 +451,15 @@ export async function deleteChannelAction(formData: FormData) {
   await save(projectId, project);
 }
 
-const scheduleSchema = z.object({
-  id: nameSchema,
-  cron: z
-    .string()
-    .trim()
-    .refine((value) => value.split(/\s+/).length === 5, { message: "Use a five-field cron expression" }),
-  prompt: z.string().trim().min(1, "Write what the agent should do").max(20_000),
-});
-
 /** Writes a markdown schedule: the cron in frontmatter and the prompt as the body. */
 export async function createScheduleAction(formData: FormData) {
   const projectId = await projectFrom(formData.get("projectId"));
-  const input = scheduleSchema.parse({
-    id: formData.get("scheduleId"),
-    cron: formData.get("cron"),
-    prompt: formData.get("prompt"),
+  await createSchedule(projectId, {
+    name: String(formData.get("scheduleId") ?? ""),
+    cron: String(formData.get("cron") ?? ""),
+    prompt: String(formData.get("prompt") ?? ""),
   });
-
-  const project = await readProject(projectId);
-  if (project.schedules.some((schedule) => schedule.id === input.id)) {
-    throw new Error(`There is already a schedule named "${input.id}".`);
-  }
-  project.schedules.push({
-    id: input.id,
-    file: `${input.id}.md`,
-    format: "markdown",
-    cron: input.cron,
-    prompt: input.prompt,
-    handler: false,
-    source: renderScheduleMarkdown(input.cron, input.prompt),
-  });
-  await save(projectId, project);
+  revalidatePath(`/projects/${projectId}`, "layout");
 }
 
 export async function deleteScheduleAction(formData: FormData) {

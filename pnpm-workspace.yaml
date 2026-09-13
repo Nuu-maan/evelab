@@ -2,5 +2,8 @@ packages:
   - "apps/*"
   - "packages/*"
 allowBuilds:
+  # Workflow's compiler plugin runs on SWC's native binary.
+  '@swc/core': true
+  cbor-extract: false
   esbuild: true
   sharp: true

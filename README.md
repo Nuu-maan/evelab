@@ -32,6 +32,9 @@ Optional environment:
 | `GITHUB_TOKEN` | Enables source control: import, commit and pull, with a token that can read and write repository contents |
 | `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_INSTALLATION_ID` | Source control through a GitHub App instead of a token |
 | `VERCEL_TOKEN` | Enables deploying from the Deployments page with `eve deploy` |
+| `VERCEL_OIDC_TOKEN`, or `VERCEL_TOKEN` with `VERCEL_TEAM_ID` and `VERCEL_PROJECT_ID` | Runs agents in Vercel Sandbox instead of on this machine |
+| `BLOB_READ_WRITE_TOKEN` | Stores run recordings, deployment history and layouts in Vercel Blob |
+| `EVELAB_ASSISTANT_MODEL` | AI Gateway model id for the assistant, `anthropic/claude-sonnet-5` by default |
 | `AI_GATEWAY_API_KEY` | Passed to `eve dev` for runs when the project has no `.env.local` from `eve link` |
 | `EVELAB_ALLOW_LOCAL_RUNTIME` | `1` lets a signed-in EveLab run `eve dev` on its own server |
 
@@ -56,6 +59,22 @@ runs on Workflow, Sandbox, Cron and AI Gateway without a provider key.
 
 **Skills from skills.sh.** Import `@skills/owner/repo/skill` or a skills.sh link
 as well as a GitHub directory, with the same review of every file first.
+
+**Built on Vercel.** EveLab uses Vercel's own products wherever it can, and
+every one has a local fallback so nothing is required on day one:
+
+- **Vercel Sandbox** runs each agent's dev server in an isolated microVM, with a
+  boot view that shows every step. Saves sync into the running sandbox.
+- **AI SDK and AI Gateway** power the assistant (`Cmd+I`), which reads the
+  project and writes instructions, tools, subagents, connections and schedules.
+- **Vercel Blob** keeps run recordings, deployment history and canvas layouts
+  when `BLOB_READ_WRITE_TOKEN` is set.
+- **Vercel Connect** holds credentials for connections and channels, and
+  **Chat SDK** adapters add WhatsApp, Google Chat and Telegram.
+- **Observability** shows usage, cost, latency, tool failures and errors from
+  recorded runs, and links to Vercel Observability for deployed agents.
+
+Project Settings lists which of these are connected and what to set for the rest.
 
 ## Layout
 
