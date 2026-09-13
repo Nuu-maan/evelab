@@ -305,6 +305,17 @@ function ToolbarButton({
   );
 }
 
+/**
+ * Dots that stay a steady size on screen. React Flow scales dots with zoom, so
+ * zoomed out they vanish; here the dot size counters the zoom, and the spacing
+ * doubles in steps so a zoomed-out board is dotted, not grey.
+ */
+function DottedBackground() {
+  const { zoom } = useViewport();
+  const step = zoom >= 0.6 ? 1 : 2 ** Math.ceil(Math.log2(0.6 / zoom));
+  return <Background variant={BackgroundVariant.Dots} gap={20 * step} size={1.3 / zoom} color="var(--canvas-dot-color)" />;
+}
+
 /** Its own component so panning re-renders the zoom readout, not the canvas. */
 function ZoomControls() {
   const { zoomIn, zoomOut, zoomTo, fitView } = useReactFlow();
@@ -352,6 +363,9 @@ function CanvasInner(props: CanvasProps) {
   const [locked, setLocked] = useState(false);
   const [minimap, setMinimap] = useState(false);
   const [panelOpen, setPanelOpen] = useState(true);
+  useEffect(() => {
+    if ((surfaceRef.current?.clientWidth ?? 1024) < 640) setPanelOpen(false);
+  }, []);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [hovered, setHovered] = useState<{ type: "node" | "edge"; id: string }>();
   const [attachTarget, setAttachTarget] = useState<string>();
@@ -1257,7 +1271,7 @@ function CanvasInner(props: CanvasProps) {
               minZoom={0.15}
               maxZoom={2.5}
             >
-              <Background variant={BackgroundVariant.Lines} gap={24} lineWidth={1} color="var(--canvas-grid)" />
+              <DottedBackground />
               {minimap && (
                 <MiniMap
                   pannable

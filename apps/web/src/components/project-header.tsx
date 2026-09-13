@@ -90,15 +90,15 @@ export function ProjectHeader({
 
       <div className="header-actions">
         <Button asChild variant="outline" size="sm">
-          <Link href={`${base}/runs`}>
+          <Link href={`${base}/runs`} aria-label="Run">
             <Icon icon={IconPlay} size={14} />
-            Run
+            <span className="header-action-label">Run</span>
           </Link>
         </Button>
         <Button asChild size="sm">
-          <Link href={`${base}/deployments`}>
+          <Link href={`${base}/deployments`} aria-label="Deploy">
             <Icon icon={IconCloudUpload} size={14} />
-            Deploy
+            <span className="header-action-label">Deploy</span>
           </Link>
         </Button>
       </div>
