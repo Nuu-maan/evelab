@@ -97,7 +97,7 @@ export function ResourceBrowser({
                   title={`New ${label.toLowerCase()}`}
                   onClick={() => onCreate(group.kind)}
                 >
-                  <Icon icon={IconPlus} size={12} />
+                  <Icon icon={IconPlus} size={14} />
                 </button>
               </div>
               {group.items.length === 0 && (

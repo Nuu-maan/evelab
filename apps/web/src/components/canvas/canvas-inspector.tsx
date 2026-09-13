@@ -5,21 +5,25 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { CanvasGraph, CanvasNode, CanvasNodeKind } from "@evelab/eve-project";
 import {
-  IconArrowUpRight,
   IconCheckCircle,
+  IconCopy,
   IconCross,
-  IconFullscreen,
+  IconExternalLink,
+  IconFocus,
   IconMinusCircle,
   IconMoreVertical,
   IconPlus,
+  IconTrash,
   IconWarning,
 } from "@/components/icons";
 import { isAgentKind, isResourceKind } from "@/components/canvas/canvas-node";
+import { allPortsFor } from "@/components/canvas/layout";
 import { CodeEditor, languageFor } from "@/components/editor";
 import { Icon } from "@/components/icon";
 import { KINDS, KindTile } from "@/components/kinds";
 import { ResizeHandle } from "@/components/resize-handle";
 import { SaveIndicator, type SaveState } from "@/components/save-state";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -49,8 +53,8 @@ export function dialogIsOpen(): boolean {
   return document.querySelector('[role="alertdialog"], [role="dialog"], [role="menu"]') !== null;
 }
 
-const GROUP_ORDER: CreateKind[] = ["subagent", "tool", "skill", "connection", "channel"];
 const SLOT: Record<"tool" | "skill" | "connection", string> = { tool: "tools", skill: "skills", connection: "connections" };
+const COUNT_KEY = { subagent: "subagents", tool: "tools", skill: "skills", connection: "connections", channel: "channels" } as const;
 
 /** The floating panel on the right. It appears with a selection and leaves with it. */
 export function InspectorColumn({ label, children }: { label: string; children: ReactNode }) {
@@ -100,81 +104,119 @@ function agentDirectory(node: CanvasNode): string {
   return node.filePath.replace(/(agent\.ts|instructions\.md)$/, "");
 }
 
-/** Three readings across the top of the panel, the same numbers the card leads with. */
-function metricsFor(graph: CanvasGraph, node: CanvasNode): { label: string; value: string }[] {
-  const counts = node.counts;
-  const resources = counts ? counts.tools + counts.skills + counts.connections : 0;
-  if (node.kind === "agent") {
-    return [
-      { label: "Subagents", value: String(counts?.subagents ?? 0) },
-      { label: "Resources", value: String(resources) },
-      { label: "Channels", value: String(counts?.channels ?? 0) },
-    ];
-  }
-  if (node.kind === "subagent") {
-    return [
-      { label: "Resources", value: String(resources) },
-      { label: "Tools", value: String(counts?.tools ?? 0) },
-      { label: "Nested", value: String(counts?.subagents ?? 0) },
-    ];
-  }
-  if (node.kind === "channel") {
-    const root = graph.nodes.find((entry) => entry.kind === "agent");
-    return [
-      { label: "Route", value: `/${node.name}` },
-      { label: "Answers", value: root?.name ?? "root" },
-    ];
-  }
-  return [
-    { label: "Used by", value: String(node.usedBy?.length ?? 0) },
-    { label: "Scope", value: node.shared ? "Shared" : "Local" },
-    { label: "Type", value: node.detail.split(" · ")[0] ?? KINDS[node.kind].label },
-  ];
+/** A bordered group, the way Vercel's dashboard frames a settings block. */
+function PanelCard({ title, meta, action, children }: { title: string; meta?: ReactNode; action?: ReactNode; children: ReactNode }) {
+  return (
+    <section className="insp-card">
+      <header className="insp-card-head">
+        <h3>{title}</h3>
+        {meta !== undefined && <span className="insp-card-meta">{meta}</span>}
+        {action && <div className="insp-card-action">{action}</div>}
+      </header>
+      {children}
+    </section>
+  );
+}
+
+function Details({ rows }: { rows: [string, ReactNode][] }) {
+  return (
+    <dl className="insp-details">
+      {rows.map(([label, value]) => (
+        <div key={label}>
+          <dt>{label}</dt>
+          <dd>{value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+function Item({
+  node,
+  onSelect,
+  onDetach,
+}: {
+  node: CanvasNode;
+  onSelect: (id: string) => void;
+  onDetach?: () => void;
+}) {
+  return (
+    <li className="insp-item" data-kind={node.kind}>
+      <button type="button" className="insp-item-main" onClick={() => onSelect(node.id)}>
+        <KindTile kind={node.kind} />
+        <span className="insp-item-text">
+          <span className="insp-item-name">{node.name}</span>
+          <span className="insp-item-detail">{node.detail}</span>
+        </span>
+        {node.shared && (
+          <Badge variant="outline" className="insp-shared">
+            Shared
+          </Badge>
+        )}
+      </button>
+      {onDetach && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon-sm" className="insp-item-action" aria-label={`Detach ${node.name}`} onClick={onDetach}>
+              <Icon icon={IconMinusCircle} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="left">Detach</TooltipContent>
+        </Tooltip>
+      )}
+    </li>
+  );
 }
 
 /**
- * What is selected, in Eve's terms: a header with the things you do to it, the
- * readings from its card, its properties, and who it is wired to. The file
- * behind it is one tab away.
+ * What is selected, laid out like a Vercel dashboard panel: who it is and the
+ * two things you do most, then cards for its details, its ports and what it is
+ * wired to. The file behind it is one tab away.
  */
 export function CanvasInspector(props: InspectorProps) {
   const { node, projectId } = props;
+  const [tab, setTab] = useState("overview");
+  const [filter, setFilter] = useState<CreateKind | "all">("all");
+
+  useEffect(() => {
+    setTab("overview");
+    setFilter("all");
+  }, [node?.id]);
+
   if (!node) return <ArchitectureSummary {...props} />;
   const filesHref = `/projects/${projectId}/files?path=${encodeURIComponent(node.filePath)}`;
+  const wired = props.graph.edges.filter((edge) => edge.source === node.id || edge.target === node.id).length;
 
   return (
     <div className="inspector-content" data-kind={node.kind} key={node.id}>
-      <header className="inspector-hero">
-        <div className="inspector-hero-row">
-          <span className="inspector-tile" aria-hidden="true">
-            <Icon icon={KINDS[node.kind].icon} size={18} />
+      <header className="insp-header">
+        <div className="insp-toprow">
+          <span className="insp-kind">
+            <Icon icon={KINDS[node.kind].icon} size={14} />
+            {node.kind === "agent" ? "Root agent" : KINDS[node.kind].label}
           </span>
-          <div className="inspector-hero-actions">
-            <IconAction label="Focus on canvas" onClick={() => props.onFocus(node.id)}>
-              <Icon icon={IconFullscreen} />
-            </IconAction>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button asChild variant="ghost" size="icon-sm">
-                  <Link href={filesHref} aria-label="Open in Files">
-                    <Icon icon={IconArrowUpRight} />
-                  </Link>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">Open in Files</TooltipContent>
-            </Tooltip>
+          {node.shared && (
+            <Badge variant="outline" className="insp-shared">
+              Shared
+            </Badge>
+          )}
+          <div className="insp-toprow-actions">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon-sm" aria-label="More actions">
                   <Icon icon={IconMoreVertical} />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onSelect={() => void navigator.clipboard?.writeText(node.filePath)}>Copy file path</DropdownMenuItem>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuItem onSelect={() => void navigator.clipboard?.writeText(node.filePath)}>
+                  <Icon icon={IconCopy} />
+                  Copy file path
+                </DropdownMenuItem>
                 {node.kind !== "agent" && (
                   <>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={() => props.onDelete(node)}>
+                    <DropdownMenuItem variant="destructive" onSelect={() => props.onDelete(node)}>
+                      <Icon icon={IconTrash} />
                       Delete {KINDS[node.kind].label.toLowerCase()}
                     </DropdownMenuItem>
                   </>
@@ -186,37 +228,82 @@ export function CanvasInspector(props: InspectorProps) {
             </IconAction>
           </div>
         </div>
-        <p className="inspector-eyebrow">
-          <span className="inspector-dot" aria-hidden="true" />
-          {node.kind === "agent" ? "Root agent" : KINDS[node.kind].label}
-          {node.shared && <span className="node-shared">Shared</span>}
-        </p>
-        <h2 className="inspector-name">{node.name}</h2>
-        {node.description && <p className="inspector-description">{node.description}</p>}
+        <h2 className="insp-name">{node.name}</h2>
+        {node.description && <p className="insp-description">{node.description}</p>}
+        <div className="insp-actions">
+          <Button asChild size="sm" variant="outline">
+            <Link href={filesHref}>
+              <Icon icon={IconExternalLink} size={14} />
+              Open file
+            </Link>
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => props.onFocus(node.id)}>
+            <Icon icon={IconFocus} size={14} />
+            Focus
+          </Button>
+        </div>
       </header>
 
-      <dl className="inspector-metrics">
-        {metricsFor(props.graph, node).map((metric) => (
-          <div key={metric.label} className="inspector-metric">
-            <dt>{metric.label}</dt>
-            <dd title={metric.value}>{metric.value}</dd>
-          </div>
-        ))}
-      </dl>
+      <Tabs value={tab} onValueChange={setTab} className="insp-tabs">
+        <div className="insp-tabbar">
+          <TabsList className="w-full">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="wiring">
+              Wiring
+              <span className="insp-tab-count">{wired}</span>
+            </TabsTrigger>
+            <TabsTrigger value="source">Source</TabsTrigger>
+          </TabsList>
+        </div>
 
-      <Tabs defaultValue="overview" className="inspector-tabs">
-        <TabsList variant="line" className="inspector-tab-list">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="source">Source</TabsTrigger>
-        </TabsList>
-        <TabsContent value="overview" className="inspector-scroll">
-          <Properties node={node} />
-          {isAgentKind(node.kind) ? (
-            <AgentRelations {...props} node={node} />
-          ) : isResourceKind(node.kind) ? (
-            <ResourceRelations {...props} node={node} />
-          ) : null}
+        <TabsContent value="overview" className="insp-scroll">
+          <PanelCard title="Details">
+            <Details rows={detailRows(node)} />
+          </PanelCard>
+          {isAgentKind(node.kind) && (
+            <PanelCard title="Ports" meta={`${props.graph.edges.filter((edge) => edge.source === node.id).length} wired`}>
+              <div className="insp-ports">
+                {allPortsFor(node.kind).map((port) => {
+                  const count = node.counts?.[COUNT_KEY[port]] ?? 0;
+                  return (
+                    <button
+                      key={port}
+                      type="button"
+                      className="insp-port"
+                      data-kind={port}
+                      data-empty={count === 0 || undefined}
+                      onClick={() => {
+                        setFilter(port);
+                        setTab("wiring");
+                      }}
+                    >
+                      <Icon icon={KINDS[port].icon} />
+                      <strong className="tabular-nums">{count}</strong>
+                      <span>{plural(count, port)}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </PanelCard>
+          )}
+          {isResourceKind(node.kind) && <Wiring {...props} node={node} />}
         </TabsContent>
+
+        <TabsContent value="wiring" className="insp-scroll">
+          {isAgentKind(node.kind) ? (
+            <AgentWiring {...props} node={node} filter={filter} onFilter={setFilter} />
+          ) : isResourceKind(node.kind) ? (
+            <UsedBy {...props} node={node} />
+          ) : (
+            <PanelCard title="Routing">
+              <p className="insp-note">
+                Messages to <code className="mono">/eve/v1/{node.name}</code> go to the root agent. Channels belong to the root,
+                and subagents are reached through it.
+              </p>
+            </PanelCard>
+          )}
+        </TabsContent>
+
         <TabsContent value="source" className="inspector-source">
           <SourceEditor projectId={projectId} path={node.filePath} content={props.content} onState={props.onSourceState} />
         </TabsContent>
@@ -225,76 +312,42 @@ export function CanvasInspector(props: InspectorProps) {
   );
 }
 
-function Properties({ node }: { node: CanvasNode }) {
-  const rows: [string, ReactNode][] = [];
+function detailRows(node: CanvasNode): [string, ReactNode][] {
+  const mono = (value: string) => <span className="mono">{value}</span>;
   if (isAgentKind(node.kind)) {
-    rows.push(["Model", node.detail]);
-    rows.push(["Folder", agentDirectory(node) || "./"]);
-    if (node.kind === "subagent") rows.push(["Inherits", "Nothing from its parent"]);
-  } else if (node.kind === "channel") {
-    rows.push(["Type", node.detail]);
-    rows.push(["Route", `/eve/v1/${node.name}`]);
-  } else {
-    rows.push(["Type", node.detail]);
-    rows.push(["Defined in", node.shared ? "lib/, re-exported by each agent" : "The folder of the agent using it"]);
+    return [
+      ["Model", mono(node.detail)],
+      ["Folder", mono(agentDirectory(node) || "./")],
+      ["Instructions", mono(node.filePath)],
+      ...(node.kind === "subagent" ? ([["Inherits", "Nothing from its parent"]] as [string, ReactNode][]) : []),
+    ];
   }
-  rows.push(["File", node.filePath]);
-
-  return (
-    <section className="inspector-section">
-      <h3 className="inspector-section-title">Properties</h3>
-      <dl className="inspector-props">
-        {rows.map(([label, value]) => (
-          <div key={label}>
-            <dt>{label}</dt>
-            <dd>{value}</dd>
-          </div>
-        ))}
-      </dl>
-    </section>
-  );
+  if (node.kind === "channel") {
+    return [
+      ["Type", node.detail],
+      ["Route", mono(`/eve/v1/${node.name}`)],
+      ["File", mono(node.filePath)],
+    ];
+  }
+  const users = node.usedBy?.length ?? 0;
+  return [
+    ["Type", node.detail],
+    ["Scope", node.shared ? "Shared definition in lib/" : "Defined in its agent's folder"],
+    ["Used by", `${users} ${users === 1 ? "agent" : "agents"}`],
+    ["File", mono(node.filePath)],
+  ];
 }
 
-function Row({
+function AgentWiring({
+  graph,
   node,
+  filter,
+  onFilter,
   onSelect,
-  action,
-}: {
-  node: CanvasNode;
-  onSelect: (id: string) => void;
-  action?: { label: string; run: () => void };
-}) {
-  return (
-    <li className="inspector-row" data-kind={node.kind}>
-      <button type="button" className="inspector-row-main" onClick={() => onSelect(node.id)}>
-        <KindTile kind={node.kind} />
-        <span className="inspector-row-text">
-          <span className="inspector-row-name">{node.name}</span>
-          <span className="inspector-row-detail">{node.detail}</span>
-        </span>
-        {node.shared && <span className="node-shared">Shared</span>}
-      </button>
-      {action && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className="inspector-row-action"
-              aria-label={`${action.label} ${node.name}`}
-              onClick={action.run}
-            >
-              <Icon icon={IconMinusCircle} />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="left">{action.label}</TooltipContent>
-        </Tooltip>
-      )}
-    </li>
-  );
-}
-
-function AgentRelations({ graph, node, onSelect, onAttach, onDetach, onCreate }: InspectorProps & { node: CanvasNode }) {
+  onAttach,
+  onDetach,
+  onCreate,
+}: InspectorProps & { node: CanvasNode; filter: CreateKind | "all"; onFilter: (kind: CreateKind | "all") => void }) {
   const byId = useMemo(() => new Map(graph.nodes.map((entry) => [entry.id, entry])), [graph]);
   const children = graph.edges
     .filter((edge) => edge.source === node.id)
@@ -302,108 +355,118 @@ function AgentRelations({ graph, node, onSelect, onAttach, onDetach, onCreate }:
     .filter((entry): entry is CanvasNode => Boolean(entry));
   const using = new Set(children.map((child) => child.id));
   const attachable = graph.nodes.filter((entry) => isResourceKind(entry.kind) && !using.has(entry.id));
-  const creatable = GROUP_ORDER.filter((kind) => kind !== "channel" || node.kind === "agent");
+  const ports = allPortsFor(node.kind);
+  const shown = ports.filter((port) => filter === "all" || filter === port);
 
   return (
-    <section className="inspector-section">
-      <h3 className="inspector-section-title">
-        Wired to
-        <span className="tabular-nums">{children.length}</span>
-      </h3>
+    <>
+      <div className="insp-filters" role="group" aria-label="Filter by port">
+        {(["all", ...ports] as const).map((value) => {
+          const count = value === "all" ? children.length : children.filter((child) => child.kind === value).length;
+          return (
+            <button
+              key={value}
+              type="button"
+              className="insp-filter"
+              data-kind={value === "all" ? undefined : value}
+              aria-pressed={filter === value}
+              onClick={() => onFilter(value)}
+            >
+              {value === "all" ? "All" : KINDS[value].plural}
+              <span className="tabular-nums">{count}</span>
+            </button>
+          );
+        })}
+      </div>
 
-      {children.length === 0 && (
-        <p className="inspector-empty">
+      {shown.map((port) => {
+        const items = children.filter((child) => child.kind === port);
+        if (filter === "all" && items.length === 0) return null;
+        return (
+          <PanelCard
+            key={port}
+            title={KINDS[port].plural}
+            meta={items.length}
+            action={
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon-sm" aria-label={`New ${KINDS[port].label.toLowerCase()}`} onClick={() => onCreate(port, node.id)}>
+                    <Icon icon={IconPlus} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="left">New {KINDS[port].label.toLowerCase()}</TooltipContent>
+              </Tooltip>
+            }
+          >
+            {items.length === 0 ? (
+              <p className="insp-empty">No {KINDS[port].plural.toLowerCase()} yet.</p>
+            ) : (
+              <ul className="insp-list">
+                {items.map((item) => (
+                  <Item
+                    key={item.id}
+                    node={item}
+                    onSelect={onSelect}
+                    onDetach={isResourceKind(item.kind) ? () => onDetach(item.id, node.id) : undefined}
+                  />
+                ))}
+              </ul>
+            )}
+          </PanelCard>
+        );
+      })}
+
+      {children.length === 0 && filter === "all" && (
+        <p className="insp-note">
           {node.kind === "subagent"
             ? "A subagent starts with nothing. Attach the tools, skills and connections it needs."
             : "Add subagents and resources to start the architecture."}
         </p>
       )}
 
-      {GROUP_ORDER.map((kind) => {
-        const items = children.filter((child) => child.kind === kind);
-        if (items.length === 0) return null;
-        return (
-          <div key={kind} className="inspector-group">
-            <p className="inspector-group-label">{plural(items.length, kind)}</p>
-            <ul className="inspector-list">
-              {items.map((item) => (
-                <Row
-                  key={item.id}
-                  node={item}
-                  onSelect={onSelect}
-                  action={isResourceKind(item.kind) ? { label: "Detach", run: () => onDetach(item.id, node.id) } : undefined}
-                />
-              ))}
-            </ul>
-          </div>
-        );
-      })}
-
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button type="button" className="inspector-add-row">
-            <Icon icon={IconPlus} size={14} />
-            Add to {node.name}
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-72">
-          {attachable.length > 0 && (
-            <>
-              <DropdownMenuLabel>Attach existing</DropdownMenuLabel>
-              {attachable.map((resource) => (
-                <DropdownMenuItem key={resource.id} onSelect={() => onAttach(resource.id, node.id)}>
-                  <KindTile kind={resource.kind} />
-                  <span className="min-w-0 flex-1 truncate">{resource.name}</span>
-                  {resource.shared && <span className="menu-meta">Shared</span>}
-                </DropdownMenuItem>
-              ))}
-              <DropdownMenuSeparator />
-            </>
-          )}
-          <DropdownMenuLabel>Create new</DropdownMenuLabel>
-          {creatable.map((kind) => (
-            <DropdownMenuItem key={kind} onSelect={() => onCreate(kind, node.id)}>
-              <KindTile kind={kind} />
-              {KINDS[kind].label}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </section>
+      {attachable.length > 0 && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="insp-wide-button">
+              <Icon icon={IconPlus} size={14} />
+              Attach an existing resource
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-72">
+            <DropdownMenuLabel>Attach to {node.name}</DropdownMenuLabel>
+            {attachable.map((resource) => (
+              <DropdownMenuItem key={resource.id} onSelect={() => onAttach(resource.id, node.id)}>
+                <KindTile kind={resource.kind} />
+                <span className="min-w-0 flex-1 truncate">{resource.name}</span>
+                {resource.shared && <span className="menu-meta">Shared</span>}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+    </>
   );
 }
 
-function ResourceRelations({ graph, node, onSelect, onAttach, onDetach }: InspectorProps & { node: CanvasNode }) {
+function UsedBy({ graph, node, onSelect, onAttach, onDetach }: InspectorProps & { node: CanvasNode }) {
   const byId = useMemo(() => new Map(graph.nodes.map((entry) => [entry.id, entry])), [graph]);
   const users = (node.usedBy ?? []).map((id) => byId.get(id)).filter((entry): entry is CanvasNode => Boolean(entry));
   const others = graph.nodes.filter((entry) => isAgentKind(entry.kind) && !node.usedBy?.includes(entry.id));
-  const slot = isResourceKind(node.kind) ? SLOT[node.kind] : "tools";
 
   return (
-    <>
-      <section className="inspector-section">
-        <h3 className="inspector-section-title">
-          Used by
-          <span className="tabular-nums">{users.length}</span>
-        </h3>
-        {users.length === 0 ? (
-          <p className="inspector-empty">No agent uses this yet. It stays a definition in lib/ until one does.</p>
-        ) : (
-          <ul className="inspector-list">
-            {users.map((user) => (
-              <Row key={user.id} node={user} onSelect={onSelect} action={{ label: "Detach", run: () => onDetach(node.id, user.id) }} />
-            ))}
-          </ul>
-        )}
-        {others.length > 0 && (
+    <PanelCard
+      title="Used by"
+      meta={users.length}
+      action={
+        others.length > 0 ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button type="button" className="inspector-add-row">
-                <Icon icon={IconPlus} size={14} />
-                Attach to another agent
-              </button>
+              <Button variant="ghost" size="icon-sm" aria-label="Attach to another agent">
+                <Icon icon={IconPlus} />
+              </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-60">
+            <DropdownMenuContent align="end" className="w-60">
+              <DropdownMenuLabel>Attach to</DropdownMenuLabel>
               {others.map((agent) => (
                 <DropdownMenuItem key={agent.id} onSelect={() => onAttach(node.id, agent.id)}>
                   <KindTile kind={agent.kind} />
@@ -412,35 +475,51 @@ function ResourceRelations({ graph, node, onSelect, onAttach, onDetach }: Inspec
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
-        )}
-      </section>
+        ) : undefined
+      }
+    >
+      {users.length === 0 ? (
+        <p className="insp-empty">No agent uses this yet. It stays a definition in lib/ until one does.</p>
+      ) : (
+        <ul className="insp-list">
+          {users.map((user) => (
+            <Item key={user.id} node={user} onSelect={onSelect} onDetach={() => onDetach(node.id, user.id)} />
+          ))}
+        </ul>
+      )}
+    </PanelCard>
+  );
+}
 
-      <section className="inspector-section">
-        <h3 className="inspector-section-title">Wiring</h3>
-        {node.shared ? (
-          <>
-            <p className="inspector-note">One definition, and a one-line re-export in each agent&apos;s own folder.</p>
-            <pre className="inspector-code">
-              {users.map((user) => (
-                <span key={user.id} className="inspector-code-block">
-                  <span className="code-comment">{`// ${agentDirectory(user)}${slot}/${node.name}.ts`}</span>
-                  {"\n"}
-                  <span className="code-keyword">export</span> {"{ default } "}
-                  <span className="code-keyword">from</span> <span className="code-string">{`"#lib/${slot}/${node.name}.ts"`}</span>
-                  {";\n"}
-                </span>
-              ))}
-              {users.length === 0 && <span className="code-comment">{"// No re-exports yet"}</span>}
-            </pre>
-          </>
-        ) : (
-          <p className="inspector-note">
-            Defined in its agent&apos;s folder. Attach it to a second agent and EveLab moves the definition to{" "}
-            <code className="mono">lib/{slot}/</code> and leaves each agent a re-export, never a copy.
-          </p>
-        )}
-      </section>
-    </>
+function Wiring({ graph, node }: InspectorProps & { node: CanvasNode }) {
+  const byId = useMemo(() => new Map(graph.nodes.map((entry) => [entry.id, entry])), [graph]);
+  const users = (node.usedBy ?? []).map((id) => byId.get(id)).filter((entry): entry is CanvasNode => Boolean(entry));
+  const slot = isResourceKind(node.kind) ? SLOT[node.kind] : "tools";
+
+  return (
+    <PanelCard title="How Eve loads it">
+      {node.shared ? (
+        <pre className="insp-code">
+          {users.map((user, index) => (
+            <span key={user.id}>
+              {index > 0 && "\n\n"}
+              <span className="code-comment">{`// ${agentDirectory(user)}${slot}/${node.name}.ts`}</span>
+              {"\n"}
+              <span className="code-keyword">export</span>
+              {" { default } "}
+              <span className="code-keyword">from</span> <span className="code-string">{`"#lib/${slot}/${node.name}.ts"`}</span>
+              {";"}
+            </span>
+          ))}
+          {users.length === 0 && <span className="code-comment">{"// No re-exports yet"}</span>}
+        </pre>
+      ) : (
+        <p className="insp-note">
+          Defined in its agent&apos;s folder. Attach it to a second agent and EveLab moves the definition to{" "}
+          <code className="mono">lib/{slot}/</code>, leaving each agent a one-line re-export instead of a copy.
+        </p>
+      )}
+    </PanelCard>
   );
 }
 
@@ -448,53 +527,49 @@ function ArchitectureSummary({ graph, issues, onCreate, onClear }: InspectorProp
   const count = (kind: CanvasNodeKind) => graph.nodes.filter((node) => node.kind === kind).length;
   const root = graph.nodes.find((node) => node.kind === "agent");
   const errors = issues.filter((issue) => issue.level === "error");
+  const stats: [string, number][] = [
+    ["Agents", count("agent") + count("subagent")],
+    ["Resources", count("tool") + count("skill") + count("connection")],
+    ["Channels", count("channel")],
+    ["Shared", graph.nodes.filter((node) => node.shared).length],
+  ];
 
   return (
     <div className="inspector-content" data-kind="agent">
-      <header className="inspector-hero">
-        <div className="inspector-hero-row">
-          <span className="inspector-tile" aria-hidden="true">
-            <Icon icon={KINDS.agent.icon} size={18} />
+      <header className="insp-header">
+        <div className="insp-toprow">
+          <span className="insp-kind">
+            <Icon icon={KINDS.agent.icon} size={14} />
+            Architecture
           </span>
-          <div className="inspector-hero-actions">
+          <div className="insp-toprow-actions">
             <IconAction label="Close" onClick={onClear}>
               <Icon icon={IconCross} />
             </IconAction>
           </div>
         </div>
-        <p className="inspector-eyebrow">Architecture</p>
-        <h2 className="inspector-name">{root?.name}</h2>
-        <p className="inspector-description mono">{root?.detail}</p>
+        <h2 className="insp-name">{root?.name}</h2>
+        <p className="insp-description mono">{root?.detail}</p>
       </header>
 
-      <dl className="inspector-metrics">
-        {(
-          [
-            ["Agents", count("agent") + count("subagent")],
-            ["Resources", count("tool") + count("skill") + count("connection")],
-            ["Shared", graph.nodes.filter((node) => node.shared).length],
-          ] as const
-        ).map(([label, value]) => (
-          <div key={label} className="inspector-metric">
-            <dt>{label}</dt>
-            <dd>{value}</dd>
-          </div>
-        ))}
-      </dl>
+      <div className="insp-scroll">
+        <div className="insp-stats">
+          {stats.map(([label, value]) => (
+            <div key={label}>
+              <span>{label}</span>
+              <strong className="tabular-nums">{value}</strong>
+            </div>
+          ))}
+        </div>
 
-      <div className="inspector-scroll">
-        <section className="inspector-section">
-          <h3 className="inspector-section-title">
-            Code sync
-            <span className="tabular-nums">{issues.length}</span>
-          </h3>
+        <PanelCard title="Code sync" meta={issues.length === 0 ? undefined : issues.length}>
           {issues.length === 0 ? (
-            <p className="inspector-status" data-tone="ok">
+            <p className="insp-status" data-tone="ok">
               <Icon icon={IconCheckCircle} size={14} />
               Every card maps to a file, and the project validates.
             </p>
           ) : (
-            <ul className="inspector-issues">
+            <ul className="insp-issues">
               {issues.map((issue) => (
                 <li key={`${issue.at}-${issue.message}`} data-level={issue.level}>
                   <Icon icon={IconWarning} size={14} />
@@ -505,20 +580,19 @@ function ArchitectureSummary({ graph, issues, onCreate, onClear }: InspectorProp
               ))}
             </ul>
           )}
-          {errors.length > 0 && <p className="inspector-note">Eve will refuse to build until the errors are fixed.</p>}
-        </section>
+          {errors.length > 0 && <p className="insp-note">Eve will refuse to build until the errors are fixed.</p>}
+        </PanelCard>
 
-        <section className="inspector-section">
-          <h3 className="inspector-section-title">Grow it</h3>
-          <div className="inspector-quick">
+        <PanelCard title="Add to the architecture">
+          <div className="insp-quick">
             {(["subagent", "tool", "skill", "connection"] as const).map((kind) => (
-              <button key={kind} type="button" className="inspector-quick-item" data-kind={kind} onClick={() => onCreate(kind)}>
+              <button key={kind} type="button" className="insp-quick-item" data-kind={kind} onClick={() => onCreate(kind)}>
                 <KindTile kind={kind} />
                 {KINDS[kind].label}
               </button>
             ))}
           </div>
-        </section>
+        </PanelCard>
       </div>
     </div>
   );

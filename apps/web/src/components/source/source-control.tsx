@@ -133,7 +133,7 @@ export function SourceControl({
     <div className="source">
       <Card role="region" aria-label="Repository" className="source-repo flex-row items-center gap-3 p-4">
         <span className="source-repo-icon" aria-hidden="true">
-          <Icon icon={IconGitBranch} size={18} />
+          <Icon icon={IconGitBranch} />
         </span>
         <div className="source-repo-text">
           <a className="source-repo-name" href={summary.url} target="_blank" rel="noreferrer noopener">

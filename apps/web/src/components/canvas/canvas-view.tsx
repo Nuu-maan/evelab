@@ -6,7 +6,6 @@ import {
   applyNodeChanges,
   Background,
   BackgroundVariant,
-  MarkerType,
   MiniMap,
   ReactFlow,
   ReactFlowProvider,
@@ -30,10 +29,11 @@ import {
   IconFullscreen,
   IconInformation,
   IconMinus,
-  IconRoute,
   IconWarning,
   IconPlus,
-  IconRotateCounterClockwise,
+  IconRedo,
+  IconShare,
+  IconUndo,
   IconSettingsSliders,
   IconSidebarLeft,
 } from "@/components/icons";
@@ -54,6 +54,7 @@ import {
   CanvasContext,
   CanvasNodeCard,
   isAgentKind,
+  portHandle,
   isResourceKind,
   type CanvasContextValue,
   type CanvasNodeData,
@@ -137,7 +138,6 @@ type HistoryEntry =
 const LAYOUTS: { mode: LayoutMode; label: string }[] = [
   { mode: "hierarchical", label: "Hierarchical" },
   { mode: "horizontal", label: "Horizontal" },
-  { mode: "vertical", label: "Columns by agent" },
   { mode: "freeform", label: "Freeform" },
 ];
 
@@ -152,13 +152,6 @@ const ADD_ITEMS: { kind: CreateKind; hint: string }[] = [
 /** Room for the floating panels, so fitting never tucks a card under them. */
 const FIT_PADDING = { top: "112px", right: "48px", bottom: "72px", left: "288px" } as const;
 
-const KIND_COLOR: Partial<Record<CanvasNodeKind, string>> = {
-  subagent: "var(--kind-subagent)",
-  tool: "var(--kind-tool)",
-  skill: "var(--kind-skill)",
-  connection: "var(--kind-connection)",
-  channel: "var(--kind-channel)",
-};
 
 /** What each wire colour and stroke means, shown in the status bar. */
 const LEGEND: { kind: CanvasNodeKind; label: string; dashed?: boolean }[] = [
@@ -226,9 +219,9 @@ function toEdge(
     source: edge.source,
     target: edge.target,
     type: "relation",
+    sourceHandle: portHandle(kind),
     className: edgeClass(kind, edge.relation),
-    interactionWidth: 22,
-    markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14, color: KIND_COLOR[kind] ?? "var(--canvas-edge)" },
+    interactionWidth: 18,
     data: { relation: edge.relation, kind, bend, detachable: isResourceKind(kind) },
   };
 }
@@ -349,7 +342,9 @@ function CanvasInner(props: CanvasProps) {
     RelationEdge
   >();
 
-  const [mode, setMode] = useState<LayoutMode>(props.mode);
+  // Columns were retired when cards gained ports; a saved columns layout opens as hierarchical.
+  const initialMode: LayoutMode = props.mode === "vertical" ? "hierarchical" : props.mode;
+  const [mode, setMode] = useState<LayoutMode>(initialMode);
   const [collapsed, setCollapsed] = useState(() => new Set(props.collapsed));
   const [snap, setSnap] = useState(false);
   const [locked, setLocked] = useState(false);
@@ -370,7 +365,7 @@ function CanvasInner(props: CanvasProps) {
   const [editingId, setEditingId] = useState<string>();
   const [annotations, setAnnotations] = useState<AnnotationNode[]>(() => props.annotations.map(toAnnotationNode));
 
-  const layoutState = useRef({ mode: props.mode, collapsed: new Set(props.collapsed) });
+  const layoutState = useRef<{ mode: LayoutMode; collapsed: Set<string> }>({ mode: initialMode, collapsed: new Set(props.collapsed) });
   const annotationsRef = useRef(annotations);
   const savedAnnotations = useRef(JSON.stringify(props.annotations));
   const surfaceRef = useRef<HTMLDivElement>(null);
@@ -408,7 +403,7 @@ function CanvasInner(props: CanvasProps) {
 
   const [nodes, setNodes, onGraphNodesChange] = useNodesState<CapabilityNode>(
     useMemo(() => {
-      const layout = { ...autoLayout(graph, props.mode === "freeform" ? "hierarchical" : props.mode), ...positions };
+      const layout = { ...autoLayout(graph, initialMode === "freeform" ? "hierarchical" : initialMode), ...positions };
       return graph.nodes.map((node) => ({
         id: node.id,
         type: "capability" as const,
@@ -438,10 +433,10 @@ function CanvasInner(props: CanvasProps) {
   useEffect(() => {
     if (!initialized || fitted.current) return;
     fitted.current = true;
-    const initialMode = layoutState.current.mode;
+    const startMode = layoutState.current.mode;
     // Nothing arranged by hand yet: lay out again with the measured sizes before fitting.
-    if (Object.keys(positions).length === 0 && initialMode !== "freeform") {
-      const placed = autoLayout(graph, initialMode, undefined, measuredSizes());
+    if (Object.keys(positions).length === 0 && startMode !== "freeform") {
+      const placed = autoLayout(graph, startMode, undefined, measuredSizes());
       setNodes((current) => current.map((node) => (placed[node.id] ? { ...node, position: placed[node.id]! } : node)));
     }
     requestAnimationFrame(() => requestAnimationFrame(() => void fitView({ padding: FIT_PADDING, maxZoom: 1 })));
@@ -1046,15 +1041,14 @@ function CanvasInner(props: CanvasProps) {
   );
 
   const displayEdges = useMemo(() => {
-    const hoveredWires =
-      hovered?.type === "node" ? edges.filter((edge) => edge.source === hovered.id || edge.target === hovered.id).length : 0;
     const list = edges.map((edge) => {
       const hoveredEdge = hovered?.type === "edge" && hovered.id === edge.id;
       const touches = hoveredEdge || (hovered?.type === "node" && (edge.source === hovered.id || edge.target === hovered.id));
       const kind = kinds.get(edge.target) ?? "tool";
       const className = edgeClass(kind, edge.data?.relation, related ? (touches ? "is-related" : "is-dim") : undefined);
       // A label only where someone is looking, so wires never sit under a wall of words.
-      const showLabel = Boolean(edge.selected || hoveredEdge || (touches && hoveredWires <= 6));
+      // A label only for the wire being pointed at or selected; ports already say what the others are.
+      const showLabel = Boolean(edge.selected || hoveredEdge);
       if (edge.className === className && edge.data?.showLabel === showLabel) return edge;
       return { ...edge, className, data: { ...edge.data!, showLabel } };
     });
@@ -1075,6 +1069,8 @@ function CanvasInner(props: CanvasProps) {
     (connection) =>
       isAgentKind(kinds.get(connection.source)) &&
       isResourceKind(kinds.get(connection.target)) &&
+      // A port only takes its own kind: the skill port attaches skills.
+      connection.sourceHandle === portHandle(kinds.get(connection.target)!) &&
       !uses(connection.source, connection.target),
     [kinds, uses],
   );
@@ -1190,7 +1186,7 @@ function CanvasInner(props: CanvasProps) {
     kindStat("skill"),
     kindStat("connection"),
     kindStat("channel"),
-    { label: "Shared", value: sharedCount, icon: IconRoute, match: (node) => node.shared === true },
+    { label: "Shared", value: sharedCount, icon: IconShare, match: (node) => node.shared === true },
   ];
   const notes = annotations.length;
   const rootNode = byId.get("agent");
@@ -1287,10 +1283,10 @@ function CanvasInner(props: CanvasProps) {
               </p>
             </div>
             <ToolbarButton label="Undo" tooltip="Undo (Ctrl Z)" onClick={undo}>
-              <Icon icon={IconRotateCounterClockwise} />
+              <Icon icon={IconUndo} />
             </ToolbarButton>
-            <ToolbarButton label="Redo" tooltip="Redo (Ctrl Shift Z)" onClick={redo} className="icon-mirror">
-              <Icon icon={IconRotateCounterClockwise} />
+            <ToolbarButton label="Redo" tooltip="Redo (Ctrl Shift Z)" onClick={redo}>
+              <Icon icon={IconRedo} />
             </ToolbarButton>
           </div>
 
@@ -1365,7 +1361,7 @@ function CanvasInner(props: CanvasProps) {
                     data-empty={stat.value === 0 || undefined}
                     onClick={() => focusGroup(stat.match, stat.create)}
                   >
-                    <Icon icon={stat.icon} size={15} />
+                    <Icon icon={stat.icon} />
                     <span className="canvas-stat-value">{stat.value}</span>
                     <span className="canvas-stat-label">{stat.label}</span>
                   </button>
@@ -1389,7 +1385,7 @@ function CanvasInner(props: CanvasProps) {
                 setSummaryOpen((open) => !open);
               }}
             >
-              <Icon icon={issues.length > 0 ? IconWarning : IconCheckCircle} size={15} />
+              <Icon icon={issues.length > 0 ? IconWarning : IconCheckCircle} />
               <span className="canvas-stat-value">{issues.length}</span>
               <span className="canvas-stat-label">{issues.length === 1 ? "Issue" : "Issues"}</span>
             </button>

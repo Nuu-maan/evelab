@@ -28,12 +28,23 @@ export default async function ConnectionsPage({ params }: { params: Promise<{ id
   const { id } = await params;
   const project = await readProject(id);
   const directory = agentPath(project.root, "connections/");
-  const owned = [
-    ...project.connections.map((connection) => ({ connection, owner: "" })),
-    ...project.subagents.flatMap((subagent) =>
-      subagent.connections.map((connection) => ({ connection, owner: subagent.id })),
-    ),
-  ];
+  // Every agent's own connections, nested subagents included, keyed by the folder they live in.
+  const walk = (subagents: typeof project.subagents, prefix: string): { connection: Connection; owner: string }[] =>
+    subagents.flatMap((subagent) =>
+      subagent.kind === "local"
+        ? [
+            ...subagent.connections.map((connection) => ({ connection, owner: `${prefix}${subagent.id}` })),
+            ...walk(subagent.subagents, `${prefix}${subagent.id}/`),
+          ]
+        : [],
+    );
+  const all = [...project.connections.map((connection) => ({ connection, owner: "" })), ...walk(project.subagents, "")];
+  // A shared connection is one definition in lib/, so it is listed once with everyone who uses it.
+  const owned = all.filter(({ connection }) => !connection.shared);
+  const shared = project.library.connections.map((definition) => ({
+    definition,
+    users: all.filter(({ connection }) => connection.shared === definition.id).map(({ owner }) => owner.split("/").pop() || project.agent.name),
+  }));
 
   return (
     <div className="page">
@@ -50,7 +61,53 @@ export default async function ConnectionsPage({ params }: { params: Promise<{ id
         </header>
       </Reveal>
 
-      {owned.length === 0 ? (
+      {shared.length > 0 && (
+        <Stagger className="section">
+          <h2 className="section-title">Shared</h2>
+          {shared.map(({ definition, users }) => {
+            const path = `${agentPath(project.root, "lib/connections/")}${definition.file}`;
+            return (
+              <StaggerItem key={definition.id}>
+                <Card size="sm">
+                  <CardHeader>
+                    <CardTitle className="font-mono">{definition.id}</CardTitle>
+                    <CardDescription>{definition.description || "No description"}</CardDescription>
+                    <CardAction className="flex items-center gap-2">
+                      <Button asChild variant="ghost">
+                        <Link href={`/projects/${id}/files?path=${encodeURIComponent(path)}`}>Edit</Link>
+                      </Button>
+                      <form action={deleteEntityAction}>
+                        <input type="hidden" name="projectId" value={id} />
+                        <input type="hidden" name="ref" value={`connection:#${definition.id}`} />
+                        <ConfirmSubmit
+                          title={`Remove ${definition.id}?`}
+                          description={`Deletes ${path} and the re-export in ${users.length} ${users.length === 1 ? "agent" : "agents"}.`}
+                          confirmLabel="Remove"
+                        >
+                          Remove
+                        </ConfirmSubmit>
+                      </form>
+                    </CardAction>
+                  </CardHeader>
+                  <CardContent className="flex flex-wrap items-center gap-2">
+                    <Badge variant="secondary">{definition.kind === "openapi" ? "OpenAPI" : definition.kind === "mcp" ? "MCP" : "Connection"}</Badge>
+                    <Badge variant="secondary">
+                      {AUTH_LABELS[definition.auth]}
+                      {definition.connector ? `: ${definition.connector}` : ""}
+                    </Badge>
+                    <Badge variant="outline">
+                      Used by {users.length > 0 ? users.join(", ") : "no agent yet"}
+                    </Badge>
+                    {endpoint(definition) && <span className="hint mono truncate">{endpoint(definition)}</span>}
+                  </CardContent>
+                </Card>
+              </StaggerItem>
+            );
+          })}
+        </Stagger>
+      )}
+
+      {owned.length === 0 && shared.length === 0 ? (
         <Reveal delay={0.06}>
           <EmptyState icon={IconLink} title="No connections yet.">
             Add a hosted MCP server such as Linear, or an OpenAPI document. Eve discovers the tools when
@@ -59,9 +116,10 @@ export default async function ConnectionsPage({ params }: { params: Promise<{ id
         </Reveal>
       ) : (
         <Stagger className="section">
+          {shared.length > 0 && owned.length > 0 && <h2 className="section-title">Defined in place</h2>}
           {owned.map(({ connection, owner }) => {
             const path = owner
-              ? `${agentPath(project.root, `subagents/${owner}/connections/`)}${connection.file}`
+              ? `${agentPath(project.root, `subagents/${owner.split("/").join("/subagents/")}/connections/`)}${connection.file}`
               : `${directory}${connection.file}`;
             const ref = owner ? `connection:${owner}/${connection.id}` : `connection:${connection.id}`;
             return (
@@ -89,7 +147,7 @@ export default async function ConnectionsPage({ params }: { params: Promise<{ id
                       {AUTH_LABELS[connection.auth]}
                       {connection.connector ? `: ${connection.connector}` : ""}
                     </Badge>
-                    {owner && <Badge variant="secondary">Owned by {owner}</Badge>}
+                    {owner && <Badge variant="secondary">In {owner.split("/").pop()}</Badge>}
                     {connection.filter && (
                       <Badge variant="secondary">
                         {connection.filter.mode === "allow" ? "Only" : "All but"} {connection.filter.names.join(", ")}

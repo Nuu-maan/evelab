@@ -817,43 +817,45 @@
   /* ---------- Nodes ---------- */
 
   /*
-   * A card is a tinted frame in its kind's colour, like an instrument on a
-   * systems diagram: the name on top, two readings in mono, then where it runs.
+   * A card: a quiet surface with a hairline in its kind's colour, the name and
+   * type on top, what it runs on in mono, and for agents a row of ports along
+   * the bottom edge where their wires start.
    */
   .node {
     position: relative;
     width: 232px;
-    border: 1.5px solid color-mix(in srgb, var(--kind) 62%, transparent);
-    border-radius: 10px;
-    background: color-mix(in srgb, var(--kind) 7%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--kind) 45%, var(--border));
+    border-radius: 12px;
+    background: var(--surface);
     box-shadow: var(--shadow-small);
     transition: border-color var(--duration-hover) ease, box-shadow 200ms var(--ease-out), opacity 200ms ease;
   }
 
   .node[data-tier="agent"] {
-    width: 264px;
+    width: 288px;
   }
 
   .node[data-tier="root"] {
-    width: 300px;
-    border-color: color-mix(in srgb, var(--foreground) 55%, transparent);
-    background: var(--surface);
+    width: 320px;
+    border-color: var(--border-strong);
     box-shadow: var(--shadow);
   }
 
   @media (hover: hover) and (pointer: fine) {
     .node:hover {
-      border-color: var(--kind);
+      border-color: color-mix(in srgb, var(--kind) 75%, var(--border));
+      box-shadow: var(--shadow);
     }
   }
 
   .node[data-selected] {
     border-color: var(--kind);
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--kind) 22%, transparent), var(--shadow);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--kind) 22%, transparent), var(--shadow);
   }
 
   .node[data-tier="root"][data-selected] {
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--foreground) 14%, transparent), var(--shadow);
+    border-color: var(--foreground-secondary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--foreground) 12%, transparent), var(--shadow);
   }
 
   .react-flow__node.is-dim .node {
@@ -864,7 +866,6 @@
     transition: transform 320ms var(--ease-out);
   }
 
-  /* While an attach is dragged, resources that can take it say so; the rest step back. */
   .node[data-valid] {
     border-style: dashed;
     border-color: var(--focus);
@@ -882,7 +883,7 @@
 
   .react-flow__node.is-attach-target .node {
     border-color: var(--focus);
-    box-shadow: 0 0 0 5px color-mix(in srgb, var(--focus) 22%, transparent), var(--shadow-large);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--focus) 22%, transparent), var(--shadow-large);
   }
 
   .react-flow__node.is-attach-target .node::after {
@@ -895,19 +896,15 @@
     border-radius: 6px;
     background: var(--focus);
     color: #fff;
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
+    font-size: 11px;
+    font-weight: var(--weight-medium);
     white-space: nowrap;
-    animation: notice-in 160ms var(--ease-out) both;
   }
 
   .react-flow__node.dragging .node {
     box-shadow: var(--shadow-large);
   }
 
-  /* Only nodes created while the canvas is open get an entrance. */
   .node[data-fresh] {
     animation: node-in 260ms var(--ease-out) both;
   }
@@ -938,49 +935,67 @@
   .node-head {
     display: flex;
     align-items: center;
-    gap: 9px;
-    margin: 0 12px;
-    padding: 11px 0 9px;
-    border-bottom: 1px solid color-mix(in srgb, var(--kind) 22%, transparent);
+    gap: 10px;
+    padding: 12px 10px 0 12px;
+  }
+
+  .node-icon {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--kind) 12%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--kind) 30%, transparent);
     color: var(--kind);
   }
 
-  .node[data-tier="root"] .node-head {
-    border-bottom-color: var(--border);
+  .node[data-tier="root"] .node-icon {
+    background: var(--foreground);
+    box-shadow: none;
+    color: var(--background);
+  }
+
+  .node-titles {
+    flex: 1;
+    min-width: 0;
   }
 
   .node-name {
-    flex: 1;
-    min-width: 0;
     overflow: hidden;
     color: var(--foreground);
-    font-size: 15px;
+    font-size: 14px;
+    font-weight: var(--weight-medium);
     letter-spacing: -0.01em;
+    line-height: 18px;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  .node[data-tier="agent"] .node-name {
-    font-size: 16px;
+  .node[data-tier="root"] .node-name {
+    font-size: 15px;
   }
 
-  .node[data-tier="root"] .node-name {
-    font-size: 17px;
-    font-weight: var(--weight-medium);
+  .node-type {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--foreground-tertiary);
+    font-size: 11.5px;
+    line-height: 16px;
   }
 
   .node-shared {
     display: inline-flex;
     align-items: center;
-    height: 17px;
-    padding: 0 6px;
-    border: 1px solid color-mix(in srgb, var(--kind) 45%, transparent);
-    border-radius: 5px;
+    height: 16px;
+    padding: 0 5px;
+    border: 1px solid color-mix(in srgb, var(--kind) 40%, transparent);
+    border-radius: 4px;
     color: var(--kind);
-    font-family: var(--font-mono);
-    font-size: 9.5px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+    font-size: 10px;
+    font-weight: var(--weight-medium);
   }
 
   .node-collapse {
@@ -988,62 +1003,48 @@
     align-items: center;
     gap: 2px;
     flex: none;
-    height: 22px;
-    padding: 0 4px;
+    align-self: flex-start;
+    height: 24px;
+    padding: 0 5px;
     border-radius: 6px;
     color: var(--foreground-tertiary);
-    font-family: var(--font-mono);
     font-size: 11px;
     transition: background-color var(--duration-hover) ease, color var(--duration-hover) ease;
   }
 
   @media (hover: hover) and (pointer: fine) {
     .node-collapse:hover {
-      background: color-mix(in srgb, var(--foreground) 8%, transparent);
+      background: var(--surface-hover);
       color: var(--foreground);
     }
   }
 
   .node-body {
     display: grid;
-    gap: 3px;
-    padding: 9px 12px 10px;
-  }
-
-  .node-readings {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 10px;
+    gap: 2px;
+    padding: 10px 12px 12px;
   }
 
   .node-reading {
-    display: inline-flex;
+    display: flex;
     align-items: baseline;
     gap: 5px;
-    min-width: 0;
-    font-family: var(--font-mono);
+    margin-bottom: 4px;
+    color: var(--foreground-secondary);
+    font-size: 12px;
   }
 
   .node-reading strong {
     color: var(--foreground);
-    font-size: 18px;
-    font-weight: var(--weight-semibold);
-    letter-spacing: -0.02em;
-  }
-
-  .node-reading em {
-    color: var(--foreground-secondary);
-    font-size: 11px;
-    font-style: normal;
-    font-weight: var(--weight-medium);
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-  }
-
-  .node-reading[data-secondary] strong {
+    font-family: var(--font-mono);
     font-size: 13px;
-    font-weight: var(--weight-medium);
+    font-weight: var(--weight-semibold);
+  }
+
+  .node-reading-muted {
+    margin-left: auto;
+    color: var(--foreground-tertiary);
+    font-size: 11px;
   }
 
   .node-detail,
@@ -1061,54 +1062,136 @@
 
   .node-path {
     color: var(--foreground-tertiary);
-    font-size: 10px;
+    font-size: 10.5px;
+  }
+
+  /* Ports: equal cells along the bottom edge, each over its own endpoint. */
+  .node-ports {
+    display: grid;
+    border-top: 1px solid var(--border);
+    border-radius: 0 0 11px 11px;
+    background: var(--background);
+  }
+
+  .node-port {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    height: 30px;
+    color: var(--kind);
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+
+  .node-port + .node-port {
+    border-left: 1px solid var(--border);
+  }
+
+  .node-port span {
+    color: var(--foreground);
+    font-weight: var(--weight-medium);
+  }
+
+  .node-port[data-empty] {
+    color: var(--foreground-tertiary);
+  }
+
+  .node-port[data-empty] span {
+    color: var(--foreground-tertiary);
+  }
+
+  /* The root's channel port: a tab on its top edge, over the wire that feeds the channels above. */
+  .node-top-port {
+    position: absolute;
+    top: -13px;
+    left: 50%;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 24px;
+    padding: 0 8px;
+    transform: translateX(-50%);
+    border: 1px solid color-mix(in srgb, var(--kind) 45%, var(--border));
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--kind);
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+
+  .node-top-port span {
+    color: var(--foreground);
+    font-weight: var(--weight-medium);
+  }
+
+  .node-top-port[data-horizontal] {
+    top: 50%;
+    left: -13px;
+    transform: translate(-50%, -50%);
+  }
+
+  .react-flow__handle.node-channel-handle {
+    top: -13px;
+    opacity: 0;
+  }
+
+  .react-flow__handle.node-channel-handle.react-flow__handle-left {
+    top: 50%;
+    left: -13px;
   }
 
   /* ---------- Handles ---------- */
 
   .react-flow__handle.node-handle {
-    width: 9px;
-    height: 9px;
+    width: 8px;
+    height: 8px;
     min-width: 0;
     min-height: 0;
-    border: 1.5px solid color-mix(in srgb, var(--kind) 70%, var(--border-strong));
+    border: 2px solid var(--surface);
     border-radius: 50%;
-    background: var(--surface);
-    transition: opacity var(--duration-hover) ease, background-color var(--duration-hover) ease,
-      border-color var(--duration-hover) ease, box-shadow 200ms var(--ease-out);
+    background: color-mix(in srgb, var(--kind) 80%, var(--foreground-tertiary));
+    transition: background-color var(--duration-hover) ease, box-shadow 200ms var(--ease-out), transform 160ms var(--ease-out);
   }
 
-  .react-flow__handle.node-handle.target {
-    opacity: 0;
+  /* Where a wire lands: a small dot that only shows once something is wired to it. */
+  .react-flow__handle.node-target {
+    width: 7px;
+    height: 7px;
+    background: var(--border-strong);
+    pointer-events: none;
   }
 
-  .react-flow__handle.node-handle.source {
+  .react-flow__handle.node-port-handle {
     cursor: crosshair;
   }
 
+  .react-flow__handle.node-port-handle::after {
+    content: "";
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+  }
+
   @media (hover: hover) and (pointer: fine) {
-    .react-flow__handle.node-handle.source:hover {
-      background: var(--focus);
-      border-color: var(--focus);
-      box-shadow: 0 0 0 4px color-mix(in srgb, var(--focus) 20%, transparent);
+    .react-flow__handle.node-port-handle:hover {
+      background: var(--kind);
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--kind) 25%, transparent);
     }
   }
 
-  .react-flow__handle.node-handle.connectingfrom {
-    background: var(--focus);
-    border-color: var(--focus);
+  .react-flow__handle.node-port-handle.connectingfrom {
+    background: var(--kind);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--kind) 25%, transparent);
   }
 
-  .node[data-valid] .react-flow__handle.node-handle.target {
-    opacity: 1;
-    border-color: var(--focus);
+  .node[data-valid] .react-flow__handle.node-target {
+    background: var(--focus);
   }
 
-  .react-flow__handle.node-handle.connectingto.valid {
-    opacity: 1;
+  .react-flow__handle.node-target.connectingto.valid {
     background: var(--focus);
-    border-color: var(--focus);
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--focus) 20%, transparent);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--focus) 22%, transparent);
   }
 
   /* ---------- Edges ---------- */
@@ -1191,25 +1274,30 @@
     left: 22px;
   }
 
-  /* A label is a solid chip on the wire's own stub: readable over any line. */
-  .edge-label {
+  /*
+   * The label is a small tag beside the far end of the wire, drawn like a
+   * tooltip. The anchor carries the position, so the fade never moves it.
+   */
+  .edge-label-anchor {
     position: absolute;
     z-index: 10;
+    pointer-events: none;
+  }
+
+  .edge-label {
     display: flex;
     align-items: center;
     gap: 6px;
     height: 22px;
     padding: 0 8px;
-    border: 1px solid color-mix(in srgb, var(--kind, var(--border-strong)) 45%, var(--border));
     border-radius: 6px;
-    background: var(--surface-raised);
-    box-shadow: var(--shadow-small);
-    color: var(--foreground);
-    font-family: var(--font-mono);
-    font-size: 11px;
+    background: var(--foreground);
+    box-shadow: var(--shadow);
+    color: var(--background);
+    font-size: 11.5px;
+    font-weight: var(--weight-medium);
     white-space: nowrap;
-    pointer-events: none;
-    animation: edge-label-in 140ms var(--ease-out) both;
+    animation: edge-label-fade 140ms ease-out both;
   }
 
   .edge-label::before {
@@ -1217,7 +1305,7 @@
     flex: none;
     width: 6px;
     height: 6px;
-    border-radius: 2px;
+    border-radius: 50%;
     background: var(--kind, var(--foreground-tertiary));
   }
 
@@ -1226,10 +1314,9 @@
     pointer-events: all;
   }
 
-  @keyframes edge-label-in {
+  @keyframes edge-label-fade {
     from {
       opacity: 0;
-      transform: translate(-50%, -50%) scale(0.96);
     }
   }
 
@@ -1237,8 +1324,8 @@
     height: 18px;
     padding: 0 7px;
     border-radius: 4px;
-    background: var(--surface-hover);
-    color: var(--foreground);
+    background: color-mix(in srgb, var(--background) 18%, transparent);
+    color: var(--background);
     font-size: 10.5px;
     transition: background-color var(--duration-hover) ease, color var(--duration-hover) ease,
       transform var(--duration-press) var(--ease-out);
@@ -2023,5 +2110,463 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-5);
+  }
+
+  /* ---------- Inspector panels ---------- */
+
+  .insp-header {
+    display: grid;
+    gap: 6px;
+    padding: 12px 12px 14px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .insp-toprow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 28px;
+  }
+
+  .insp-kind {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 24px;
+    padding: 0 8px 0 6px;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--kind) 12%, transparent);
+    color: var(--kind);
+    font-size: 12px;
+    font-weight: var(--weight-medium);
+  }
+
+  .inspector-content[data-kind="agent"] .insp-kind {
+    background: var(--surface-hover);
+    color: var(--foreground-secondary);
+  }
+
+  .insp-shared {
+    border-color: color-mix(in srgb, var(--kind) 40%, var(--border));
+    color: var(--kind);
+  }
+
+  .insp-toprow-actions {
+    display: flex;
+    gap: 2px;
+    margin-left: auto;
+  }
+
+  .insp-name {
+    overflow: hidden;
+    font-size: 18px;
+    font-weight: var(--weight-semibold);
+    letter-spacing: -0.02em;
+    line-height: 24px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .insp-description {
+    color: var(--foreground-secondary);
+    font-size: 13px;
+    line-height: 1.5;
+    text-wrap: pretty;
+  }
+
+  .insp-description.mono {
+    font-size: 12px;
+  }
+
+  .insp-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+  }
+
+  .insp-tabs {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 0;
+    min-height: 0;
+  }
+
+  .insp-tabbar {
+    padding: 10px 12px 0 16px;
+  }
+
+  .insp-tab-count {
+    min-width: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: var(--surface-active);
+    color: var(--foreground-secondary);
+    font-size: 11px;
+    line-height: 16px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .insp-scroll {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 0;
+    padding: 12px 12px 16px 16px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+
+  .insp-card {
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+  }
+
+  .insp-card-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 0 6px 0 12px;
+    border-bottom: 1px solid var(--border);
+    background: var(--background);
+  }
+
+  .insp-card-head h3 {
+    font-size: 13px;
+    font-weight: var(--weight-medium);
+  }
+
+  .insp-card-meta {
+    color: var(--foreground-tertiary);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .insp-card-action {
+    margin-left: auto;
+  }
+
+  .insp-details {
+    display: grid;
+  }
+
+  .insp-details div {
+    display: grid;
+    grid-template-columns: 96px minmax(0, 1fr);
+    gap: 12px;
+    padding: 9px 12px;
+  }
+
+  .insp-details div + div {
+    border-top: 1px solid var(--border);
+  }
+
+  .insp-details dt {
+    color: var(--foreground-secondary);
+    font-size: 12.5px;
+  }
+
+  .insp-details dd {
+    color: var(--foreground);
+    font-size: 12.5px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+  }
+
+  .insp-details dd .mono {
+    font-size: 12px;
+  }
+
+  .insp-ports {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    grid-auto-flow: column;
+  }
+
+  .insp-port {
+    display: grid;
+    justify-items: center;
+    gap: 2px;
+    padding: 12px 4px 10px;
+    color: var(--kind);
+    transition: background-color var(--duration-hover) ease;
+  }
+
+  .insp-port + .insp-port {
+    border-left: 1px solid var(--border);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .insp-port:hover {
+      background: color-mix(in srgb, var(--kind) 6%, transparent);
+    }
+  }
+
+  .insp-port strong {
+    margin-top: 4px;
+    color: var(--foreground);
+    font-family: var(--font-mono);
+    font-size: 16px;
+    font-weight: var(--weight-semibold);
+  }
+
+  .insp-port span {
+    color: var(--foreground-tertiary);
+    font-size: 11px;
+  }
+
+  .insp-port[data-empty] {
+    color: var(--foreground-tertiary);
+  }
+
+  .insp-port[data-empty] strong {
+    color: var(--foreground-tertiary);
+  }
+
+  .insp-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .insp-filter {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 26px;
+    padding: 0 9px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--foreground-secondary);
+    font-size: 12px;
+    transition: background-color var(--duration-hover) ease, border-color var(--duration-hover) ease, color var(--duration-hover) ease;
+  }
+
+  .insp-filter span {
+    color: var(--foreground-tertiary);
+    font-variant-numeric: tabular-nums;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .insp-filter:hover {
+      border-color: var(--border-strong);
+      color: var(--foreground);
+    }
+  }
+
+  .insp-filter[aria-pressed="true"] {
+    border-color: var(--foreground);
+    background: var(--foreground);
+    color: var(--background);
+  }
+
+  .insp-filter[aria-pressed="true"] span {
+    color: color-mix(in srgb, var(--background) 70%, transparent);
+  }
+
+  .insp-list {
+    display: grid;
+    padding: 4px;
+  }
+
+  .insp-item {
+    display: flex;
+    align-items: center;
+    padding-right: 4px;
+    border-radius: 8px;
+    transition: background-color var(--duration-hover) ease;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .insp-item:hover {
+      background: var(--surface-hover);
+    }
+  }
+
+  .insp-item-main {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    gap: 10px;
+    min-width: 0;
+    padding: 6px 8px;
+    text-align: left;
+  }
+
+  .insp-item-text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .insp-item-name {
+    overflow: hidden;
+    font-size: 13px;
+    font-weight: var(--weight-medium);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .insp-item-detail {
+    overflow: hidden;
+    color: var(--foreground-tertiary);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .insp-item-action {
+    opacity: 0;
+    transition: opacity var(--duration-hover) ease;
+  }
+
+  .insp-item:hover .insp-item-action,
+  .insp-item:focus-within .insp-item-action {
+    opacity: 1;
+  }
+
+  @media (hover: none) {
+    .insp-item-action {
+      opacity: 1;
+    }
+  }
+
+  .insp-empty,
+  .insp-note {
+    color: var(--foreground-secondary);
+    font-size: 12.5px;
+    line-height: 1.55;
+    text-wrap: pretty;
+  }
+
+  .insp-empty {
+    padding: 12px;
+    color: var(--foreground-tertiary);
+  }
+
+  .insp-card > .insp-note {
+    padding: 12px;
+  }
+
+  .insp-wide-button {
+    width: 100%;
+  }
+
+  .insp-code {
+    margin: 0;
+    padding: 12px;
+    overflow-x: auto;
+    background: var(--background);
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    line-height: 1.65;
+    white-space: pre;
+  }
+
+  .insp-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+
+  .insp-stats div {
+    display: grid;
+    gap: 2px;
+    padding: 10px 12px;
+  }
+
+  .insp-stats div:nth-child(even) {
+    border-left: 1px solid var(--border);
+  }
+
+  .insp-stats div:nth-child(n + 3) {
+    border-top: 1px solid var(--border);
+  }
+
+  .insp-stats span {
+    color: var(--foreground-secondary);
+    font-size: 12px;
+  }
+
+  .insp-stats strong {
+    font-family: var(--font-mono);
+    font-size: 20px;
+    font-weight: var(--weight-semibold);
+  }
+
+  .insp-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 12px;
+    color: var(--foreground-secondary);
+    font-size: 12.5px;
+  }
+
+  .insp-status[data-tone="ok"] svg {
+    color: var(--success);
+  }
+
+  .insp-issues {
+    display: grid;
+    gap: 8px;
+    padding: 12px;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .insp-issues li {
+    display: flex;
+    gap: 6px;
+    color: var(--foreground-secondary);
+  }
+
+  .insp-issues li svg {
+    flex: none;
+    margin-top: 2px;
+    color: var(--warning);
+  }
+
+  .insp-issues li[data-level="error"] svg {
+    color: var(--danger);
+  }
+
+  .insp-quick {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    padding: 8px;
+  }
+
+  .insp-quick-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 12.5px;
+    transition: border-color var(--duration-hover) ease, background-color var(--duration-hover) ease,
+      transform var(--duration-press) var(--ease-out);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .insp-quick-item:hover {
+      border-color: color-mix(in srgb, var(--kind) 50%, var(--border));
+      background: color-mix(in srgb, var(--kind) 6%, transparent);
+    }
+  }
+
+  .insp-quick-item:active {
+    transform: scale(0.98);
   }
 }

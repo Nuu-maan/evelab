@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createChannelAction, createChatSdkChannelAction } from "@/lib/actions";
 
 type Platform = "slack" | "discord" | "linear" | "github" | "linq" | "photon" | "teams" | "telegram" | "mcp";
@@ -113,26 +114,33 @@ export function ChannelForm({
       <FieldGroup>
         <Field>
           <FieldLabel htmlFor="channel-platform">Platform</FieldLabel>
-          <select id="channel-platform" className="native-select" value={choice} onChange={(event) => setChoice(event.target.value)}>
-            {adapters.length > 0 && (
-              <optgroup label="Vercel Chat SDK">
-                {adapters.map((option) => (
-                  <option key={option.id} value={`${CHAT_SDK}${option.id}`}>
-                    {option.label}
-                  </option>
-                ))}
-              </optgroup>
-            )}
-            {native.length > 0 && (
-              <optgroup label="Eve native channels">
-                {native.map((value) => (
-                  <option key={value} value={value}>
-                    {PLATFORMS[value].label}
-                  </option>
-                ))}
-              </optgroup>
-            )}
-          </select>
+          <Select value={choice} onValueChange={setChoice}>
+            <SelectTrigger id="channel-platform" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {adapters.length > 0 && (
+                <SelectGroup>
+                  <SelectLabel>Vercel Chat SDK</SelectLabel>
+                  {adapters.map((option) => (
+                    <SelectItem key={option.id} value={`${CHAT_SDK}${option.id}`}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              )}
+              {native.length > 0 && (
+                <SelectGroup>
+                  <SelectLabel>Eve native channels</SelectLabel>
+                  {native.map((value) => (
+                    <SelectItem key={value} value={value}>
+                      {PLATFORMS[value].label}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              )}
+            </SelectContent>
+          </Select>
           {adapter ? (
             <FieldDescription>
               Vercel Chat SDK behind eve&apos;s chat-sdk channel, served at <code className="mono">/eve/v1/{adapter.id}</code>.
@@ -146,13 +154,18 @@ export function ChannelForm({
         {adapter && (
           <Field>
             <FieldLabel htmlFor="channel-state">State store</FieldLabel>
-            <select id="channel-state" className="native-select" value={state} onChange={(event) => setState(event.target.value)}>
-              {chatSdkStates.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            <Select value={state} onValueChange={setState}>
+              <SelectTrigger id="channel-state" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {chatSdkStates.map((option) => (
+                  <SelectItem key={option.id} value={option.id}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <FieldDescription>
               Keeps thread subscriptions and deduplication. Memory forgets on every restart, so use Redis once deployed.
             </FieldDescription>

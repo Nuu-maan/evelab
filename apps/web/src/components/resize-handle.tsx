@@ -123,7 +123,7 @@ export function ResizeHandle({
     >
       <span className="resize-handle-line" aria-hidden="true" />
       <span className="resize-handle-grip" aria-hidden="true">
-        <Icon icon={IconMoreVertical} size={12} />
+        <Icon icon={IconMoreVertical} size={14} />
       </span>
       {dragging && width !== undefined && (
         <span className="resize-handle-value" aria-hidden="true">

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createConnectionAction } from "@/lib/actions";
 
 const NAME_PATTERN = "[A-Za-z0-9][A-Za-z0-9_\\-]*";
@@ -79,10 +80,15 @@ export function ConnectionForm({
         </Field>
         <Field>
           <FieldLabel htmlFor="connection-kind">Protocol</FieldLabel>
-          <select id="connection-kind" name="connectionKind" className="native-select" defaultValue="mcp">
-            <option value="mcp">MCP server</option>
-            <option value="openapi">OpenAPI document</option>
-          </select>
+          <Select name="connectionKind" defaultValue="mcp">
+            <SelectTrigger id="connection-kind" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="mcp">MCP server</SelectItem>
+              <SelectItem value="openapi">OpenAPI document</SelectItem>
+            </SelectContent>
+          </Select>
         </Field>
         <Field>
           <FieldLabel htmlFor="connection-url">URL</FieldLabel>
@@ -103,16 +109,16 @@ export function ConnectionForm({
         </Field>
         <Field>
           <FieldLabel htmlFor="connection-auth">Authentication</FieldLabel>
-          <select
-            id="connection-auth"
-            className="native-select"
-            value={auth}
-            onChange={(event) => setAuth(event.target.value as Auth)}
-          >
-            <option value="none">None</option>
-            <option value="connect">Vercel Connect</option>
-            <option value="token">Token from an environment variable</option>
-          </select>
+          <Select value={auth} onValueChange={(value) => setAuth(value as Auth)}>
+            <SelectTrigger id="connection-auth" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">None</SelectItem>
+              <SelectItem value="connect">Vercel Connect</SelectItem>
+              <SelectItem value="token">Token from an environment variable</SelectItem>
+            </SelectContent>
+          </Select>
           <FieldDescription>
             {auth === "connect"
               ? "Vercel Connect holds the credential and signs each call. EveLab never sees it."

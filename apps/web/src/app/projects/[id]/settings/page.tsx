@@ -87,6 +87,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
           <form action={deleteProjectAction}>
             <input type="hidden" name="id" value={id} />
             <ConfirmSubmit
+              variant="destructive"
               title={`Delete ${project.agent.name}?`}
               description={`This deletes ${workspaceRoot()}/${id} and all ${project.files.length} files in it. It cannot be undone.`}
               confirmLabel="Delete project"

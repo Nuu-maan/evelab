@@ -1,5 +1,6 @@
 "use client";
 
+import { cn } from "@/lib/utils";
 import { useRef, useState, type ComponentProps, type ReactNode } from "react";
 import {
   AlertDialog,
@@ -56,14 +57,16 @@ export function ConfirmDialog({
  */
 export function ConfirmSubmit({
   children,
-  variant = "destructive",
+  variant = "ghost",
   size,
+  className,
   onConfirmed,
   ...copy
 }: ConfirmCopy & {
   children: ReactNode;
   variant?: ComponentProps<typeof Button>["variant"];
   size?: ComponentProps<typeof Button>["size"];
+  className?: string;
   onConfirmed?: () => void;
 }) {
   const button = useRef<HTMLButtonElement>(null);
@@ -71,7 +74,15 @@ export function ConfirmSubmit({
 
   return (
     <>
-      <Button ref={button} type="button" variant={variant} size={size} onClick={() => setOpen(true)}>
+      <Button
+        ref={button}
+        type="button"
+        variant={variant}
+        size={size}
+        // In a row a removal is a quiet red word; the dialog it opens carries the weight.
+        className={cn(variant === "ghost" && "text-destructive hover:bg-destructive/10 hover:text-destructive", className)}
+        onClick={() => setOpen(true)}
+      >
         {children}
       </Button>
       <ConfirmDialog

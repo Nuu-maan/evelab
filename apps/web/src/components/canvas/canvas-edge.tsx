@@ -11,17 +11,14 @@ import {
 } from "@xyflow/react";
 import type { CanvasNodeKind, CanvasRelation } from "@evelab/eve-project";
 import { CanvasContext } from "@/components/canvas/canvas-node";
+import { PORT_ORDER, type PortKind } from "@/components/canvas/layout";
 
-/**
- * Where a wire turns. Wires that fan out from one agent share a bus near the
- * agent; wires that fan in to a shared resource share a bus near the resource.
- * Everything else turns halfway.
- */
+/** Wires into a resource several agents share merge just above it; everything else turns near its port. */
 export type EdgeBend = "source" | "target" | "middle";
 
 export type RelationEdgeData = {
   relation?: CanvasRelation;
-  /** The kind at the arrow end, which colours the wire and its label. */
+  /** The kind at the far end, which is also the port the wire leaves from. */
   kind?: CanvasNodeKind;
   bend?: EdgeBend;
   /** An agent using a resource, which can be undone from the edge. */
@@ -31,14 +28,16 @@ export type RelationEdgeData = {
 
 export type RelationEdge = Edge<RelationEdgeData, "relation">;
 
-const RADIUS = 12;
-/** Distance from a card to the bus its wires share. */
-const BUS = 32;
+const RADIUS = 10;
+/** First turn below a port, and how much further each port to the right turns, so buses never overlap. */
+const TURN = 22;
+const PORT_STEP = 8;
 
 /**
- * A relationship drawn as a right-angled wire in its kind's colour. Labels
- * appear only where someone is looking, and sit on the part of the wire that
- * belongs to this edge alone, never on a bus other wires share.
+ * A wire from an agent's port to what it uses: right angles in the port's
+ * colour, no arrowhead, since the port already says which way it runs. The
+ * label is a small tag beside the far end that fades in only while the wire is
+ * hovered or selected.
  */
 function RelationEdgeBase({
   id,
@@ -51,25 +50,29 @@ function RelationEdgeBase({
   sourcePosition,
   targetPosition,
   selected,
-  markerEnd,
   data,
 }: EdgeProps<RelationEdge>) {
   const { mode, detachEdge } = useContext(CanvasContext);
   const horizontal = mode === "horizontal";
-  // In columns, wires to a subagent share a bus under the root; everything else is a tree branch.
-  const bend: EdgeBend = mode === "vertical" ? (data?.kind === "subagent" ? "source" : "middle") : (data?.bend ?? "middle");
+  const port = Math.max(0, PORT_ORDER.indexOf(data?.kind as PortKind));
 
+  const channel = data?.kind === "channel";
   let centerX: number | undefined;
   let centerY: number | undefined;
-  if (bend === "source") {
-    if (horizontal) centerX = sourceX + BUS;
-    else centerY = sourceY + BUS;
-  } else if (bend === "target") {
-    if (horizontal) centerX = targetX - BUS;
-    else centerY = targetY - BUS;
+  if (channel) {
+    // Channels fan out above the root from its top port.
+    if (horizontal) centerX = sourceX - TURN;
+    else centerY = sourceY - TURN;
+  } else if (data?.bend === "target") {
+    if (horizontal) centerX = targetX - TURN;
+    else centerY = targetY - TURN;
+  } else if (horizontal) {
+    centerX = sourceX + TURN + port * PORT_STEP;
+  } else {
+    centerY = sourceY + TURN + port * PORT_STEP;
   }
 
-  const [path, midX, midY] = getSmoothStepPath({
+  const [path] = getSmoothStepPath({
     sourceX,
     sourceY,
     sourcePosition,
@@ -77,40 +80,33 @@ function RelationEdgeBase({
     targetY,
     targetPosition,
     borderRadius: RADIUS,
-    offset: 20,
+    offset: 16,
     centerX,
     centerY,
   });
 
-  // The label goes on the stub only this edge uses.
-  let labelX = midX;
-  let labelY = midY;
-  if (bend === "source") {
-    if (horizontal) labelX = (sourceX + BUS + targetX) / 2;
-    else [labelX, labelY] = [targetX, (sourceY + BUS + targetY) / 2];
-  } else if (bend === "target") {
-    if (horizontal) labelX = (sourceX + targetX - BUS) / 2;
-    else [labelX, labelY] = [sourceX, (sourceY + targetY - BUS) / 2];
-  }
-  if (horizontal && bend !== "middle") labelY = bend === "source" ? targetY : sourceY;
+  const labelTransform = channel
+    ? horizontal
+      ? `translate(0, -50%) translate(${targetX + 12}px, ${targetY}px)`
+      : `translate(-50%, 0) translate(${targetX}px, ${targetY + 10}px)`
+    : horizontal
+      ? `translate(-100%, -50%) translate(${targetX - 12}px, ${targetY}px)`
+      : `translate(-50%, -100%) translate(${targetX}px, ${targetY - 10}px)`;
 
   return (
     <>
-      <BaseEdge id={id} path={path} markerEnd={markerEnd} interactionWidth={22} />
+      <BaseEdge id={id} path={path} interactionWidth={18} />
       {data?.showLabel && data.relation && (
         <EdgeLabelRenderer>
-          <div
-            className="edge-label nodrag nopan"
-            data-kind={data.kind}
-            data-actionable={(selected && data.detachable) || undefined}
-            style={{ transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)` }}
-          >
-            <span>{data.relation}</span>
-            {selected && data.detachable && (
-              <button type="button" className="edge-label-action" onClick={() => detachEdge(source, target)}>
-                Detach
-              </button>
-            )}
+          <div className="edge-label-anchor nodrag nopan" style={{ transform: labelTransform }}>
+            <div className="edge-label" data-kind={data.kind} data-actionable={(selected && data.detachable) || undefined}>
+              <span>{data.relation}</span>
+              {selected && data.detachable && (
+                <button type="button" className="edge-label-action" onClick={() => detachEdge(source, target)}>
+                  Detach
+                </button>
+              )}
+            </div>
           </div>
         </EdgeLabelRenderer>
       )}

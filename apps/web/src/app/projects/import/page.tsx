@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { IconLogoGithub } from "@/components/icons";
+import { IconLogoGithub, IconPlus } from "@/components/icons";
+import { Icon } from "@/components/icon";
 import { EmptyState } from "@/components/empty-state";
 import { PlainShell } from "@/components/plain-shell";
 import { Reveal } from "@/components/motion";
@@ -27,7 +28,7 @@ export default async function ImportPage() {
   return (
     <PlainShell>
       <main className="main" id="main">
-        <div className="page" style={{ maxWidth: 800 }}>
+        <div className="page">
           <Reveal>
             <header className="page-header">
               <div className="page-heading">
@@ -38,8 +39,11 @@ export default async function ImportPage() {
                 </p>
               </div>
               <div className="page-actions">
-                <Button asChild variant="ghost">
-                  <Link href="/projects/new">Start from scratch</Link>
+                <Button asChild variant="outline">
+                  <Link href="/projects/new">
+                    <Icon icon={IconPlus} />
+                    Start from scratch
+                  </Link>
                 </Button>
               </div>
             </header>
