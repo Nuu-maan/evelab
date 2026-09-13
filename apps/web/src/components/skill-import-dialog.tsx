@@ -87,7 +87,7 @@ export function SkillImportDialog({
       <DialogContent className="flex max-h-[82vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
         <DialogHeader className="p-5 pb-4">
           <DialogTitle>Import skill</DialogTitle>
-          <DialogDescription>Paste a GitHub link to a directory containing SKILL.md.</DialogDescription>
+          <DialogDescription>A GitHub directory with a SKILL.md, a skills.sh link, or @skills/owner/repo/skill.</DialogDescription>
         </DialogHeader>
 
         <div className="flex min-h-0 flex-col gap-5 overflow-y-auto px-5 pb-5">
@@ -97,7 +97,7 @@ export function SkillImportDialog({
               className="font-mono"
               id="skill-url"
               value={url}
-              placeholder="https://github.com/owner/repo/tree/main/skills/web-research"
+              placeholder="@skills/vercel-labs/agent-skills/vercel-react-best-practices"
               onChange={(event) => {
                 setUrl(event.target.value);
                 setCandidate(undefined);

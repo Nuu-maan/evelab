@@ -25,9 +25,10 @@ export default async function NewProjectPage() {
               <div className="page-heading">
                 <h1 className="page-title">Create Eve project</h1>
                 <p className="page-description">
-                  EveLab writes <code className="mono">agent.ts</code> and{" "}
-                  <code className="mono">instructions.md</code> now, and the rest of the directories as
-                  you fill them in.
+                  EveLab writes what <code className="mono">eve init</code> writes:{" "}
+                  <code className="mono">package.json</code>, <code className="mono">agent/agent.ts</code>,{" "}
+                  <code className="mono">agent/instructions.md</code> and the default eve channel. Tools,
+                  skills and the rest follow as you add them.
                 </p>
               </div>
               <div className="page-actions">

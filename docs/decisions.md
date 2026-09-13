@@ -147,6 +147,16 @@ code on its own server unless `EVELAB_ALLOW_LOCAL_RUNTIME=1`; there, agents run
 on Vercel, where Workflow, Sandbox and Cron isolate them. Deploying is
 `eve deploy --non-interactive --yes --project`, with the server's `VERCEL_TOKEN`.
 
+**Deploy configuration is EveLab state; the project stays pure Eve.** The Vercel
+project name, team and deployment history live in
+`<workspace>/../deployments/<id>.json`. `eve deploy` may write `.vercel/` inside
+the project, which the Files view ignores and `.gitignore` excludes, as it does
+for any Eve project.
+
+**skills.sh is read through its registry.** A skills.sh reference resolves to the
+same registry item `eve add @skills/...` installs, with every file inline. It
+passes the same path, size and executable checks as a GitHub import.
+
 ## Open
 
 **skills.sh import.** skills.sh lists skills that live in GitHub repositories,

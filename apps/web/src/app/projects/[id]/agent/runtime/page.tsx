@@ -15,6 +15,13 @@ export default async function RuntimePage({ params }: { params: Promise<{ id: st
   const entries = Object.entries(project.agent.raw);
   const configPath = agentPath(project.root, "agent.ts");
   const href = `/projects/${id}/files?path=${encodeURIComponent(configPath)}`;
+  const sandboxFile = [agentPath(project.root, "sandbox/sandbox.ts"), agentPath(project.root, "sandbox.ts")].find((path) =>
+    project.files.some((file) => file.path === path),
+  );
+  const sandboxSource = project.files.find((file) => file.path === sandboxFile)?.content ?? "";
+  const backend = /\b(vercel|docker|microsandbox|justbash)\(/.exec(sandboxSource)?.[1];
+  const seedPrefix = agentPath(project.root, "sandbox/workspace/");
+  const seeded = project.files.filter((file) => file.path.startsWith(seedPrefix)).map((file) => file.path.slice(seedPrefix.length));
 
   return (
     <div className="section" style={{ maxWidth: 680, width: "100%" }}>
@@ -25,6 +32,39 @@ export default async function RuntimePage({ params }: { params: Promise<{ id: st
           shows them here and never rewrites them, so they round trip exactly as written.
         </AlertTitle>
       </Alert>
+
+      <section className="section">
+        <h2 className="section-title">Sandbox</h2>
+        <p className="page-description">
+          {sandboxFile ? (
+            <>
+              Defined in <code className="mono">{sandboxFile}</code>
+              {backend ? (
+                <>
+                  {" "}with the <code className="mono">{backend}()</code> backend.
+                </>
+              ) : (
+                <>, using the default backend: Vercel Sandbox when deployed, Docker or a local backend in development.</>
+              )}
+            </>
+          ) : (
+            <>
+              Eve&apos;s default sandbox: a bash environment at <code className="mono">/workspace</code> that runs on Vercel
+              Sandbox when deployed, and on Docker or a local backend under eve dev.
+            </>
+          )}
+          {sandboxSource.includes("deny-all") && " Network egress is denied."}
+        </p>
+        {seeded.length > 0 && (
+          <ul className="list" aria-label="Seeded workspace files">
+            {seeded.map((path) => (
+              <li className="list-item" key={path}>
+                <code className="mono">/workspace/{path}</code>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       {entries.length === 0 ? (
         <EmptyState
