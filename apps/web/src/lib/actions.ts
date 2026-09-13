@@ -11,6 +11,7 @@ import {
   OwnershipError,
   reasoningSchema,
   removeEntity,
+  renderChannelModule,
   renderConnectionModule,
   renderScheduleMarkdown,
   renderToolModule,
@@ -367,6 +368,51 @@ export async function createConnectionAction(
   });
   await save(projectId, project);
   return { ok: true };
+}
+
+const channelSchema = z
+  .object({
+    kind: z.enum(["slack", "discord", "linear", "github", "linq", "photon", "teams", "telegram", "mcp"]),
+    connector: z.string().trim().max(200).optional(),
+    botName: z.string().trim().max(100).optional(),
+    botUsername: z.string().trim().max(100).optional(),
+  })
+  .refine((input) => input.kind !== "github" || input.botName, { message: "Enter the GitHub App's bot name" })
+  .refine((input) => input.kind !== "telegram" || input.botUsername, { message: "Enter the Telegram bot username" });
+
+/**
+ * Writes `channels/<platform>.ts`. Where Vercel Connect can hold the platform
+ * credentials the channel uses it, so no platform secret reaches the project.
+ */
+export async function createChannelAction(
+  input: z.input<typeof channelSchema> & { projectId: string },
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const projectId = await projectFrom(input.projectId);
+  const parsed = channelSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Check the form." };
+  const value = parsed.data;
+
+  const project = await readProject(projectId);
+  if (project.channels.some((channel) => channel.id === value.kind)) {
+    return { ok: false, message: `The ${value.kind} channel is already set up.` };
+  }
+  let source: string;
+  try {
+    source = renderChannelModule({ ...value, connector: value.connector || undefined });
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : "Could not write that channel." };
+  }
+  project.channels.push({ id: value.kind, file: `${value.kind}.ts`, kind: value.kind, source });
+  await save(projectId, project);
+  return { ok: true };
+}
+
+export async function deleteChannelAction(formData: FormData) {
+  const projectId = await projectFrom(formData.get("projectId"));
+  const channelId = nameSchema.parse(formData.get("channelId"));
+  const project = await readProject(projectId);
+  project.channels = project.channels.filter((channel) => channel.id !== channelId);
+  await save(projectId, project);
 }
 
 const scheduleSchema = z.object({
