@@ -8,6 +8,8 @@
 
 @layer components {
   .canvas-layout {
+    /* Floating chrome adapts to the canvas's own width, not the window's. */
+    container: canvas / inline-size;
     --canvas-grid: color-mix(in srgb, var(--foreground) 5%, transparent);
     --canvas-edge: color-mix(in srgb, var(--foreground) 38%, transparent);
     --float-gap: 12px;
@@ -126,7 +128,7 @@
   .canvas-title {
     position: absolute;
     top: var(--float-gap);
-    left: var(--float-gap);
+    inset-inline-start: var(--float-gap);
     display: flex;
     align-items: center;
     gap: var(--space-2);
@@ -205,21 +207,71 @@
   }
 
   /* The stats bar: one row of kind-coloured readings, each a way to find those cards. */
+  /*
+   * Centred in the space between the title card and the view menu, never
+   * under either: both insets are set and auto margins do the centring.
+   */
   .canvas-stats {
     position: absolute;
     top: var(--float-gap);
-    left: 50%;
+    inset-inline-start: calc(var(--browser-width) + var(--float-gap) * 2);
+    inset-inline-end: calc(76px + var(--float-gap) * 2);
     display: flex;
     align-items: center;
     gap: 1px;
+    width: fit-content;
+    max-width: calc(100% - var(--browser-width) - 76px - var(--float-gap) * 4);
     height: 52px;
-    padding: 0 7px;
-    transform: translateX(-50%);
+    margin-inline: auto;
+    padding-inline: 7px;
+    overflow: hidden;
     white-space: nowrap;
   }
 
+  /* Labels go first as the canvas narrows; the counts, icons and Add stay. */
+  @container canvas (max-width: 1240px) {
+    .canvas-stat-label {
+      display: none;
+    }
+
+    .canvas-stat {
+      padding-inline: 8px;
+    }
+  }
+
+  @container canvas (max-width: 940px) {
+    .canvas-stat[data-optional] {
+      display: none;
+    }
+
+    .canvas-status .legend-item {
+      display: none;
+    }
+
+    /* With the inspector open there is no room for both panels; the canvas keeps the middle. */
+    .canvas-layout[data-inspector] .canvas-browser,
+    .canvas-layout[data-inspector] .canvas-bottom-left {
+      display: none;
+    }
+
+    .canvas-status .canvas-status-mode {
+      padding-inline-start: 0;
+      border-inline-start: none;
+    }
+  }
+
+  @container canvas (max-width: 760px) {
+    .canvas-stat:not([data-tone]) {
+      display: none;
+    }
+
+    .canvas-stats-separator {
+      display: none;
+    }
+  }
+
   .button-kbd {
-    margin-left: 2px;
+    margin-inline-start: 2px;
     padding: 0 5px;
     border-radius: 4px;
     background: color-mix(in srgb, var(--primary-foreground) 16%, transparent);
@@ -337,7 +389,7 @@
   .canvas-view-menu {
     position: absolute;
     top: var(--float-gap);
-    right: var(--float-gap);
+    inset-inline-end: var(--float-gap);
     display: flex;
     gap: 1px;
     padding: 3px;
@@ -353,7 +405,7 @@
   .canvas-bottom-left {
     position: absolute;
     bottom: var(--float-gap);
-    left: var(--float-gap);
+    inset-inline-start: var(--float-gap);
     z-index: 10;
     display: flex;
     align-items: center;
@@ -362,7 +414,7 @@
   }
 
   .canvas-layout[data-panel] .canvas-bottom-left {
-    left: calc(var(--browser-width) + var(--float-gap) * 2);
+    inset-inline-start: calc(var(--browser-width) + var(--float-gap) * 2);
   }
 
   .canvas-icon-float {
@@ -401,14 +453,14 @@
   }
 
   .canvas-status-mode {
-    padding-left: 12px;
-    border-left: 1px solid var(--border);
+    padding-inline-start: 12px;
+    border-inline-start: 1px solid var(--border);
     color: var(--foreground-tertiary);
   }
 
   .canvas-zoom {
     position: absolute;
-    right: var(--float-gap);
+    inset-inline-end: var(--float-gap);
     bottom: var(--float-gap);
     display: flex;
     align-items: center;
@@ -430,13 +482,13 @@
   }
 
   .menu-meta {
-    margin-left: auto;
+    margin-inline-start: auto;
     color: var(--foreground-tertiary);
     font-size: 11px;
   }
 
   .menu-kbd {
-    margin-left: auto;
+    margin-inline-start: auto;
     padding: 0 5px;
     border: 1px solid var(--border);
     border-radius: 4px;
@@ -510,7 +562,7 @@
   .canvas-notice > span {
     overflow: hidden;
     text-overflow: ellipsis;
-    padding-right: var(--space-2);
+    padding-inline-end: var(--space-2);
   }
 
   @keyframes notice-in {
@@ -546,7 +598,7 @@
     position: absolute;
     top: calc(52px + var(--float-gap) * 2);
     bottom: var(--float-gap);
-    left: var(--float-gap);
+    inset-inline-start: var(--float-gap);
     display: flex;
     flex-direction: column;
     width: var(--browser-width);
@@ -650,7 +702,7 @@
     border-radius: 8px;
     color: var(--foreground-tertiary);
     font-size: 12px;
-    text-align: left;
+    text-align: start;
     transition: background-color var(--duration-hover) ease, color var(--duration-hover) ease;
   }
 
@@ -787,7 +839,7 @@
   .palette-chip.drag-ghost {
     position: fixed;
     top: 0;
-    left: 0;
+    inset-inline-start: 0;
     z-index: 1000;
     margin: 0;
     border-color: var(--border);
@@ -1043,7 +1095,7 @@
   }
 
   .node-reading-muted {
-    margin-left: auto;
+    margin-inline-start: auto;
     color: var(--foreground-tertiary);
     font-size: 11px;
   }
@@ -1086,7 +1138,7 @@
   }
 
   .node-port + .node-port {
-    border-left: 1px solid color-mix(in srgb, var(--kind) 18%, var(--border));
+    border-inline-start: 1px solid color-mix(in srgb, var(--kind) 18%, var(--border));
   }
 
   .node-port span {
@@ -1326,7 +1378,7 @@
   }
 
   .edge-label[data-actionable] {
-    padding-right: 2px;
+    padding-inline-end: 2px;
     pointer-events: all;
   }
 
@@ -1474,7 +1526,7 @@
   .section-label {
     position: absolute;
     bottom: calc(100% + 8px);
-    left: 0;
+    inset-inline-start: 0;
     display: inline-flex;
     align-items: center;
     max-width: 100%;
@@ -1598,8 +1650,8 @@
     content: "";
     position: absolute;
     top: 50%;
-    left: 2px;
-    right: 2px;
+    inset-inline-start: 2px;
+    inset-inline-end: 2px;
     height: 1.5px;
     transform: rotate(-45deg);
     background: var(--foreground-secondary);
@@ -1620,7 +1672,7 @@
   .canvas-inspector {
     position: absolute;
     top: calc(52px + var(--float-gap) * 2);
-    right: var(--float-gap);
+    inset-inline-end: var(--float-gap);
     bottom: calc(40px + var(--float-gap) * 2);
     display: flex;
     flex-direction: column;
@@ -1751,7 +1803,7 @@
   }
 
   .inspector-metric + .inspector-metric {
-    border-left: 1px solid color-mix(in srgb, var(--kind) 20%, var(--border));
+    border-inline-start: 1px solid color-mix(in srgb, var(--kind) 20%, var(--border));
   }
 
   .inspector-metric dt {
@@ -1879,7 +1931,7 @@
   .inspector-row {
     display: flex;
     align-items: center;
-    padding-right: 4px;
+    padding-inline-end: 4px;
     border-radius: 8px;
     transition: background-color var(--duration-hover) ease;
   }
@@ -1897,7 +1949,7 @@
     gap: 10px;
     min-width: 0;
     padding: 6px;
-    text-align: left;
+    text-align: start;
   }
 
   .inspector-row .kind-tile {
@@ -2170,7 +2222,7 @@
   .insp-toprow-actions {
     display: flex;
     gap: 2px;
-    margin-left: auto;
+    margin-inline-start: auto;
   }
 
   .insp-name {
@@ -2268,7 +2320,7 @@
   }
 
   .insp-card-action {
-    margin-left: auto;
+    margin-inline-start: auto;
   }
 
   .insp-details {
@@ -2318,7 +2370,7 @@
   }
 
   .insp-port + .insp-port {
-    border-left: 1px solid var(--border);
+    border-inline-start: 1px solid var(--border);
   }
 
   @media (hover: hover) and (pointer: fine) {
@@ -2397,7 +2449,7 @@
   .insp-item {
     display: flex;
     align-items: center;
-    padding-right: 4px;
+    padding-inline-end: 4px;
     border-radius: 8px;
     transition: background-color var(--duration-hover) ease;
   }
@@ -2415,7 +2467,7 @@
     gap: 10px;
     min-width: 0;
     padding: 6px 8px;
-    text-align: left;
+    text-align: start;
   }
 
   .insp-item-text {
@@ -2505,7 +2557,7 @@
   }
 
   .insp-stats div:nth-child(even) {
-    border-left: 1px solid var(--border);
+    border-inline-start: 1px solid var(--border);
   }
 
   .insp-stats div:nth-child(n + 3) {

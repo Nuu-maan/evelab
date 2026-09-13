@@ -20,20 +20,20 @@
     position: relative;
     display: block;
     min-height: 300px;
-    border-right: 1px solid var(--border);
+    border-inline-end: 1px solid var(--border);
     background: var(--background);
   }
 
   @media (max-width: 960px) {
     .overview-preview {
-      border-right: none;
+      border-inline-end: none;
       border-bottom: 1px solid var(--border);
     }
   }
 
   .overview-preview-cta {
     position: absolute;
-    right: var(--space-3);
+    inset-inline-end: var(--space-3);
     bottom: var(--space-3);
     display: inline-flex;
     align-items: center;
@@ -142,7 +142,7 @@
   }
 
   .overview-column-head .button {
-    margin-left: auto;
+    margin-inline-start: auto;
   }
 
   .overview-empty {
@@ -168,11 +168,11 @@
     content: "";
     position: absolute;
     top: 50%;
-    right: 18px;
+    inset-inline-end: 18px;
     width: 7px;
     height: 7px;
     border-top: 1.75px solid var(--foreground-tertiary);
-    border-right: 1.75px solid var(--foreground-tertiary);
+    border-inline-end: 1.75px solid var(--foreground-tertiary);
     transform: translate(-4px, -50%) rotate(45deg);
     opacity: 0;
     transition: opacity var(--duration-hover) ease, transform 200ms var(--ease-out);
@@ -241,7 +241,7 @@
   }
 
   .overview-steps li:nth-child(odd) {
-    border-right: 1px solid var(--border);
+    border-inline-end: 1px solid var(--border);
   }
 
   .overview-steps li:nth-last-child(-n + 2) {
@@ -285,7 +285,7 @@
   }
 
   .overview-step-detail {
-    margin-left: auto;
+    margin-inline-start: auto;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

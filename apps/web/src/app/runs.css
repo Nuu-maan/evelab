@@ -11,7 +11,7 @@
     flex-direction: column;
     gap: var(--space-3);
     padding: var(--space-4);
-    border-right: 1px solid var(--border);
+    border-inline-end: 1px solid var(--border);
     overflow-y: auto;
   }
 
@@ -246,7 +246,7 @@
     }
 
     .runs-history {
-      border-right: 0;
+      border-inline-end: 0;
       border-bottom: 1px solid var(--border);
     }
   }

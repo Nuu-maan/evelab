@@ -72,7 +72,7 @@ export default async function ConnectionsPage({ params }: { params: Promise<{ id
                   <CardHeader>
                     <CardTitle className="font-mono">{definition.id}</CardTitle>
                     <CardDescription>{definition.description || "No description"}</CardDescription>
-                    <CardAction className="flex items-center gap-2">
+                    <CardAction className="flex items-center gap-4">
                       <Button asChild variant="ghost">
                         <Link href={`/projects/${id}/files?path=${encodeURIComponent(path)}`}>Edit</Link>
                       </Button>
@@ -128,7 +128,7 @@ export default async function ConnectionsPage({ params }: { params: Promise<{ id
                   <CardHeader>
                     <CardTitle className="font-mono">{connection.id}</CardTitle>
                     <CardDescription>{connection.description || "No description"}</CardDescription>
-                    <CardAction className="flex items-center gap-2">
+                    <CardAction className="flex items-center gap-4">
                       <Button asChild variant="ghost">
                         <Link href={`/projects/${id}/files?path=${encodeURIComponent(path)}`}>Edit</Link>
                       </Button>

@@ -58,7 +58,7 @@ export function QuickOpen({ projectId, paths }: { projectId: string; paths: stri
               >
                 <FileIcon name={name} />
                 <span className="truncate">{name}</span>
-                {directory && <span className="ml-auto truncate text-xs text-muted-foreground">{directory}</span>}
+                {directory && <span className="ms-auto truncate text-xs text-muted-foreground">{directory}</span>}
               </CommandItem>
             );
           })}

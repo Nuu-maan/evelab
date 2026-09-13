@@ -17,7 +17,7 @@
     flex-direction: column;
     min-width: 0;
     min-height: 0;
-    border-right: 1px solid var(--border);
+    border-inline-end: 1px solid var(--border);
     background: var(--background);
   }
 
@@ -60,7 +60,7 @@
     display: flex;
     align-items: center;
     height: 26px;
-    padding-right: var(--space-2);
+    padding-inline-end: var(--space-2);
     border-radius: var(--radius);
     color: var(--foreground-secondary);
     font-size: var(--text-compact);
@@ -89,7 +89,7 @@
     display: flex;
     align-self: stretch;
     flex: none;
-    padding-left: 2px;
+    padding-inline-start: 2px;
   }
 
   .tree-guide {
@@ -102,7 +102,7 @@
     position: absolute;
     top: 0;
     bottom: 0;
-    left: 9px;
+    inset-inline-start: 9px;
     width: 1px;
     background: var(--border);
   }
@@ -147,7 +147,7 @@
     flex: none;
     width: 8px;
     height: 8px;
-    margin-left: auto;
+    margin-inline-start: auto;
     border-radius: 50%;
     background: var(--warning);
   }

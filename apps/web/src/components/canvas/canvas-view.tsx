@@ -127,6 +127,8 @@ interface Stat {
   kind?: CanvasNodeKind;
   match: (node: CanvasNode) => boolean;
   create?: CreateKind;
+  /** Hidden first when the canvas is narrow. */
+  optional?: boolean;
 }
 type Point = { x: number; y: number };
 
@@ -1185,8 +1187,8 @@ function CanvasInner(props: CanvasProps) {
     kindStat("tool"),
     kindStat("skill"),
     kindStat("connection"),
-    kindStat("channel"),
-    { label: "Shared", value: sharedCount, icon: IconShare, match: (node) => node.shared === true },
+    { ...kindStat("channel"), optional: true },
+    { label: "Shared", value: sharedCount, icon: IconShare, match: (node) => node.shared === true, optional: true },
   ];
   const notes = annotations.length;
   const rootNode = byId.get("agent");
@@ -1293,7 +1295,7 @@ function CanvasInner(props: CanvasProps) {
           <div className="canvas-float canvas-stats" role="toolbar" aria-label="Canvas">
             <DropdownMenu open={addOpen} onOpenChange={setAddOpen}>
               <DropdownMenuTrigger asChild>
-                <Button size="sm" className="gap-1.5 pr-1.5">
+                <Button size="sm" className="gap-1.5 pe-1.5">
                   <Icon icon={IconPlus} />
                   Add
                   <kbd className="button-kbd">A</kbd>
@@ -1357,7 +1359,10 @@ function CanvasInner(props: CanvasProps) {
                   <button
                     type="button"
                     className="canvas-stat"
+                    // The label hides on a narrow canvas, so the name travels with the button.
+                    aria-label={`${stat.value} ${stat.label}`}
                     data-kind={stat.kind}
+                    data-optional={stat.optional || undefined}
                     data-empty={stat.value === 0 || undefined}
                     onClick={() => focusGroup(stat.match, stat.create)}
                   >
