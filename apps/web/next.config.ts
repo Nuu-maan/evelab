@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const config: NextConfig = {
-  transpilePackages: ["@evelab/eve-project", "@evelab/github"],
+  transpilePackages: ["@evelab/eve-project", "@evelab/github", "@evelab/db", "@evelab/auth"],
   webpack(config) {
     // Workspace packages are TypeScript source with ESM-style ".js" specifiers.
     config.resolve.extensionAlias = {

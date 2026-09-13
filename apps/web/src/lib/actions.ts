@@ -1,8 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { getAuth } from "@evelab/auth";
 import { applyOwnershipChange, OwnershipError } from "@evelab/eve-project";
 import { isSafeRepoPath, newRepositoryNameSchema, repositoryNameSchema } from "@evelab/github";
 import {
@@ -17,6 +19,7 @@ import {
   sourceControlMessage,
 } from "@/lib/git";
 import { writeLayout } from "@/lib/layout";
+import { forgetProject, recordProject, requireProjectAccess, requireSignedIn } from "@/lib/session";
 import {
   fetchSkillCandidate,
   isSafeRelativePath,
@@ -33,12 +36,39 @@ import {
 } from "@/lib/workspace";
 
 /**
- * Every mutation validates its input before touching the project. Form data and
- * imported metadata are untrusted.
+ * Every mutation validates its input, then checks the caller may touch the
+ * project, before touching the project. Form data and imported metadata are
+ * untrusted, and a server action can be called without the page that renders it.
  */
 
 const idSchema = z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/);
 const kebabSchema = z.string().regex(/^[a-z0-9][a-z0-9-]*$/, "Use lowercase letters, digits and -");
+
+/** Parses a project id and refuses callers who may not open that project. */
+async function projectFrom(value: unknown): Promise<string> {
+  const id = idSchema.parse(value);
+  await requireProjectAccess(id);
+  return id;
+}
+
+/* Sign-in. Plain forms, so they work before any JavaScript loads. */
+
+export async function signInAction() {
+  const auth = getAuth();
+  if (!auth) redirect("/projects");
+  const result = await auth.api.signInSocial({
+    body: { provider: "github", callbackURL: "/projects" },
+    headers: await headers(),
+  });
+  if (!("url" in result) || !result.url) throw new Error("GitHub sign-in is not available.");
+  redirect(result.url);
+}
+
+export async function signOutAction() {
+  const auth = getAuth();
+  if (auth) await auth.api.signOut({ headers: await headers() });
+  redirect(auth ? "/sign-in" : "/projects");
+}
 
 const createSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(80),
@@ -52,15 +82,28 @@ export async function createProjectAction(formData: FormData) {
     description: formData.get("description") || undefined,
     modelId: formData.get("modelId"),
   });
+  await requireSignedIn();
   const id = await createProject(input);
+  await claimOrRemove(id, input.name);
   revalidatePath("/projects");
   redirect(`/projects/${id}`);
 }
 
+/** A directory nobody owns would be invisible to everyone, so an ownership failure removes it. */
+async function claimOrRemove(id: string, name: string): Promise<void> {
+  try {
+    await recordProject(id, name);
+  } catch (error) {
+    await deleteProject(id);
+    throw error;
+  }
+}
+
 export async function deleteProjectAction(formData: FormData) {
-  const id = idSchema.parse(formData.get("id"));
+  const id = await projectFrom(formData.get("id"));
   await deleteProject(id);
   await disconnectRepository(id);
+  await forgetProject(id);
   revalidatePath("/projects");
   redirect("/projects");
 }
@@ -71,7 +114,7 @@ const agentSchema = z.object({
 });
 
 export async function updateAgentAction(formData: FormData) {
-  const id = idSchema.parse(formData.get("id"));
+  const id = await projectFrom(formData.get("id"));
   const input = agentSchema.parse({
     name: formData.get("name"),
     description: formData.get("description") || undefined,
@@ -91,7 +134,7 @@ const modelSchema = z.object({
 });
 
 export async function updateModelAction(formData: FormData) {
-  const id = idSchema.parse(formData.get("id"));
+  const id = await projectFrom(formData.get("id"));
   const input = modelSchema.parse({
     modelId: formData.get("modelId"),
     temperature: formData.get("temperature") || undefined,
@@ -110,7 +153,7 @@ export async function updateModelAction(formData: FormData) {
 }
 
 export async function saveInstructionsAction(projectId: string, content: string) {
-  const id = idSchema.parse(projectId);
+  const id = await projectFrom(projectId);
   const project = await readProject(id);
   project.agent.instructions = z.string().max(500_000).parse(content);
   await writeProject(id, project);
@@ -118,12 +161,12 @@ export async function saveInstructionsAction(projectId: string, content: string)
 }
 
 export async function readFileAction(projectId: string, path: string): Promise<string> {
-  const id = idSchema.parse(projectId);
+  const id = await projectFrom(projectId);
   return readProjectFile(id, path);
 }
 
 export async function saveFileAction(projectId: string, path: string, content: string) {
-  const id = idSchema.parse(projectId);
+  const id = await projectFrom(projectId);
   await writeProjectFile(id, path, z.string().max(2_000_000).parse(content));
   revalidatePath(`/projects/${id}`, "layout");
 }
@@ -134,7 +177,7 @@ const toolSchema = z.object({
 });
 
 export async function createToolAction(formData: FormData) {
-  const projectId = idSchema.parse(formData.get("projectId"));
+  const projectId = await projectFrom(formData.get("projectId"));
   const input = toolSchema.parse({
     id: formData.get("toolId"),
     description: formData.get("description") ?? "",
@@ -192,7 +235,7 @@ const subagentSchema = z.object({
 });
 
 export async function createSubagentAction(formData: FormData) {
-  const projectId = idSchema.parse(formData.get("projectId"));
+  const projectId = await projectFrom(formData.get("projectId"));
   const input = subagentSchema.parse({
     id: formData.get("subagentId"),
     name: formData.get("name"),
@@ -220,7 +263,7 @@ export async function createSubagentAction(formData: FormData) {
 }
 
 export async function deleteSubagentAction(formData: FormData) {
-  const projectId = idSchema.parse(formData.get("projectId"));
+  const projectId = await projectFrom(formData.get("projectId"));
   const subagentId = kebabSchema.parse(formData.get("subagentId"));
 
   const project = await readProject(projectId);
@@ -230,7 +273,7 @@ export async function deleteSubagentAction(formData: FormData) {
 }
 
 export async function deleteToolAction(formData: FormData) {
-  const projectId = idSchema.parse(formData.get("projectId"));
+  const projectId = await projectFrom(formData.get("projectId"));
   const toolId = kebabSchema.parse(formData.get("toolId"));
 
   const project = await readProject(projectId);
@@ -244,7 +287,7 @@ export async function deleteToolAction(formData: FormData) {
 }
 
 export async function deleteSkillAction(formData: FormData) {
-  const projectId = idSchema.parse(formData.get("projectId"));
+  const projectId = await projectFrom(formData.get("projectId"));
   const skillId = kebabSchema.parse(formData.get("skillId"));
 
   const project = await readProject(projectId);
@@ -261,7 +304,7 @@ export async function saveLayoutAction(
   projectId: string,
   positions: Record<string, { x: number; y: number }>,
 ) {
-  const id = idSchema.parse(projectId);
+  const id = await projectFrom(projectId);
   const parsed = z
     .record(z.object({ x: z.number().finite(), y: z.number().finite() }))
     .parse(positions);
@@ -285,6 +328,7 @@ export async function changeOwnershipAction(
   input: z.input<typeof ownershipSchema>,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   const { projectId, remove, add } = ownershipSchema.parse(input);
+  await requireProjectAccess(projectId);
   const project = await readProject(projectId);
   try {
     await writeProject(projectId, applyOwnershipChange(project, { remove, add }));
@@ -303,6 +347,7 @@ export async function changeOwnershipAction(
 export async function previewSkillAction(
   url: string,
 ): Promise<{ ok: true; candidate: SkillCandidate } | { ok: false; message: string }> {
+  await requireSignedIn();
   try {
     const candidate = await fetchSkillCandidate(z.string().url().parse(url));
     return { ok: true, candidate };
@@ -337,6 +382,7 @@ const installSkillSchema = z.object({
 export async function installSkillAction(input: z.input<typeof installSkillSchema>) {
   const parsed = installSkillSchema.parse(input);
   const projectId = parsed.projectId;
+  await requireProjectAccess(projectId);
 
   const markdown = parsed.files.find((file) => file.path === "SKILL.md");
   if (!markdown) throw new Error("A skill needs a SKILL.md.");
@@ -361,7 +407,8 @@ export async function installSkillAction(input: z.input<typeof installSkillSchem
 
 /*
  * Source control. These return a result instead of throwing, so a GitHub
- * failure reaches the user as a sentence rather than an error page.
+ * failure reaches the user as a sentence rather than an error page. Access
+ * failures still throw: they are not something to explain to the caller.
  */
 
 type Failure = { ok: false; message: string };
@@ -379,6 +426,7 @@ async function sourceControl<T extends object>(run: () => Promise<T>): Promise<(
 const branchInput = z.string().trim().max(200).optional();
 
 export async function previewImportAction(input: { repository: string; branch?: string }) {
+  await requireSignedIn();
   return sourceControl(async () => {
     const parsed = z.object({ repository: repositoryNameSchema, branch: branchInput }).parse(input);
     return { preview: await previewImport(parsed.repository, parsed.branch) };
@@ -386,19 +434,27 @@ export async function previewImportAction(input: { repository: string; branch?: 
 }
 
 export async function importRepositoryAction(input: { repository: string; branch: string; commit: string }) {
+  await requireSignedIn();
   return sourceControl(async () => {
     const parsed = z
       .object({ repository: repositoryNameSchema, branch: z.string().trim().min(1).max(200), commit: z.string().regex(/^[0-9a-f]{40}$/) })
       .parse(input);
     const projectId = await importRepository(parsed.repository, parsed.branch, parsed.commit);
+    try {
+      await claimOrRemove(projectId, projectId);
+    } catch (error) {
+      await disconnectRepository(projectId);
+      throw error;
+    }
     revalidatePath("/projects");
     return { projectId };
   });
 }
 
 export async function connectRepositoryAction(input: { projectId: string; repository: string; branch?: string }) {
+  const parsed = z.object({ projectId: idSchema, repository: repositoryNameSchema, branch: branchInput }).parse(input);
+  await requireProjectAccess(parsed.projectId);
   return sourceControl(async () => {
-    const parsed = z.object({ projectId: idSchema, repository: repositoryNameSchema, branch: branchInput }).parse(input);
     const result = await connectRepository(parsed.projectId, parsed.repository, parsed.branch);
     revalidatePath(`/projects/${parsed.projectId}`, "layout");
     return result;
@@ -411,36 +467,37 @@ export async function createRepositoryAction(input: {
   isPrivate: boolean;
   message: string;
 }) {
+  const projectId = await projectFrom(input.projectId);
   return sourceControl(async () => {
     const parsed = z
       .object({
-        projectId: idSchema,
         name: newRepositoryNameSchema,
         isPrivate: z.boolean(),
         message: z.string().trim().min(1, "Write a commit message").max(5000),
       })
       .parse(input);
-    const result = await publishToNewRepository(parsed.projectId, parsed.name, parsed.isPrivate, parsed.message);
-    revalidatePath(`/projects/${parsed.projectId}`, "layout");
+    const result = await publishToNewRepository(projectId, parsed.name, parsed.isPrivate, parsed.message);
+    revalidatePath(`/projects/${projectId}`, "layout");
     return result;
   });
 }
 
 /** Commits every local change. The commit is created on GitHub, so this is also the push. */
 export async function commitAction(input: { projectId: string; message: string }) {
+  const projectId = await projectFrom(input.projectId);
   return sourceControl(async () => {
-    const parsed = z
-      .object({ projectId: idSchema, message: z.string().trim().min(1, "Write a commit message").max(5000) })
+    const { message } = z
+      .object({ message: z.string().trim().min(1, "Write a commit message").max(5000) })
       .parse(input);
-    const result = await commitProject(parsed.projectId, parsed.message);
-    revalidatePath(`/projects/${parsed.projectId}`, "layout");
+    const result = await commitProject(projectId, message);
+    revalidatePath(`/projects/${projectId}`, "layout");
     return result;
   });
 }
 
 export async function pullAction(input: { projectId: string }) {
+  const projectId = await projectFrom(input.projectId);
   return sourceControl(async () => {
-    const { projectId } = z.object({ projectId: idSchema }).parse(input);
     const result = await pullProject(projectId);
     revalidatePath(`/projects/${projectId}`, "layout");
     return { result };
@@ -448,18 +505,17 @@ export async function pullAction(input: { projectId: string }) {
 }
 
 export async function discardChangeAction(input: { projectId: string; path: string }) {
+  const projectId = await projectFrom(input.projectId);
   return sourceControl(async () => {
-    const parsed = z
-      .object({ projectId: idSchema, path: z.string().refine(isSafeRepoPath, { message: "Unsafe path" }) })
-      .parse(input);
-    await discardChange(parsed.projectId, parsed.path);
-    revalidatePath(`/projects/${parsed.projectId}`, "layout");
+    const { path } = z.object({ path: z.string().refine(isSafeRepoPath, { message: "Unsafe path" }) }).parse(input);
+    await discardChange(projectId, path);
+    revalidatePath(`/projects/${projectId}`, "layout");
     return {};
   });
 }
 
 export async function disconnectRepositoryAction(formData: FormData) {
-  const id = idSchema.parse(formData.get("projectId"));
+  const id = await projectFrom(formData.get("projectId"));
   await disconnectRepository(id);
   revalidatePath(`/projects/${id}`, "layout");
 }

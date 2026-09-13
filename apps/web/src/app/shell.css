@@ -10,6 +10,16 @@
     grid-template-columns: var(--pane-sidebar, 240px) minmax(0, 1fr);
     height: 100vh;
     background: var(--background);
+    transition: grid-template-columns var(--duration-panel) var(--ease-drawer);
+  }
+
+  .shell[data-sidebar="closed"] {
+    grid-template-columns: 0px minmax(0, 1fr);
+  }
+
+  /* A drag sets the width directly; easing it would make the pane trail the pointer. */
+  body[data-resizing] .shell {
+    transition: none;
   }
 
   .workspace {
@@ -148,14 +158,39 @@
 
   /* ---------- Sidebar ---------- */
 
+  /*
+   * Hiding the sidebar shrinks its grid column to zero. The panel inside keeps
+   * its width and slides out under the clip, so nothing reflows mid-animation.
+   * The clip reaches 6px past the edge to keep the resize handle whole.
+   */
   .sidebar {
     position: relative;
-    display: flex;
-    flex-direction: column;
     min-width: 0;
     min-height: 0;
     border-right: 1px solid var(--border);
     background: var(--background);
+    clip-path: inset(0 -6px 0 0);
+  }
+
+  .sidebar-panel {
+    display: flex;
+    flex-direction: column;
+    width: calc(var(--pane-sidebar, 240px) - 1px);
+    height: 100%;
+    transition: opacity 200ms var(--ease-out), translate var(--duration-panel) var(--ease-drawer);
+  }
+
+  /* Once the column has closed, hide the panel from the pointer and the tab order. */
+  .shell[data-sidebar="closed"] .sidebar {
+    visibility: hidden;
+    transition: visibility 0s linear var(--duration-panel);
+  }
+
+  /* Exit is quicker than entry, so the content is gone before the column is. */
+  .shell[data-sidebar="closed"] .sidebar-panel {
+    opacity: 0;
+    translate: -24px 0;
+    transition-duration: 120ms, var(--duration-panel);
   }
 
   .sidebar-top {
@@ -175,9 +210,11 @@
     padding: var(--space-1) var(--space-3) var(--space-3);
   }
 
+  /* Separators run edge to edge, out through the nav's side padding. */
   .sidebar-separator {
+    flex: none;
     height: 1px;
-    margin: var(--space-2) var(--space-1);
+    margin: var(--space-2) calc(var(--space-3) * -1);
     border: none;
     background: var(--border);
   }
@@ -186,7 +223,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    height: 34px;
+    height: 32px;
     padding: 0 var(--space-2);
     border-radius: var(--radius);
     color: var(--foreground-secondary);
@@ -279,8 +316,12 @@
     gap: var(--space-4);
     flex: none;
     height: var(--header-height);
-    padding: 0 var(--space-4) 0 var(--space-6);
+    padding: 0 var(--space-4) 0 var(--space-2);
     border-bottom: 1px solid var(--border);
+  }
+
+  .sidebar-toggle {
+    margin-right: calc(var(--space-2) * -1);
   }
 
   .crumbs {

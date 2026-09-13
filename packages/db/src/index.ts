@@ -18,3 +18,6 @@ export function getDb() {
   client ??= postgres(url, { max: 5 });
   return drizzle(client, { schema });
 }
+
+// Query helpers for callers that should not depend on Drizzle directly.
+export { and, eq, inArray } from "drizzle-orm";

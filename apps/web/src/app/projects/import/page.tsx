@@ -6,11 +6,13 @@ import { Reveal } from "@/components/motion";
 import { ImportRepository } from "@/components/source/import-repository";
 import { Button } from "@/components/ui/button";
 import { listAccessibleRepositories, sourceControlMessage, sourceControlMode } from "@/lib/git";
+import { requireAccount } from "@/lib/session";
 import type { RepositoryOption } from "@/lib/source-types";
 
 export const dynamic = "force-dynamic";
 
 export default async function ImportPage() {
+  await requireAccount();
   const mode = sourceControlMode();
   let repositories: RepositoryOption[] = [];
   let listError: string | undefined;

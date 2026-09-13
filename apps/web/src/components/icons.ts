@@ -25,8 +25,8 @@ export const IconArrowUp: IconData = [
   ["path", {fill: "currentColor",fillRule: "evenodd",d: "M8.707 1.396a1 1 0 0 0-1.414 0L2.22 6.47 1.69 7l1.06 1.06.53-.53 3.97-3.97V15h1.5V3.56l3.97 3.97.53.53L14.31 7l-.53-.53z",clipRule: "evenodd"}],
 ];
 
-export const IconArrowUpDown: IconData = [
-  ["path", {fill: "currentColor",fillRule: "evenodd",d: "M4.22 3.47 3.69 4l1.06 1.06.53-.53 1.97-1.97v10.88l-1.97-1.97-.53-.53L3.69 12l.53.53 3.073 3.074a1 1 0 0 0 1.414 0l3.073-3.074.53-.53-1.06-1.06-.53.53-1.97 1.97V2.56l1.97 1.97.53.53L12.31 4l-.53-.53L8.707.397a1 1 0 0 0-1.414 0z",clipRule: "evenodd"}],
+export const IconChevronUpDown: IconData = [
+  ["path", { d: "M5 6l3-3 3 3M5 10l3 3 3-3", stroke: "currentColor", strokeWidth: "1.5", strokeLinecap: "round", strokeLinejoin: "round" }],
 ];
 
 export const IconArrowUpRight: IconData = [
@@ -191,6 +191,11 @@ export const IconSettingsGear: IconData = [
 
 export const IconSettingsSliders: IconData = [
   ["path", {fill: "currentColor",fillRule: "evenodd",d: "M10.75 5.5a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5m0-4.75A3 3 0 0 1 13.655 3H16v1.5h-2.345a3 3 0 0 1-5.81 0H0V3h7.845A3 3 0 0 1 10.75.75M15.25 13H16v-1.5H8.155a3 3 0 0 0-5.81 0H0V13h2.345a3.001 3.001 0 0 0 5.81 0zM7 12.251zv-.001a1.75 1.75 0 1 0 0 .002",clipRule: "evenodd"}],
+];
+
+export const IconSidebarLeft: IconData = [
+  ["rect", { x: "1.75", y: "2.75", width: "12.5", height: "10.5", rx: "2.25", stroke: "currentColor", strokeWidth: "1.5", strokeLinecap: "round", strokeLinejoin: "round" }],
+  ["path", { d: "M6.25 2.75v10.5", stroke: "currentColor", strokeWidth: "1.5", strokeLinecap: "round", strokeLinejoin: "round" }],
 ];
 
 export const IconTerminal: IconData = [

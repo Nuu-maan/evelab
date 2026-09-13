@@ -4,7 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { IconArrowDown, IconCloudUpload, IconPlay } from "@/components/icons";
 import { Icon } from "@/components/icon";
+import { SidebarToggle } from "@/components/sidebar-toggle";
 import { Button } from "@/components/ui/button";
+import type { SidebarState } from "@/lib/sidebar-state";
 
 const PAGES: Record<string, string> = {
   "": "Overview",
@@ -31,11 +33,13 @@ export interface HeaderGit {
 export function ProjectHeader({
   projectId,
   projectName,
+  sidebar,
   errors,
   git,
 }: {
   projectId: string;
   projectName: string;
+  sidebar: SidebarState;
   errors: number;
   git?: HeaderGit;
 }) {
@@ -45,6 +49,7 @@ export function ProjectHeader({
 
   return (
     <header className="header">
+      <SidebarToggle initial={sidebar} />
       <nav className="crumbs" aria-label="Breadcrumb">
         <Link href="/projects">Projects</Link>
         <span className="crumb-separator" aria-hidden="true">

@@ -24,8 +24,8 @@ Optional environment:
 | Variable | Effect when set |
 | --- | --- |
 | `AI_GATEWAY_API_KEY` | Model list comes from the gateway instead of the built-in fallback |
-| `DATABASE_URL` | Enables the metadata database (`packages/db`) |
-| `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | Enables GitHub sign-in (`packages/auth`) |
+| `DATABASE_URL`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `BETTER_AUTH_SECRET` | Together, enable GitHub sign-in and private projects. Run `pnpm --filter @evelab/db db:migrate` first |
+| `BETTER_AUTH_URL` | Where EveLab is served; the GitHub OAuth app's callback is `<url>/api/auth/callback/github` |
 | `GITHUB_TOKEN` | Enables source control: import, commit and pull, with a token that can read and write repository contents |
 | `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_INSTALLATION_ID` | Source control through a GitHub App instead of a token |
 
@@ -87,8 +87,8 @@ JavaScript to become readable.
 
 ## What is not built yet
 
-MCP import, skills.sh import, connections, channels, runs, deployment, sign-in
-wiring, and the GitHub App installation flow. The pages exist and say so rather than showing
+MCP import, skills.sh import, connections, channels, runs, deployment, and the
+GitHub App installation flow. The pages exist and say so rather than showing
 placeholder data.
 
 [plan.md](plan.md) is the detailed plan for the remaining phases, including the
@@ -113,6 +113,11 @@ subagent's frontmatter, creating a tool produces real source, node positions and
 pane widths survive a reload, and the explorer works from the keyboard. The source
 control journey (import, commit, pull, conflicts, publishing a new repository)
 runs against an in-memory GitHub the web server reaches through `GITHUB_API_URL`.
+
+Set `E2E_DATABASE_URL` to an empty Postgres database to add the sign-in suite. It
+starts a second server with auth on, applies the migrations, and checks that
+signed-out visitors are sent to GitHub, that a project is a 404 to anyone but its
+owner, and that another account firing a server action directly is refused.
 
 `pnpm e2e` reuses a server you already have running. Point `CHROMIUM_PATH` at a
 local Chromium, or run `pnpm exec playwright install chromium` instead.

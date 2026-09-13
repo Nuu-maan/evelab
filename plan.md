@@ -69,8 +69,8 @@ Repo: `github.com/anishfn/evelab` (private). Node 26, pnpm 11, Turborepo.
 ```text
 apps/web                 Next.js 15 app router, React 19
 packages/eve-project     Project model, parser, generator, validator, graph
-packages/db              Drizzle schema (metadata only): not wired up
-packages/auth            Better Auth GitHub config: not wired up
+packages/db              Drizzle schema and migrations (metadata only)
+packages/auth            Better Auth with GitHub, on when fully configured
 packages/github          GitHub client, status, pull planning, commits
 ```
 
@@ -224,15 +224,17 @@ overridable with `EVELAB_WORKSPACE`. Canvas layouts sit in
 
 ### 3.4 What does not exist
 
-- **Sign-in.** `packages/auth` is configured but not wired. Single user, no
-  ownership checks, no session.
+- **Claiming existing directories.** With sign-in on, workspace directories that
+  have no project row (created before sign-in) are invisible. There is no flow
+  to adopt them yet.
 - **MCP import.** Blocked on Decision 6.
 - **skills.sh import.** Blocked on not knowing their source format.
 - **Connections and channels.** Stub pages.
 - **Runs.** Blocked on Decision 2.
 - **Deployment.** Follows GitHub.
-- **GitHub App installation flow.** The App client exists, but installing the
-  App per user needs sign-in (Phase 0.5). Token mode covers local use.
+- **GitHub App installation flow.** The App client exists and sign-in now does
+  too; installing the App per user and storing the installation on
+  `git_repositories` is the remaining step. Token mode covers local use.
 
 ### 3.5 Known TODOs where Eve's API is assumed
 
@@ -268,8 +270,9 @@ Environment (all optional; with none set EveLab runs as a local single-user tool
 | `GITHUB_TOKEN` | Source control (import, commit, pull) and a higher rate limit for skill import |
 | `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_INSTALLATION_ID` | Source control through a GitHub App; takes precedence over the token |
 | `GITHUB_API_URL` | GitHub API base URL; the e2e suite points it at a mock |
-| `DATABASE_URL` | Enables `packages/db` |
-| `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `BETTER_AUTH_URL`, `BETTER_AUTH_SECRET` | Enables sign-in |
+| `DATABASE_URL`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `BETTER_AUTH_SECRET` | All four enable sign-in and ownership; any missing means local mode |
+| `BETTER_AUTH_URL` | Public base URL for sign-in; the OAuth callback is `<url>/api/auth/callback/github` |
+| `E2E_DATABASE_URL` | Adds the sign-in e2e suite, run against a second server with auth on |
 
 ### Conventions
 
@@ -440,10 +443,22 @@ the remote has moved.
 
 ---
 
-### Phase 0.5: Wire sign-in and the database (do this next)
+### Phase 0.5: Wire sign-in and the database (done)
 
 **Why:** ownership, and a prerequisite for GitHub App installations and anything
-hosted. `packages/auth` and `packages/db` are configured but inert.
+hosted.
+
+**Status.** Built as designed below. `lib/access.ts` holds the pure rule,
+`lib/session.ts` applies it (`requireProjectAccess` for actions,
+`requireProjectPage` for routes, `requireAccount` outside a project), and
+`packages/db/migrations/0000_init.sql` is the first migration, using Better
+Auth's `user`, `session`, `account` and `verification` tables. Verified with
+unit tests and an e2e suite against Postgres that seeds signed sessions, checks
+the GitHub redirect, the signed-out 404, that a second account cannot see a
+project, and that a directly fired delete action from that account is refused.
+
+Deferred: driving a real GitHub OAuth round trip in CI, adopting directories
+created before sign-in, and moving sync records into `git_repositories`.
 
 **Design**
 
@@ -646,7 +661,7 @@ Work needed beyond the phases above:
 
 | # | Step | State |
 | --- | --- | --- |
-| 1 | Sign in with GitHub | Phase 0.5 |
+| 1 | Sign in with GitHub | Done |
 | 2 | Create project | Done |
 | 3 | Choose gateway, provider, model | Done |
 | 4 | Write `instructions.md` | Done |

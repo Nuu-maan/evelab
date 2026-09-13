@@ -8,12 +8,15 @@ import { Avatar } from "@/components/project-switcher";
 import { Reveal, Stagger } from "@/components/motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { requireAccount, visibleProjectIds } from "@/lib/session";
 import { listProjects } from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProjectsPage() {
-  const projects = await listProjects();
+  await requireAccount();
+  const [all, visible] = await Promise.all([listProjects(), visibleProjectIds()]);
+  const projects = visible ? all.filter((project) => visible.has(project.id)) : all;
 
   return (
     <PlainShell>

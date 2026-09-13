@@ -4,7 +4,8 @@ import { memo } from "react";
 import { Handle, Position, useConnection, type Node, type NodeProps } from "@xyflow/react";
 import type { CanvasNodeKind } from "@evelab/eve-project";
 import { FileIcon } from "@/components/files/file-icon";
-import { KINDS, KindTile } from "@/components/kinds";
+import { Icon } from "@/components/icon";
+import { KINDS } from "@/components/kinds";
 
 export type CanvasNodeData = {
   name: string;
@@ -43,19 +44,21 @@ function CanvasNodeCardBase({ id, data, selected }: NodeProps<CapabilityNode>) {
           isConnectableStart={false}
         />
       )}
-      <div className="node-body">
-        <div className="node-head">
-          <KindTile kind={data.kind} />
-          <span className="node-kind">{KINDS[data.kind].label}</span>
-        </div>
+      <div className="node-head">
+        <Icon icon={KINDS[data.kind].icon} className="node-icon" />
         <p className="node-name" title={data.name}>
           {data.name}
         </p>
-        <p className="node-meta">{data.detail}</p>
+        <span className="node-label">{KINDS[data.kind].label}</span>
       </div>
-      <div className="node-foot">
-        <FileIcon name={fileName} />
-        <span className="node-path mono">{data.filePath}</span>
+      <div className="node-body">
+        <p className="node-meta" title={data.detail}>
+          {data.detail}
+        </p>
+        <p className="node-file">
+          <FileIcon name={fileName} />
+          <span className="node-path mono">{data.filePath}</span>
+        </p>
       </div>
       {owns && <Handle className="node-handle" type="source" position={Position.Bottom} />}
     </div>
