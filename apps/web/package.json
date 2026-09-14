@@ -18,6 +18,7 @@
     "@evelab/eve-project": "workspace:*",
     "@evelab/github": "workspace:*",
     "@fontsource/caveat": "^5.3.0",
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "@monaco-editor/react": "^4.6.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@vercel/blob": "^2.8.0",

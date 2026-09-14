@@ -91,7 +91,10 @@ export const createConnectionInput = z
       .string()
       .trim()
       .url()
-      .refine((value) => value.startsWith("https://") || value.startsWith("http://localhost"), { message: "Use an https URL" }),
+      // Plain http only for this machine, matched to the exact host so "localhost.example.com" does not pass.
+      .refine((value) => value.startsWith("https://") || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/.test(value), {
+        message: "Use an https URL",
+      }),
     description: z.string().trim().max(500).default(""),
     auth: z.enum(["none", "connect", "token"]).default("none"),
     connector: z.string().trim().max(200).optional(),
