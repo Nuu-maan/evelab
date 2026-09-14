@@ -25,6 +25,8 @@ const ANNOTATE: { type: Annotation["type"]; title: string; detail: string; icon:
  * notes and sections are dropped anywhere.
  */
 export function ResourceBrowser({
+  title,
+  save,
   nodes,
   selectedId,
   onSelect,
@@ -35,6 +37,9 @@ export function ResourceBrowser({
   canPlace,
   onAnnotate,
 }: {
+  /** The root agent's name, shown at the top of the panel. */
+  title?: string;
+  save?: { tone: string; label: string };
   nodes: CanvasNode[];
   selectedId?: string;
   onSelect: (id: string) => void;
@@ -68,6 +73,18 @@ export function ResourceBrowser({
 
   return (
     <aside className="canvas-float canvas-browser" aria-label="Resources">
+      <header className="browser-head">
+        <p className="browser-title" title={title}>
+          {title}
+        </p>
+        {save && (
+          <p className="canvas-save" data-tone={save.tone} role="status" aria-label="Save state">
+            <span className="sync-dot" aria-hidden="true" />
+            {save.label}
+          </p>
+        )}
+      </header>
+
       <label className="browser-search">
         <Icon icon={IconMagnifyingGlass} size={14} />
         <input
@@ -90,19 +107,25 @@ export function ResourceBrowser({
             <section key={group.kind} className="browser-group" aria-label={plural}>
               <div className="browser-group-head">
                 <p className="browser-group-label">{plural}</p>
-                <button
-                  type="button"
-                  className="browser-group-add"
-                  aria-label={`New ${label.toLowerCase()}`}
-                  title={`New ${label.toLowerCase()}`}
-                  onClick={() => onCreate(group.kind)}
-                >
-                  <Icon icon={IconPlus} size={14} />
-                </button>
+                {group.items.length > 0 && (
+                  <>
+                    <span className="browser-group-count">{group.items.length}</span>
+                    <button
+                      type="button"
+                      className="browser-group-add"
+                      aria-label={`Add ${label.toLowerCase()}`}
+                      title={`Add ${label.toLowerCase()}`}
+                      onClick={() => onCreate(group.kind)}
+                    >
+                      <Icon icon={IconPlus} size={14} />
+                    </button>
+                  </>
+                )}
               </div>
               {group.items.length === 0 && (
-                <button type="button" className="browser-empty-row" onClick={() => onCreate(group.kind)}>
-                  New {label.toLowerCase()}
+                <button type="button" className="browser-empty-row" data-kind={group.kind} onClick={() => onCreate(group.kind)}>
+                  <Icon icon={IconPlus} size={13} />
+                  Add {label.toLowerCase()}
                 </button>
               )}
               {group.items.map((node) => {
@@ -130,7 +153,7 @@ export function ResourceBrowser({
         {!needle && (
           <section className="browser-group" aria-label="Annotate">
             <div className="browser-group-head">
-              <p className="browser-group-label">Annotate</p>
+              <p className="browser-group-label">Sketch</p>
             </div>
             {ANNOTATE.map((item) => (
               <PaletteChip
