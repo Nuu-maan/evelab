@@ -228,6 +228,35 @@
     display: inline-block;
     flex: none;
   }
+
+  .icon-glass {
+    display: inline-block;
+    flex: none;
+    user-select: none;
+  }
+
+  /*
+   * Rune's glass is drawn light for dark surfaces. On a light theme it is
+   * inverted into dark glass, except where it already sits on a dark fill.
+   */
+  @media (prefers-color-scheme: light) {
+    .icon-glass {
+      filter: invert(1);
+    }
+
+    .bg-primary .icon-glass,
+    .node[data-tier="root"] .node-glyph .icon-glass {
+      filter: none;
+    }
+  }
+
+  /* On a dark theme the primary fill is light, so glass on it turns dark. */
+  @media (prefers-color-scheme: dark) {
+    .bg-primary .icon-glass,
+    .node[data-tier="root"] .node-glyph .icon-glass {
+      filter: invert(1);
+    }
+  }
 }
 
 @layer components {
