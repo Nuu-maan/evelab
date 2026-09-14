@@ -1534,9 +1534,9 @@
    * A label is a small pill beside the far end of its wire, in the wire's
    * colour. The anchor carries the position, so the fade never moves it.
    */
+  /* No z-index of its own: the label layer sits under the nodes, so a card always covers a label that reaches it. */
   .edge-label-anchor {
     position: absolute;
-    z-index: 10;
     pointer-events: none;
   }
 
@@ -1556,6 +1556,13 @@
     white-space: nowrap;
     animation: edge-label-fade 140ms ease both;
     transition: border-color var(--duration-hover) ease, color var(--duration-hover) ease;
+  }
+
+  .edge-label-text {
+    font-size: 10px;
+    font-weight: var(--weight-semibold);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
   }
 
   .edge-label::before {

@@ -97,13 +97,14 @@ function RelationEdgeBase({
             centerY,
           });
 
+  // Far enough from the end that the label, and the Detach button it grows when selected, never reaches the card.
   const labelTransform = channel
     ? horizontal
-      ? `translate(0, -50%) translate(${targetX + 16}px, ${targetY}px)`
-      : `translate(-50%, 0) translate(${targetX}px, ${targetY + 14}px)`
+      ? `translate(0, -50%) translate(${targetX + 24}px, ${targetY}px)`
+      : `translate(-50%, 0) translate(${targetX}px, ${targetY + 22}px)`
     : horizontal
-      ? `translate(-100%, -50%) translate(${targetX - 16}px, ${targetY}px)`
-      : `translate(-50%, -100%) translate(${targetX}px, ${targetY - 14}px)`;
+      ? `translate(-100%, -50%) translate(${targetX - 24}px, ${targetY}px)`
+      : `translate(-50%, -100%) translate(${targetX}px, ${targetY - 22}px)`;
   const active = Boolean(data?.showLabel);
 
   return (
@@ -118,7 +119,7 @@ function RelationEdgeBase({
               data-active={active || undefined}
               data-actionable={(selected && data.detachable) || undefined}
             >
-              <span>{data.relation}</span>
+              <span className="edge-label-text">{data.relation}</span>
               {selected && data.detachable && (
                 <button type="button" className="edge-label-action" onClick={() => detachEdge(source, target)}>
                   Detach
