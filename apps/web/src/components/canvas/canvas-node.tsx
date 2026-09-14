@@ -62,22 +62,17 @@ const COUNT_KEY: Record<PortKind, keyof CapabilityCounts> = {
   channel: "channels",
 };
 
-/** "anthropic/claude-opus-4.8" reads as the model, with its provider as the label. */
-function splitModel(detail: string): { value: string; label?: string } {
-  const slash = detail.indexOf("/");
-  return slash > 0 ? { value: detail.slice(slash + 1), label: detail.slice(0, slash) } : { value: detail };
-}
-
 /** The id of the port on an agent that wires to things of a kind. */
 export function portHandle(kind: CanvasNodeKind): string {
   return `out-${kind}`;
 }
 
 /**
- * One card per agent or resource. An agent card ends in a row of ports, one
- * per kind of thing it can have, each with its own endpoint: wires leave the
- * subagent port for subagents and the skill port for skills, so they never
- * have to share a line or cross each other on the way out.
+ * One node per agent or resource, drawn the way n8n draws them: an icon and a
+ * name, and nothing else to read. Agents are a card with diamond ports on the
+ * bottom edge, labelled underneath; tools, skills and connections are round
+ * tiles; channels are square ones. Everything else about a node lives in the
+ * inspector, which opens when it is selected.
  */
 function CanvasNodeCardBase({ id, data, selected }: NodeProps<CapabilityNode>) {
   const { mode, uses, toggleCollapse } = useContext(CanvasContext);
@@ -91,18 +86,23 @@ function CanvasNodeCardBase({ id, data, selected }: NodeProps<CapabilityNode>) {
   const [fromId, fromHandle] = drag ? drag.split("|") : [undefined, undefined];
   const valid = resource && fromId !== undefined && fromHandle === portHandle(data.kind) && !uses(fromId, id);
   const targeted = useConnection((connection) => connection.inProgress && connection.toNode?.id === id);
-  const tier = data.kind === "agent" ? "root" : owns ? "agent" : "resource";
+  const tier = data.kind === "agent" ? "root" : owns ? "agent" : data.kind === "channel" ? "channel" : "resource";
   const ports = owns ? portsFor(data.kind) : [];
   const total = ports.reduce((sum, port) => sum + (data.counts?.[COUNT_KEY[port]] ?? 0), 0);
-  const usedBy = data.usedBy ?? 0;
+  const typeLabel = data.kind === "agent" ? "Root agent" : KINDS[data.kind].label;
 
-  // Two readings per card, as a dashboard shows them: a value with its label, and a quieter line under it.
-  const model = splitModel(data.detail);
-  const reading = owns
-    ? { value: model.value, label: undefined, aside: model.label, sub: data.filePath, subAside: total > 0 ? `${total} linked` : undefined }
-    : resource
-      ? { value: String(usedBy), label: usedBy === 1 ? "agent" : "agents", aside: data.shared ? "shared" : "local", sub: data.detail, subAside: undefined }
-      : { value: `/${data.name}`, label: "route", aside: undefined, sub: data.detail, subAside: undefined };
+  const target =
+    data.kind === "agent" ? null : (
+      <Handle
+        className="node-handle node-target"
+        type="target"
+        // Channels sit above the root, so their wires arrive from below.
+        position={
+          data.kind === "channel" ? (horizontal ? Position.Right : Position.Bottom) : horizontal ? Position.Left : Position.Top
+        }
+        isConnectableStart={false}
+      />
+    );
 
   return (
     <div
@@ -115,118 +115,99 @@ function CanvasNodeCardBase({ id, data, selected }: NodeProps<CapabilityNode>) {
       data-valid={valid || undefined}
       data-invalid={(fromId !== undefined && fromId !== id && !valid) || undefined}
       data-targeted={(targeted && valid) || undefined}
-      title={`${data.kind === "agent" ? "Root agent" : KINDS[data.kind].label}: ${data.description ?? data.filePath}`}
+      title={`${typeLabel}: ${data.description ?? data.name}`}
     >
-      {data.kind !== "agent" && (
-        <Handle
-          className="node-handle node-target"
-          type="target"
-          // Channels sit above the root, so their wires arrive from below.
-          position={
-            data.kind === "channel" ? (horizontal ? Position.Right : Position.Bottom) : horizontal ? Position.Left : Position.Top
-          }
-          isConnectableStart={false}
-        />
-      )}
-
-      {data.kind === "agent" && (
+      {owns ? (
         <>
-          <div className="node-top-port" data-kind="channel" data-horizontal={horizontal || undefined} title="Channels">
-            <Icon icon={KINDS.channel.icon} size={14} />
-            <span className="tabular-nums">{data.counts?.channels ?? 0}</span>
+          <div
+            className="node-card"
+            // Ports run down the right edge when horizontal, so the card grows to give each one room.
+            style={horizontal && ports.length > 0 ? { minHeight: 24 + ports.length * 22 } : undefined}
+          >
+            {target}
+            {data.kind === "agent" && (
+              <Handle
+                id={portHandle("channel")}
+                type="source"
+                data-kind="channel"
+                className="node-handle node-port-handle node-channel-handle"
+                position={horizontal ? Position.Left : Position.Top}
+                isConnectable={false}
+              />
+            )}
+            <span className="node-glyph" aria-hidden="true">
+              <Icon icon={KINDS[data.kind].icon} size={20} />
+            </span>
+            <span className="node-text">
+              <span className="node-name">{data.name}</span>
+              <span className="node-type">{typeLabel}</span>
+            </span>
+            {total > 0 && (
+              <button
+                type="button"
+                className="node-collapse nodrag nopan"
+                data-collapsed={data.collapsed || undefined}
+                aria-expanded={!data.collapsed}
+                aria-label={data.collapsed ? `Expand ${data.name}` : `Collapse ${data.name}`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  toggleCollapse(id);
+                }}
+              >
+                {data.collapsed && data.hiddenCount ? <span className="tabular-nums">+{data.hiddenCount}</span> : null}
+                <Icon icon={data.collapsed ? IconChevronRight : IconChevronDown} size={14} />
+              </button>
+            )}
+            {ports.map((port) => {
+              const count = data.counts?.[COUNT_KEY[port]] ?? 0;
+              return (
+                <Handle
+                  key={port}
+                  id={portHandle(port)}
+                  type="source"
+                  data-kind={port}
+                  data-empty={count === 0 || undefined}
+                  className="node-handle node-port-handle"
+                  title={`${KINDS[port].plural}: ${count}`}
+                  position={horizontal ? Position.Right : Position.Bottom}
+                  style={
+                    horizontal
+                      ? { top: `${portFraction(data.kind, port) * 100}%` }
+                      : { left: `${portFraction(data.kind, port) * 100}%` }
+                  }
+                />
+              );
+            })}
           </div>
-          <Handle
-            id={portHandle("channel")}
-            type="source"
-            data-kind="channel"
-            className="node-handle node-port-handle node-channel-handle"
-            position={horizontal ? Position.Left : Position.Top}
-            isConnectable={false}
-          />
+
+          {!horizontal && (
+            <div className="node-port-labels" style={{ gridTemplateColumns: `repeat(${ports.length}, minmax(0, 1fr))` }}>
+              {ports.map((port) => {
+                const count = data.counts?.[COUNT_KEY[port]] ?? 0;
+                return (
+                  <span key={port} className="node-port-label" data-kind={port} data-empty={count === 0 || undefined}>
+                    {KINDS[port].plural}
+                  </span>
+                );
+              })}
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          <div className="node-card">
+            {target}
+            <span className="node-glyph" aria-hidden="true">
+              <Icon icon={KINDS[data.kind].icon} size={26} />
+            </span>
+            {data.shared && <span className="node-shared" aria-label="Shared definition" />}
+          </div>
+          <span className="node-name">{data.name}</span>
+          <span className="node-type">
+            {resource && (data.usedBy ?? 0) > 1 ? `${typeLabel} · ${data.usedBy} agents` : typeLabel}
+          </span>
         </>
       )}
-
-      <div className="node-head">
-        <span className="node-icon" aria-hidden="true">
-          <Icon icon={KINDS[data.kind].icon} size={17} />
-        </span>
-        <p className="node-name">{data.name}</p>
-        {owns && total > 0 && (
-          <button
-            type="button"
-            className="node-collapse nodrag nopan"
-            aria-expanded={!data.collapsed}
-            aria-label={data.collapsed ? `Expand ${data.name}` : `Collapse ${data.name}`}
-            onClick={(event) => {
-              event.stopPropagation();
-              toggleCollapse(id);
-            }}
-          >
-            {data.collapsed && data.hiddenCount ? <span className="tabular-nums">+{data.hiddenCount}</span> : null}
-            <Icon icon={data.collapsed ? IconChevronRight : IconChevronDown} size={14} />
-          </button>
-        )}
-      </div>
-
-      <div className="node-body">
-        <div className="node-row">
-          <p className="node-metric" title={reading.value}>
-            <span className="node-value">{reading.value}</span>
-            {reading.label && <span className="node-label">{reading.label}</span>}
-          </p>
-          {reading.aside && <span className="node-label node-aside">{reading.aside}</span>}
-        </div>
-        <div className="node-row">
-          <p className="node-sub" title={reading.sub}>
-            {reading.sub}
-          </p>
-          {reading.subAside && <span className="node-sub node-sub-aside">{reading.subAside}</span>}
-        </div>
-      </div>
-
-      {owns && (
-        <div
-          className="node-ports"
-          // Ports sit on the same edge as their rings: along the bottom, or down the right side when horizontal.
-          style={
-            horizontal
-              ? { gridTemplateRows: `repeat(${ports.length}, minmax(0, 1fr))` }
-              : { gridTemplateColumns: `repeat(${ports.length}, minmax(0, 1fr))` }
-          }
-        >
-          {ports.map((port) => {
-            const count = data.counts?.[COUNT_KEY[port]] ?? 0;
-            return (
-              <div
-                key={port}
-                className="node-port"
-                data-kind={port}
-                data-empty={count === 0 || undefined}
-                title={`${count} ${count === 1 ? KINDS[port].label.toLowerCase() : KINDS[port].plural.toLowerCase()}`}
-              >
-                <Icon icon={KINDS[port].icon} size={14} />
-                <span className="tabular-nums">{count}</span>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {ports.map((port) => (
-        <Handle
-          key={port}
-          id={portHandle(port)}
-          type="source"
-          data-kind={port}
-          className="node-handle node-port-handle"
-          position={horizontal ? Position.Right : Position.Bottom}
-          style={
-            horizontal
-              ? { top: `${portFraction(data.kind, port) * 100}%` }
-              : { left: `${portFraction(data.kind, port) * 100}%` }
-          }
-        />
-      ))}
     </div>
   );
 }

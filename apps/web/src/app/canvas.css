@@ -1083,44 +1083,222 @@
   /* ---------- Nodes ---------- */
 
   /*
-   * A card, read like a service on a system diagram: a bright rim in its kind's
-   * colour over a tinted surface, the icon and name above a hairline, then two
-   * readings in mono with their labels in small caps. Agents end in a strip of
-   * ports where their wires start.
+   * Nodes as n8n draws them: an icon and a name, nothing else to read. An agent
+   * is a card with its ports on the bottom edge and their labels underneath; a
+   * tool, skill or connection is a round tile with its name below, a channel a
+   * square one. The icon sits in a glass tile: a translucent wash of the kind's
+   * colour with a bright top edge, no gradient.
    */
   .node {
-    --node-rim: color-mix(in srgb, var(--kind) 82%, var(--background));
-    --node-line: color-mix(in srgb, var(--kind) 22%, transparent);
-    --node-label: color-mix(in srgb, var(--kind) 55%, var(--foreground));
+    --node-rim: color-mix(in srgb, var(--foreground) 16%, var(--background));
     position: relative;
-    width: 240px;
-    border: 2px solid var(--node-rim);
-    border-radius: 10px;
-    background: color-mix(in srgb, var(--kind) 11%, var(--surface));
-    transition: border-color var(--duration-hover) ease, box-shadow 200ms var(--ease-out), opacity 200ms ease;
-  }
-
-  .node[data-tier="agent"] {
-    width: 280px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: opacity 200ms ease;
   }
 
   .node[data-tier="root"] {
-    --node-rim: color-mix(in srgb, var(--foreground) 55%, var(--background));
-    --node-line: var(--border);
-    --node-label: var(--foreground-secondary);
-    width: 300px;
+    width: 260px;
+    --node-rim: color-mix(in srgb, var(--foreground) 42%, var(--background));
+  }
+
+  .node[data-tier="agent"] {
+    width: 240px;
+  }
+
+  .node[data-tier="resource"],
+  .node[data-tier="channel"] {
+    width: 128px;
+  }
+
+  .node-card {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 68px;
+    padding: 12px 10px 12px 12px;
+    border: 1.5px solid var(--node-rim);
+    border-radius: 14px;
     background: var(--surface);
+    box-shadow: var(--shadow-small);
+    transition: border-color var(--duration-hover) ease, box-shadow 200ms var(--ease-out);
+  }
+
+  .node[data-tier="resource"] .node-card,
+  .node[data-tier="channel"] .node-card {
+    justify-content: center;
+    width: 72px;
+    height: 72px;
+    min-height: 0;
+    padding: 0;
+    border-color: color-mix(in srgb, var(--kind) 40%, var(--node-rim));
+  }
+
+  .node[data-tier="resource"] .node-card {
+    border-radius: 50%;
+  }
+
+  .node[data-tier="channel"] .node-card {
+    border-radius: 18px;
   }
 
   @media (hover: hover) and (pointer: fine) {
-    .node:hover {
-      --node-rim: var(--kind);
+    .node:hover .node-card {
+      border-color: color-mix(in srgb, var(--kind) 70%, var(--node-rim));
+    }
+
+    .node[data-tier="root"]:hover .node-card {
+      border-color: color-mix(in srgb, var(--foreground) 60%, var(--background));
     }
   }
 
-  .node[data-selected] {
-    --node-rim: var(--kind);
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--kind) 20%, transparent);
+  .node[data-selected] .node-card {
+    border-color: var(--kind);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--kind) 20%, transparent), var(--shadow-small);
+  }
+
+  /* The glass tile the icon sits in. */
+  .node-glyph {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    background: color-mix(in srgb, var(--kind) 14%, transparent);
+    box-shadow:
+      inset 0 1px 0 color-mix(in srgb, white 55%, transparent),
+      inset 0 0 0 1px color-mix(in srgb, var(--kind) 30%, transparent),
+      0 1px 2px color-mix(in srgb, var(--kind) 18%, transparent);
+    color: var(--kind);
+    backdrop-filter: blur(6px);
+  }
+
+  .node[data-tier="root"] .node-glyph {
+    background: var(--foreground);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, white 30%, transparent), 0 1px 2px rgb(0 0 0 / 0.2);
+    color: var(--background);
+  }
+
+  .node[data-tier="resource"] .node-glyph,
+  .node[data-tier="channel"] .node-glyph {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+  }
+
+  .node[data-tier="channel"] .node-glyph {
+    border-radius: 14px;
+  }
+
+  .node-text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .node-name {
+    max-width: 100%;
+    overflow: hidden;
+    color: var(--foreground);
+    font-size: 14px;
+    font-weight: var(--weight-medium);
+    letter-spacing: -0.01em;
+    line-height: 19px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .node-type {
+    max-width: 100%;
+    overflow: hidden;
+    color: var(--foreground-tertiary);
+    font-size: 11.5px;
+    line-height: 16px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Round and square tiles carry their name underneath, centred. */
+  .node[data-tier="resource"] > .node-name,
+  .node[data-tier="channel"] > .node-name {
+    margin-top: 8px;
+    font-size: 13px;
+    text-align: center;
+  }
+
+  .node[data-tier="resource"] > .node-type,
+  .node[data-tier="channel"] > .node-type {
+    text-align: center;
+  }
+
+  /* A shared definition: a small dot on the tile's shoulder. */
+  .node-shared {
+    position: absolute;
+    top: 3px;
+    inset-inline-end: 3px;
+    width: 12px;
+    height: 12px;
+    border: 2px solid var(--surface);
+    border-radius: 50%;
+    background: var(--kind);
+  }
+
+  .node-collapse {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 2px;
+    align-self: flex-start;
+    height: 22px;
+    padding: 0 4px;
+    border-radius: 6px;
+    color: var(--foreground-tertiary);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    opacity: 0;
+    transition: opacity var(--duration-hover) ease, background-color var(--duration-hover) ease,
+      color var(--duration-hover) ease;
+  }
+
+  .node:hover .node-collapse,
+  .node[data-selected] .node-collapse,
+  .node-collapse[data-collapsed],
+  .node-collapse:focus-visible {
+    opacity: 1;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .node-collapse:hover {
+      background: var(--surface-hover);
+      color: var(--foreground);
+    }
+  }
+
+  /* The labels under an agent's ports, each centred under its diamond. */
+  .node-port-labels {
+    display: grid;
+    width: 100%;
+    padding-top: 11px;
+  }
+
+  .node-port-label {
+    min-width: 0;
+    text-align: center;
+    overflow: hidden;
+    color: var(--foreground-secondary);
+    font-size: 10.5px;
+    line-height: 14px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .node-port-label[data-empty] {
+    color: var(--foreground-tertiary);
   }
 
   .react-flow__node.is-dim .node {
@@ -1131,23 +1309,23 @@
     transition: transform 320ms var(--ease-out);
   }
 
-  .node[data-valid] {
-    --node-rim: var(--focus);
+  .node[data-valid] .node-card {
     border-style: dashed;
+    border-color: var(--focus);
   }
 
   .node[data-invalid] {
     opacity: 0.4;
   }
 
-  .node[data-targeted] {
-    --node-rim: var(--focus);
+  .node[data-targeted] .node-card {
     border-style: solid;
+    border-color: var(--focus);
     box-shadow: 0 0 0 4px color-mix(in srgb, var(--focus) 22%, transparent);
   }
 
-  .react-flow__node.is-attach-target .node {
-    --node-rim: var(--focus);
+  .react-flow__node.is-attach-target .node-card {
+    border-color: var(--focus);
     box-shadow: 0 0 0 4px color-mix(in srgb, var(--focus) 22%, transparent);
   }
 
@@ -1166,7 +1344,7 @@
     white-space: nowrap;
   }
 
-  .react-flow__node.dragging .node {
+  .react-flow__node.dragging .node-card {
     box-shadow: var(--shadow-large);
   }
 
@@ -1197,259 +1375,38 @@
     }
   }
 
-  .node-head {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    min-width: 0;
-    margin-inline: 12px;
-    padding: 9px 0 8px;
-    border-bottom: 1px solid var(--node-line);
-  }
-
-  .node-icon {
-    display: grid;
-    flex: none;
-    place-items: center;
-    color: var(--node-label);
-  }
-
-  .node-name {
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    color: var(--foreground);
-    font-size: 15px;
-    font-weight: var(--weight-medium);
-    line-height: 22px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .node-collapse {
-    display: inline-flex;
-    flex: none;
-    align-items: center;
-    gap: 2px;
-    height: 22px;
-    margin-inline-end: -4px;
-    padding: 0 4px;
-    border-radius: 5px;
-    color: var(--foreground-tertiary);
-    font-family: var(--font-mono);
-    font-size: 11px;
-    transition: background-color var(--duration-hover) ease, color var(--duration-hover) ease;
-  }
-
-  @media (hover: hover) and (pointer: fine) {
-    .node-collapse:hover {
-      background: color-mix(in srgb, var(--kind) 14%, transparent);
-      color: var(--foreground);
-    }
-  }
-
-  .node-body {
-    display: grid;
-    gap: 3px;
-    padding: 9px 12px 11px;
-  }
-
-  .node-row {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 10px;
-    min-width: 0;
-  }
-
-  .node-metric {
-    display: flex;
-    align-items: baseline;
-    gap: 6px;
-    min-width: 0;
-    overflow: hidden;
-    white-space: nowrap;
-  }
-
-  .node-value {
-    overflow: hidden;
-    color: var(--foreground);
-    font-family: var(--font-mono);
-    font-size: 15px;
-    font-weight: var(--weight-medium);
-    font-variant-numeric: tabular-nums;
-    letter-spacing: -0.01em;
-    line-height: 20px;
-    text-overflow: ellipsis;
-  }
-
-  .node-label {
-    flex: none;
-    color: var(--node-label);
-    font-size: 11px;
-    font-weight: var(--weight-semibold);
-    letter-spacing: 0.05em;
-    line-height: 16px;
-    text-transform: uppercase;
-  }
-
-  .node-aside {
-    max-width: 45%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .node-sub {
-    min-width: 0;
-    overflow: hidden;
-    color: var(--foreground-tertiary);
-    font-family: var(--font-mono);
-    font-size: 11.5px;
-    line-height: 16px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .node-sub-aside {
-    flex: none;
-  }
-
-  /* Ports: a quiet strip of equal cells along the bottom edge, each over its own endpoint. */
-  .node-ports {
-    display: grid;
-    border-top: 1px solid var(--node-line);
-    border-radius: 0 0 8px 8px;
-    background: color-mix(in srgb, var(--background) 35%, transparent);
-  }
-
-  .node-port {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 5px;
-    height: 28px;
-    color: var(--kind);
-    font-family: var(--font-mono);
-    font-size: 12px;
-  }
-
-  .node-port + .node-port {
-    border-inline-start: 1px solid var(--node-line);
-  }
-
-  /* Horizontal: the card splits into its content and a port column on the right edge. */
-  .node[data-horizontal][data-tier="root"],
-  .node[data-horizontal][data-tier="agent"] {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 52px;
-    grid-template-rows: auto 1fr;
-  }
-
-  .node[data-horizontal] > .node-head {
-    grid-column: 1;
-    grid-row: 1;
-  }
-
-  .node[data-horizontal] > .node-body {
-    grid-column: 1;
-    grid-row: 2;
-  }
-
-  .node[data-horizontal] > .node-ports {
-    grid-column: 2;
-    grid-row: 1 / span 2;
-    border-top: none;
-    border-inline-start: 1px solid var(--node-line);
-    border-radius: 0 8px 8px 0;
-  }
-
-  .node[data-horizontal] .node-port {
-    height: auto;
-    min-height: 26px;
-  }
-
-  .node[data-horizontal] .node-port + .node-port {
-    border-inline-start: none;
-    border-top: 1px solid var(--node-line);
-  }
-
-  .node-port span {
-    color: var(--foreground);
-  }
-
-  .node-port[data-empty],
-  .node-port[data-empty] span {
-    color: var(--foreground-tertiary);
-  }
-
-  .node-port[data-empty] svg {
-    opacity: 0.6;
-  }
-
-  /* The root's channel port: a tab on its top edge, over the wire that feeds the channels above. */
-  .node-top-port {
-    position: absolute;
-    top: -13px;
-    left: 50%;
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    height: 22px;
-    padding: 0 8px;
-    transform: translateX(-50%);
-    border: 1.5px solid color-mix(in srgb, var(--kind) 70%, var(--background));
-    border-radius: 999px;
-    background: var(--surface);
-    color: var(--kind);
-    font-family: var(--font-mono);
-    font-size: 11.5px;
-  }
-
-  .node-top-port span {
-    color: var(--foreground);
-  }
-
-  .node-top-port[data-horizontal] {
-    top: 50%;
-    left: -13px;
-    transform: translate(-50%, -50%);
-  }
-
-  .react-flow__handle.node-channel-handle {
-    top: -13px;
-    opacity: 0;
-  }
-
-  .react-flow__handle.node-channel-handle.react-flow__handle-left {
-    top: 50%;
-    left: -13px;
-  }
-
   /* ---------- Handles ---------- */
 
   /*
-   * Endpoints are rings, like pins on a circuit board: hollow in the card's
-   * surface with a coloured rim, so it is obvious where a wire can start. A
-   * ring fills with its colour on hover or while a wire is being dragged from it.
+   * Endpoints are small diamonds, as n8n marks where an agent's parts plug in:
+   * hollow with a coloured rim, filling with their colour on hover or while a
+   * wire is being dragged from them.
    */
   .react-flow__handle.node-handle {
-    width: 14px;
-    height: 14px;
+    width: 11px;
+    height: 11px;
     min-width: 0;
     min-height: 0;
-    border: 2.5px solid var(--kind);
-    border-radius: 50%;
+    border: 2px solid var(--kind);
+    border-radius: 2px;
     background: var(--surface);
-    box-shadow: 0 0 0 3px var(--background);
+    rotate: 45deg;
     transition: background-color var(--duration-hover) ease, box-shadow 200ms var(--ease-out), border-color var(--duration-hover) ease;
   }
 
-  /* Where a wire lands: a quieter ring in the receiving card's colour. */
+  .react-flow__handle.node-port-handle[data-empty] {
+    border-color: color-mix(in srgb, var(--kind) 45%, var(--border-strong));
+  }
+
+  /* Where a wire lands: a quieter diamond on the receiving tile. */
   .react-flow__handle.node-target {
-    width: 12px;
-    height: 12px;
-    border-width: 2px;
-    border-color: color-mix(in srgb, var(--kind) 75%, var(--border-strong));
+    width: 9px;
+    height: 9px;
+    border-color: color-mix(in srgb, var(--kind) 60%, var(--border-strong));
+    pointer-events: none;
+  }
+
+  .react-flow__handle.node-channel-handle {
     pointer-events: none;
   }
 
@@ -1461,19 +1418,20 @@
     content: "";
     position: absolute;
     inset: -8px;
-    border-radius: 50%;
   }
 
   @media (hover: hover) and (pointer: fine) {
     .react-flow__handle.node-port-handle:hover {
+      border-color: var(--kind);
       background: var(--kind);
-      box-shadow: 0 0 0 3px var(--background), 0 0 0 6px color-mix(in srgb, var(--kind) 30%, transparent);
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--kind) 25%, transparent);
     }
   }
 
   .react-flow__handle.node-port-handle.connectingfrom {
+    border-color: var(--kind);
     background: var(--kind);
-    box-shadow: 0 0 0 3px var(--background), 0 0 0 6px color-mix(in srgb, var(--kind) 30%, transparent);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--kind) 25%, transparent);
   }
 
   .node[data-valid] .react-flow__handle.node-target {
@@ -1483,7 +1441,7 @@
   .react-flow__handle.node-target.connectingto.valid {
     background: var(--focus);
     border-color: var(--focus);
-    box-shadow: 0 0 0 3px var(--background), 0 0 0 6px color-mix(in srgb, var(--focus) 25%, transparent);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--focus) 25%, transparent);
   }
 
   /* ---------- Edges ---------- */
