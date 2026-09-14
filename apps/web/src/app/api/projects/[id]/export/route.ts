@@ -1,7 +1,6 @@
-import { readFile } from "node:fs/promises";
 import { zipSync, type Zippable } from "fflate";
 import { guardProject } from "@/lib/api";
-import { readProjectFiles, resolveInProject } from "@/lib/workspace";
+import { readProjectFileBytes, readProjectFiles } from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +17,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const files = await readProjectFiles(id);
   // Bytes rather than the decoded text, so images and other binary files survive the round trip.
   const entries = await Promise.all(
-    files.map(async (file) => [file.path, new Uint8Array(await readFile(resolveInProject(id, file.path)))] as const),
+    files.map(async (file) => [file.path, await readProjectFileBytes(id, file.path)] as const),
   );
   const tree: Zippable = {};
   for (const [path, bytes] of entries) tree[`${id}/${path}`] = bytes;

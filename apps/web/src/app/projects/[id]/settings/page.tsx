@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { deleteProjectAction, disconnectRepositoryAction } from "@/lib/actions";
 import { readGitState } from "@/lib/git";
-import { getProject, workspaceRoot } from "@/lib/workspace";
+import { getProject, projectLocation } from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +33,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <pre className="code mono">{`${workspaceRoot()}/${id}`}</pre>
+          <pre className="code mono">{projectLocation(id)}</pre>
         </CardContent>
         <CardFooter>
           <p className="text-xs text-muted-foreground">
@@ -89,7 +89,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
             <ConfirmSubmit
               variant="destructive"
               title={`Delete ${project.agent.name}?`}
-              description={`This deletes ${workspaceRoot()}/${id} and all ${project.files.length} files in it. It cannot be undone.`}
+              description={`This deletes ${projectLocation(id)} and all ${project.files.length} files in it. It cannot be undone.`}
               confirmLabel="Delete project"
             >
               Delete {project.agent.name}

@@ -1,24 +1,28 @@
 import "server-only";
-import { appendFile, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { appendFile, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join, relative, resolve, sep } from "node:path";
-import { workspaceRoot } from "@/lib/workspace";
+import { appState, eq, getDb, sql } from "@evelab/db";
+import { storageMode, workspaceRoot } from "@/lib/workspace";
 
 /**
- * Where EveLab keeps its own state: canvas layouts, run recordings and
- * deployment history. Never project files, which stay a plain directory.
+ * Where EveLab keeps its own state: canvas layouts, repository links, run
+ * recordings and deployment history. Never project files.
  *
  * With `BLOB_READ_WRITE_TOKEN` set, state lives in Vercel Blob as private
- * objects, so it survives on Vercel Functions where the disk is ephemeral.
- * Without it, state is files beside the workspace, exactly where it always was.
+ * objects. When projects are stored in the database, state is kept there too,
+ * so a deployment with a read-only disk loses nothing. Otherwise state is
+ * files beside the workspace, exactly where it always was.
  */
 
 export interface StateStore {
-  kind: "fs" | "blob";
+  kind: "fs" | "blob" | "database";
   read(key: string): Promise<string | undefined>;
   write(key: string, content: string): Promise<void>;
   append(key: string, content: string): Promise<void>;
   /** Keys under a prefix, each relative to the store root. */
   list(prefix: string): Promise<string[]>;
+  /** Forgets a key. Nothing happens when it does not exist. */
+  remove(key: string): Promise<void>;
 }
 
 const KEY = /^[a-z0-9][a-z0-9._-]*(\/[A-Za-z0-9][A-Za-z0-9._-]*)*$/;
@@ -59,6 +63,9 @@ function fsStore(): StateStore {
         return [];
       }
     },
+    async remove(key) {
+      await rm(path(key), { force: true });
+    },
   };
 }
 
@@ -98,10 +105,60 @@ function blobStore(): StateStore {
       } while (cursor);
       return keys;
     },
+    async remove(key) {
+      const { del } = await import("@vercel/blob");
+      await del(`${BLOB_PREFIX}${assertKey(key)}`);
+    },
   };
   return store;
 }
 
+function databaseStore(): StateStore {
+  const database = () => {
+    const db = getDb();
+    if (!db) throw new Error("State is stored in the database, but DATABASE_URL is not set.");
+    return db;
+  };
+  return {
+    kind: "database",
+    async read(key) {
+      const [row] = await database()
+        .select({ content: appState.content })
+        .from(appState)
+        .where(eq(appState.key, assertKey(key)))
+        .limit(1);
+      return row?.content;
+    },
+    async write(key, content) {
+      const now = new Date();
+      await database()
+        .insert(appState)
+        .values({ key: assertKey(key), content, updatedAt: now })
+        .onConflictDoUpdate({ target: appState.key, set: { content, updatedAt: now } });
+    },
+    async append(key, content) {
+      const now = new Date();
+      await database()
+        .insert(appState)
+        .values({ key: assertKey(key), content, updatedAt: now })
+        .onConflictDoUpdate({ target: appState.key, set: { content: sql`${appState.content} || ${content}`, updatedAt: now } });
+    },
+    // Direct children of the prefix only, as a directory listing on disk returns them.
+    async list(prefix) {
+      const base = `${prefix.replace(/\/$/, "")}/`;
+      const rows = await database()
+        .select({ key: appState.key })
+        .from(appState)
+        .where(sql`starts_with(${appState.key}, ${base})`);
+      return rows.map((row) => row.key).filter((key) => !key.slice(base.length).includes("/"));
+    },
+    async remove(key) {
+      await database().delete(appState).where(eq(appState.key, assertKey(key)));
+    },
+  };
+}
+
 export function stateStore(): StateStore {
-  return process.env.BLOB_READ_WRITE_TOKEN ? blobStore() : fsStore();
+  if (process.env.BLOB_READ_WRITE_TOKEN) return blobStore();
+  return storageMode() === "database" ? databaseStore() : fsStore();
 }
