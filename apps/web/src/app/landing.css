@@ -6,7 +6,8 @@
 
 @layer components {
   .lp {
-    --lp-gutter: clamp(20px, 3vw, 32px);
+    /* Page width like vercel.com: 1400px of content inside 24px gutters, centered. */
+    --lp-gutter: max(clamp(20px, 3vw, 24px), calc((100% - 1400px) / 2));
     min-height: 100vh;
     background: var(--background);
     color: var(--foreground);
@@ -143,57 +144,6 @@
     text-wrap: pretty;
   }
 
-  /* The product, full width under the hero: a palette of pieces beside the canvas. */
-  .lp-product {
-    margin-inline: var(--lp-gutter);
-  }
-
-  .lp-product-body {
-    display: grid;
-    grid-template-columns: 200px minmax(0, 1fr);
-  }
-
-  .lp-palette {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    margin: 0;
-    padding: var(--space-3);
-    border-inline-end: 1px solid var(--border);
-    list-style: none;
-    font-size: 14px;
-    line-height: 20px;
-  }
-
-  .lp-palette li {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    height: 34px;
-    padding-inline: 10px;
-    border-radius: var(--radius);
-    color: var(--foreground-secondary);
-  }
-
-  .lp-palette li:first-child {
-    background: var(--surface-active);
-    color: var(--foreground);
-  }
-
-  .lp-palette svg {
-    color: var(--kind);
-  }
-
-  @media (max-width: 760px) {
-    .lp-product-body {
-      grid-template-columns: minmax(0, 1fr);
-    }
-
-    .lp-palette {
-      display: none;
-    }
-  }
-
   /* ---------- Feature grid ---------- */
 
   .lp-grid {
@@ -266,14 +216,9 @@
     padding: clamp(64px, 10vw, 128px) var(--lp-gutter) 0;
   }
 
-  .lp-heading-end {
-    align-self: flex-end;
-    text-align: end;
-  }
-
   .lp-feature {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 2.2fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.9fr);
     align-items: center;
     gap: clamp(32px, 5vw, 80px);
   }
@@ -282,32 +227,6 @@
     .lp-feature {
       grid-template-columns: minmax(0, 1fr);
     }
-
-    .lp-heading-end {
-      align-self: flex-start;
-      text-align: start;
-    }
-  }
-
-  .lp-feature-text {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-3);
-  }
-
-  .lp-statement {
-    margin-bottom: var(--space-6);
-    font-size: 20px;
-    line-height: 36px;
-    text-wrap: pretty;
-  }
-
-  .lp-statement strong {
-    font-weight: 500;
-  }
-
-  .lp-statement span {
-    color: var(--foreground-secondary);
   }
 
   .lp-list {
@@ -320,117 +239,62 @@
     line-height: 24px;
   }
 
-  /* ---------- Product windows ---------- */
+  .lp-step-number {
+    color: var(--foreground-tertiary);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 20px;
+  }
 
-  .lp-window {
+  /* ---------- Screenshots ---------- */
+
+  .lp-shot {
     overflow: hidden;
     border: 1px solid var(--border);
-    border-radius: 14px;
+    border-radius: 12px;
     background: var(--surface);
     box-shadow: var(--shadow);
   }
 
-  .lp-window-bar {
+  .lp-shot img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .lp-shot .lp-shot-dark,
+  [data-theme="dark"] .lp-shot .lp-shot-light {
+    display: none;
+  }
+
+  [data-theme="dark"] .lp-shot .lp-shot-dark {
+    display: block;
+  }
+
+  .lp-section-head {
     display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    height: 42px;
-    padding-inline: var(--space-4);
-    border-bottom: 1px solid var(--border);
+    flex-direction: column;
+    gap: var(--space-4);
+    max-width: 720px;
   }
 
-  .lp-window-dots {
-    display: flex;
-    gap: 6px;
-  }
-
-  .lp-window-dots i {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: var(--border-strong);
-  }
-
-  .lp-window-title {
+  .lp-eyebrow {
     color: var(--foreground-tertiary);
     font-family: var(--font-mono);
-    font-size: 12px;
-  }
-
-  .lp-board {
-    position: relative;
-    height: clamp(340px, 42vw, 580px);
-    background: var(--background);
-  }
-
-  .lp-board-dots {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    color: var(--border-strong);
-  }
-
-  .lp-graph {
-    padding: var(--space-4);
-  }
-
-  .lp-code-body {
-    display: grid;
-    grid-template-columns: 200px minmax(0, 1fr);
-    min-height: 320px;
-  }
-
-  @media (max-width: 600px) {
-    .lp-code-body {
-      grid-template-columns: minmax(0, 1fr);
-    }
-  }
-
-  .lp-tree {
-    margin: 0;
-    padding: var(--space-4) var(--space-2);
-    border-inline-end: 1px solid var(--border);
-    background: var(--background);
-    color: var(--foreground-secondary);
-    font-family: var(--font-mono);
-    font-size: 13px;
-    line-height: 28px;
-    font-feature-settings: "calt" 0, "liga" 0;
-    list-style: none;
-  }
-
-  .lp-tree li {
-    overflow: hidden;
-    border-radius: var(--radius);
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .lp-tree li[data-folder] {
-    color: var(--foreground);
-  }
-
-  .lp-tree li[data-active] {
-    background: var(--surface-active);
-    color: var(--foreground);
-  }
-
-  .lp-snippet {
-    margin: 0;
-    padding: var(--space-6);
     font-size: 13px;
     line-height: 20px;
-    font-feature-settings: "calt" 0, "liga" 0;
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
   }
 
-  /* ---------- Steps ---------- */
+  .lp-section-lede {
+    color: var(--foreground-secondary);
+    font-size: 18px;
+    line-height: 28px;
+    text-wrap: pretty;
+  }
 
-  .lp-steps {
+  .lp-cards {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--space-8);
     margin: 0;
     padding: 0;
@@ -438,38 +302,19 @@
   }
 
   @media (max-width: 860px) {
-    .lp-steps {
+    .lp-cards {
       grid-template-columns: minmax(0, 1fr);
     }
   }
 
-  .lp-step {
+  .lp-card {
     display: flex;
     flex-direction: column;
-    gap: var(--space-3);
-    padding-top: var(--space-6);
-    border-top: 1px solid var(--foreground);
+    gap: var(--space-2);
   }
 
-  .lp-step-number {
-    color: var(--foreground-tertiary);
-    font-family: var(--font-mono);
-    font-size: 13px;
-  }
-
-  .lp-step-title {
-    font-size: 20px;
-    font-weight: 450;
-    letter-spacing: -0.02em;
-    line-height: 26px;
-  }
-
-  .lp-step-body {
-    max-width: 38ch;
-    color: var(--foreground-secondary);
-    font-size: 16px;
-    line-height: 24px;
-    text-wrap: pretty;
+  .lp-card .lp-shot {
+    margin-bottom: var(--space-4);
   }
 
   /* ---------- Closing ---------- */
