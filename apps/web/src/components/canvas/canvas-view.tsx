@@ -1388,7 +1388,7 @@ function CanvasInner(props: CanvasProps) {
                 </TooltipTrigger>
                 <TooltipContent side="bottom">Wire style</TooltipContent>
               </Tooltip>
-              <DropdownMenuContent align="end" sideOffset={10} className="wire-panel">
+              <DropdownMenuContent align="end" sideOffset={10} className="wire-panel w-auto">
                 <p className="wire-panel-label">Wire style</p>
                 <div className="wire-panel-row" role="radiogroup" aria-label="Wire style">
                   {WIRE_OPTIONS.map((option) => (
