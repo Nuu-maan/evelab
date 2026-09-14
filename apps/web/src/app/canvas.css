@@ -1086,7 +1086,7 @@
    * Nodes as n8n draws them: an icon and a name, nothing else to read. An agent
    * is a card with its ports on the bottom edge and their labels underneath; a
    * tool, skill or connection is a round tile with its name below, a channel a
-   * square one. The icon sits in a glass tile: a translucent wash of the kind's
+   * square one. The icon sits in a soft tile: a translucent wash of the kind's
    * colour with a bright top edge, no gradient.
    */
   .node {
@@ -1160,7 +1160,7 @@
     box-shadow: 0 0 0 4px color-mix(in srgb, var(--kind) 20%, transparent), var(--shadow-small);
   }
 
-  /* The glass tile the icon sits in. */
+  /* The tile the icon sits in. */
   .node-glyph {
     display: grid;
     flex: none;
