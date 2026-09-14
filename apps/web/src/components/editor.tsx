@@ -1,7 +1,7 @@
 "use client";
 
 import Editor, { DiffEditor, type BeforeMount, type OnMount } from "@monaco-editor/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export function languageFor(path: string): string {
   if (path.endsWith(".ts") || path.endsWith(".tsx")) return "typescript";
@@ -162,6 +162,18 @@ export function CodeDiffEditor({
   language: string;
 }) {
   const dark = useDarkTheme();
+  const models = useRef<{ dispose(): void }[]>([]);
+
+  // Disposing the models while the diff widget still holds them throws; keep them until the widget is gone, then free them.
+  useEffect(
+    () => () => {
+      const held = models.current;
+      setTimeout(() => {
+        for (const model of held) model.dispose();
+      });
+    },
+    [],
+  );
 
   return (
     <DiffEditor
@@ -170,6 +182,12 @@ export function CodeDiffEditor({
       language={language}
       theme={dark ? "evelab-dark" : "evelab-light"}
       beforeMount={prepare}
+      keepCurrentOriginalModel
+      keepCurrentModifiedModel
+      onMount={(editor) => {
+        const model = editor.getModel();
+        if (model) models.current = [model.original, model.modified];
+      }}
       loading={<span className="hint">Loading diff</span>}
       options={{
         readOnly: true,

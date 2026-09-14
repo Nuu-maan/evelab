@@ -8,7 +8,7 @@ import { ASSISTANT_MODEL, assistantAvailable } from "@/lib/assistant";
 import { ProjectHeader } from "@/components/project-header";
 import { QuickOpen } from "@/components/quick-open";
 import { Sidebar } from "@/components/sidebar";
-import { getSourceSummary } from "@/lib/git";
+import { getSourceSummary, readGitState } from "@/lib/git";
 import { paneStyle } from "@/lib/panes";
 import { getAccount, requireProjectPage, visibleProjectIds } from "@/lib/session";
 import { SIDEBAR_COOKIE, parseSidebarState } from "@/lib/sidebar-state";
@@ -35,7 +35,10 @@ export default async function ProjectLayout({
   const [exists] = await Promise.all([projectExists(id), requireProjectPage(id)]);
   if (!exists) notFound();
   // Projects made before EveLab wrote docs get a README and .env.example, after the page is on its way.
-  after(() => syncProjectDocs(id, { onlyMissing: true }));
+  // A project linked to a repository keeps exactly the files that repository has.
+  after(async () => {
+    if (!(await readGitState(id))) await syncProjectDocs(id, { onlyMissing: true, create: true });
+  });
 
   const [project, all, visible, account, style, source, jar] = await Promise.all([
     getProject(id),

@@ -35,6 +35,7 @@ import {
   importRepository,
   previewImport,
   publishToNewRepository,
+  publishToOwnRepository,
   pullProject,
   sourceControlMessage,
 } from "@/lib/git";
@@ -704,6 +705,28 @@ export async function createRepositoryAction(input: {
       })
       .parse(input);
     const result = await publishToNewRepository(projectId, parsed.name, parsed.isPrivate, parsed.message);
+    revalidatePath(`/projects/${projectId}`, "layout");
+    return result;
+  });
+}
+
+/** Publishes a project that came from someone else's repository to a new repository on the caller's account. */
+export async function publishToOwnRepositoryAction(input: {
+  projectId: string;
+  name: string;
+  isPrivate: boolean;
+  message: string;
+}) {
+  const projectId = await projectFrom(input.projectId);
+  return sourceControl(async () => {
+    const parsed = z
+      .object({
+        name: newRepositoryNameSchema,
+        isPrivate: z.boolean(),
+        message: z.string().trim().min(1, "Write a commit message").max(5000),
+      })
+      .parse(input);
+    const result = await publishToOwnRepository(projectId, parsed.name, parsed.isPrivate, parsed.message);
     revalidatePath(`/projects/${projectId}`, "layout");
     return result;
   });

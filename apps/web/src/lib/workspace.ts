@@ -470,7 +470,7 @@ export async function writeProject(id: string, project: EveProject): Promise<voi
  * Keeps README.md and .env.example in step with the source. A file whose
  * marker line was deleted belongs to its author and is never overwritten.
  */
-export async function syncProjectDocs(id: string, options: { onlyMissing?: boolean } = {}): Promise<void> {
+export async function syncProjectDocs(id: string, options: { onlyMissing?: boolean; create?: boolean } = {}): Promise<void> {
   const docs = [
     { path: README_PATH, marker: README_MARKER, render: renderReadme },
     { path: ENV_EXAMPLE_PATH, marker: ENV_MARKER, render: renderEnvExample },
@@ -482,6 +482,8 @@ export async function syncProjectDocs(id: string, options: { onlyMissing?: boole
   const changes: FileChange[] = [];
   for (const [index, doc] of docs.entries()) {
     const existing = current[index];
+    // A missing README or .env.example is only written when asked, so an imported repository never grows files it did not have.
+    if (existing === undefined && !options.create) continue;
     if (existing !== undefined && (options.onlyMissing || !existing.includes(doc.marker))) continue;
     const content = doc.render(project);
     if (existing === content) continue;
@@ -561,9 +563,7 @@ async function writeNewProject(nameHint: string, files: ProjectFile[]): Promise<
 
 /** Creates a project from files that were already read and shown to the user, such as an imported repository. */
 export async function createProjectFromFiles(nameHint: string, files: ProjectFile[]): Promise<string> {
-  const id = await writeNewProject(nameHint, files);
-  await syncProjectDocs(id);
-  return id;
+  return writeNewProject(nameHint, files);
 }
 
 // Project ids are URL segments, so they must not shadow the routes beside them.
@@ -611,7 +611,7 @@ export async function createProject(input: CreateProjectInput): Promise<string> 
   const { project } = parseProject(scaffold, { fallbackName: id });
   project.agent.description = input.description;
   const created = await writeNewProject(id, generateProject(project));
-  await syncProjectDocs(created);
+  await syncProjectDocs(created, { create: true });
   return created;
 }
 
