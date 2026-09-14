@@ -50,12 +50,12 @@ export type LayoutMode = (typeof LAYOUT_MODES)[number];
 
 /** Card sizes by tier, so the root reads largest and resources smallest. Heights are what layout reserves. */
 export const NODE_SIZE: Record<CanvasNodeKind, { width: number; height: number }> = {
-  agent: { width: 320, height: 150 },
-  subagent: { width: 288, height: 146 },
-  tool: { width: 232, height: 118 },
-  skill: { width: 232, height: 118 },
-  connection: { width: 232, height: 118 },
-  channel: { width: 232, height: 118 },
+  agent: { width: 300, height: 132 },
+  subagent: { width: 280, height: 132 },
+  tool: { width: 240, height: 100 },
+  skill: { width: 240, height: 100 },
+  connection: { width: 240, height: 100 },
+  channel: { width: 240, height: 100 },
 };
 
 export type NodeSizes = Map<string, { width: number; height: number }>;
