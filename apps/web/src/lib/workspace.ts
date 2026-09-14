@@ -1,5 +1,5 @@
 import "server-only";
-import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import {
@@ -55,6 +55,11 @@ export interface ProjectSummary {
   toolCount: number;
   skillCount: number;
   subagentCount: number;
+  connectionCount: number;
+  channelCount: number;
+  fileCount: number;
+  /** When any file in the project last changed, in milliseconds. */
+  updatedAt: number;
   /** The canvas graph, for the picture on the project card. */
   graph: CanvasGraph;
 }
@@ -76,7 +81,9 @@ export async function listProjects(): Promise<ProjectSummary[]> {
     entries
       .filter((entry) => entry.isDirectory() && ID_PATTERN.test(entry.name))
       .map(async (entry) => {
-        const project = await readProject(entry.name);
+        const [project, files] = await Promise.all([readProject(entry.name), fileStats(projectRoot(entry.name))]);
+        const graph = getCanvasGraph(project);
+        const countOf = (kind: string) => graph.nodes.filter((node) => node.kind === kind).length;
         return {
           id: entry.name,
           name: project.agent.name,
@@ -84,12 +91,38 @@ export async function listProjects(): Promise<ProjectSummary[]> {
           toolCount: project.tools.length,
           skillCount: project.skills.length,
           subagentCount: project.subagents.length,
-          graph: getCanvasGraph(project),
+          connectionCount: countOf("connection"),
+          channelCount: countOf("channel"),
+          fileCount: files.count,
+          updatedAt: files.updatedAt,
+          graph,
         };
       }),
   );
 
   return summaries.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** How many files a project holds and when the newest of them changed. */
+async function fileStats(directory: string): Promise<{ count: number; updatedAt: number }> {
+  let count = 0;
+  let updatedAt = 0;
+  const entries = await readdir(directory, { withFileTypes: true });
+  await Promise.all(
+    entries.map(async (entry) => {
+      if (IGNORED.has(entry.name)) return;
+      const absolute = join(directory, entry.name);
+      if (entry.isDirectory()) {
+        const inner = await fileStats(absolute);
+        count += inner.count;
+        updatedAt = Math.max(updatedAt, inner.updatedAt);
+      } else if (entry.isFile()) {
+        count += 1;
+        updatedAt = Math.max(updatedAt, (await stat(absolute)).mtimeMs);
+      }
+    }),
+  );
+  return { count, updatedAt };
 }
 
 export async function projectExists(id: string): Promise<boolean> {

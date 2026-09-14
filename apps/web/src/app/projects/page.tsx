@@ -6,13 +6,71 @@ import { GraphPreview } from "@/components/graph-preview";
 import { KindCount } from "@/components/kinds";
 import { PlainShell } from "@/components/plain-shell";
 import { Avatar } from "@/components/project-switcher";
-import { Reveal, Stagger } from "@/components/motion";
+import { ProjectsBrowser } from "@/components/projects-browser";
+import { Reveal } from "@/components/motion";
 import { Button } from "@/components/ui/button";
 import { requireAccount, visibleProjectIds } from "@/lib/session";
 import { readLayout } from "@/lib/layout";
-import { listProjects } from "@/lib/workspace";
+import { listProjects, type ProjectSummary } from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
+
+const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
+  ["year", 31_536_000_000],
+  ["month", 2_592_000_000],
+  ["week", 604_800_000],
+  ["day", 86_400_000],
+  ["hour", 3_600_000],
+  ["minute", 60_000],
+];
+
+function ago(time: number): string {
+  const elapsed = Date.now() - time;
+  const format = new Intl.RelativeTimeFormat("en", { numeric: "auto", style: "short" });
+  for (const [unit, size] of UNITS) {
+    if (elapsed >= size) return format.format(-Math.floor(elapsed / size), unit);
+  }
+  return "just now";
+}
+
+function ProjectCard({ project, positions }: { project: ProjectSummary; positions: Parameters<typeof GraphPreview>[0]["positions"] }) {
+  return (
+    <Link className="project-card" href={`/projects/${project.id}`}>
+      <div className="project-card-preview" aria-hidden="true">
+        <svg className="project-card-dots">
+          <pattern id={`dots-${project.id}`} width="16" height="16" patternUnits="userSpaceOnUse">
+            <circle cx="8" cy="8" r="1" fill="currentColor" />
+          </pattern>
+          <rect width="100%" height="100%" fill={`url(#dots-${project.id})`} />
+        </svg>
+        <GraphPreview graph={project.graph} positions={positions} />
+        <span className="project-card-id">{project.id}</span>
+      </div>
+      <div className="project-card-body">
+        <div className="row min-w-0" style={{ gap: "var(--space-3)" }}>
+          <Avatar name={project.name} size="large" />
+          <div className="page-heading min-w-0">
+            <span className="card-title truncate">{project.name}</span>
+            <span className="project-card-model truncate">{project.model || "No model set"}</span>
+          </div>
+        </div>
+        <div className="project-card-counts">
+          <KindCount kind="subagent" count={project.subagentCount} />
+          <KindCount kind="tool" count={project.toolCount} />
+          <KindCount kind="skill" count={project.skillCount} />
+          <KindCount kind="connection" count={project.connectionCount} />
+          <KindCount kind="channel" count={project.channelCount} />
+        </div>
+      </div>
+      <div className="project-card-footer">
+        <span>
+          {project.fileCount} {project.fileCount === 1 ? "file" : "files"}
+        </span>
+        <time dateTime={new Date(project.updatedAt).toISOString()}>{ago(project.updatedAt)}</time>
+      </div>
+    </Link>
+  );
+}
 
 export default async function ProjectsPage() {
   await requireAccount();
@@ -29,6 +87,7 @@ export default async function ProjectsPage() {
           <Reveal>
             <header className="page-header">
               <div className="page-heading">
+                <span className="page-kicker">Workspace</span>
                 <h1 className="page-title">Projects</h1>
                 <p className="page-description">
                   Every project is a real Eve project on disk that runs with or without EveLab.
@@ -66,34 +125,17 @@ export default async function ProjectsPage() {
               </EmptyState>
             </Reveal>
           ) : (
-            <Stagger className="grid-fluid">
-              {projects.map((project) => (
-                <Link className="group block rounded-[14px]" href={`/projects/${project.id}`} key={project.id}>
-                  <article className="project-card">
-                    <div className="project-card-preview" aria-hidden="true">
-                      <GraphPreview graph={project.graph} positions={layouts.get(project.id) ?? {}} />
-                    </div>
-                    <div className="project-card-body">
-                      <div className="row" style={{ gap: "var(--space-3)" }}>
-                        <Avatar name={project.name} size="large" />
-                        <div className="page-heading min-w-0">
-                          <span className="card-title truncate">{project.name}</span>
-                          <span className="card-detail mono truncate">{project.model || "No model set"}</span>
-                        </div>
-                      </div>
-                      <div className="row" style={{ gap: "var(--space-4)" }}>
-                        <KindCount kind="tool" count={project.toolCount} />
-                        <KindCount kind="skill" count={project.skillCount} />
-                        <KindCount kind="subagent" count={project.subagentCount} />
-                        <span className="hint mono" style={{ marginLeft: "auto" }}>
-                          {project.id}
-                        </span>
-                      </div>
-                    </div>
-                  </article>
-                </Link>
-              ))}
-            </Stagger>
+            <Reveal delay={0.06}>
+              <ProjectsBrowser
+                projects={projects.map((project) => ({
+                  id: project.id,
+                  name: project.name,
+                  model: project.model,
+                  updatedAt: project.updatedAt,
+                  card: <ProjectCard project={project} positions={layouts.get(project.id) ?? {}} />,
+                }))}
+              />
+            </Reveal>
           )}
         </div>
       </main>
