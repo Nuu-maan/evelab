@@ -41,6 +41,7 @@ import {
 import { deploySettingsSchema, saveDeploySettings, startDeployment } from "@/lib/deploy";
 import { annotationSchema, LAYOUT_MODES, WIRE_STYLES } from "@/components/canvas/layout";
 import { writeLayout } from "@/lib/layout";
+import { discoverMcpTools, McpDiscoveryError, type DiscoveredTool } from "@/lib/mcp-discovery";
 import { createConnection, createSchedule, createSubagent, createTool, ProjectOpError } from "@/lib/project-ops";
 import { forgetProject, recordProject, requireProjectAccess, requireSignedIn } from "@/lib/session";
 import {
@@ -444,6 +445,29 @@ export async function createConnectionAction(input: {
   }
   revalidatePath(`/projects/${projectId}`, "layout");
   return { ok: true };
+}
+
+/**
+ * Lists an MCP server's tools so a connection's allow list can be picked
+ * rather than typed. A token given here is used for this request only and is
+ * never written anywhere.
+ */
+export async function discoverMcpToolsAction(input: {
+  projectId: string;
+  url: string;
+  token?: string;
+}): Promise<{ ok: true; tools: DiscoveredTool[] } | { ok: false; message: string }> {
+  await projectFrom(input.projectId);
+  const parsed = z
+    .object({ url: z.string().trim().min(1).max(2000), token: z.string().trim().max(4000).optional() })
+    .safeParse({ url: input.url, token: input.token });
+  if (!parsed.success) return { ok: false, message: "Enter the server's URL." };
+  try {
+    return { ok: true, tools: await discoverMcpTools(parsed.data.url, parsed.data.token || undefined) };
+  } catch (error) {
+    if (error instanceof McpDiscoveryError) return { ok: false, message: error.message };
+    return { ok: false, message: "Could not list tools from that server." };
+  }
 }
 
 const channelSchema = z
