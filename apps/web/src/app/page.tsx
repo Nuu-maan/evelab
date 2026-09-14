@@ -1,17 +1,20 @@
 import Link from "next/link";
 import {
+  IconArrowDown,
   IconArrowUpRight,
   IconCheck,
   IconChevronRight,
   IconCodeBracket,
+  IconDownload,
   IconFileText,
+  IconGitBranch,
   IconGlobe,
   IconLogoGithub,
   IconPointer,
 } from "@/components/icons";
 import { Icon } from "@/components/icon";
 import { KINDS } from "@/components/kinds";
-import { LandingDemo } from "@/components/landing/landing-demo";
+import { LandingTour } from "@/components/landing/landing-tour";
 import { Mark } from "@/components/mark";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -70,9 +73,10 @@ export default async function LandingPage() {
           EveLab
         </Link>
         <nav className="lp-nav" aria-label="Sections">
-          <a href="#demo">Demo</a>
+          <a href="#demo">Tour</a>
           <a href="#how">How it works</a>
           <a href="#features">Features</a>
+          <a href="#export">Export</a>
           <a href="https://eve.dev/docs" target="_blank" rel="noreferrer">
             Docs
           </a>
@@ -128,15 +132,14 @@ export default async function LandingPage() {
             <div className="lp-actions">
               {start(account ? "Open your projects" : "Start building", account ? "/projects" : "/projects/new")}
               <Button asChild variant="outline" size="lg" className="h-11 rounded-full px-6 text-[15px]">
-                <a href="#demo">Try the demo</a>
+                <a href="#demo">Watch the tour</a>
               </Button>
             </div>
           </div>
         </section>
 
-        <section className="lp-demo" id="demo" aria-label="Try EveLab">
-          <p className="lp-demo-label">Live demo. No sign up. Drag a piece onto the agent.</p>
-          <LandingDemo cta={start("Build this for real", "/projects/new", "sm")} />
+        <section className="lp-demo" id="demo" aria-label="EveLab tour">
+          <LandingTour />
         </section>
 
         <section className="lp-section" id="how" aria-labelledby="how-title">
@@ -357,6 +360,95 @@ export default async function LandingPage() {
           </ul>
         </section>
 
+        <section className="lp-section" id="export" aria-labelledby="export-title">
+          <div className="lp-section-split">
+            <div className="lp-section-head">
+              <p className="lp-eyebrow">Export</p>
+              <h2 className="lp-heading" id="export-title">
+                Your code, ready to ship
+              </h2>
+            </div>
+            <p className="lp-section-lede">
+              Nothing is locked in. Take the whole project whenever you like, as files or as a repository.
+            </p>
+          </div>
+
+          <ul className="lp-bento lp-bento-3">
+            <li className="lp-feature-card">
+              <div className="lp-feature-visual" aria-hidden="true">
+                <div className="lp-fx-zip">
+                  <span className="lp-fx-zip-head">
+                    <Icon icon={IconDownload} size={14} />
+                    support-desk.zip
+                    <span>12 files</span>
+                  </span>
+                  <ul>
+                    <li>agent/agent.ts</li>
+                    <li>agent/instructions.md</li>
+                    <li>agent/tools/search_docs.ts</li>
+                    <li>agent/connections/github.ts</li>
+                    <li>package.json</li>
+                  </ul>
+                </div>
+              </div>
+              <div className="lp-feature-text">
+                <h3 className="lp-card-title">Download a zip</h3>
+                <p className="lp-card-body">Every project file in one archive, laid out the way eve init creates it, ready for npm install and eve dev.</p>
+              </div>
+            </li>
+
+            <li className="lp-feature-card">
+              <div className="lp-feature-visual" aria-hidden="true">
+                <div className="lp-fx-commit">
+                  <span className="lp-fx-commit-repo">
+                    <Icon icon={IconLogoGithub} size={14} />
+                    you/support-desk
+                    <span className="lp-fx-branch">
+                      <Icon icon={IconGitBranch} size={12} />
+                      main
+                    </span>
+                  </span>
+                  <span className="lp-fx-commit-row">
+                    <span>Add search_docs tool and github connection</span>
+                    <code>a1c9e2f</code>
+                  </span>
+                  <span className="lp-fx-commit-done">
+                    <Icon icon={IconCheck} size={13} />
+                    Pushed 3 changed files
+                  </span>
+                </div>
+              </div>
+              <div className="lp-feature-text">
+                <h3 className="lp-card-title">Push to GitHub</h3>
+                <p className="lp-card-body">Create a new repository or connect one you have, review what changed and commit it with your own GitHub account.</p>
+              </div>
+            </li>
+
+            <li className="lp-feature-card">
+              <div className="lp-feature-visual" aria-hidden="true">
+                <div className="lp-fx-pull">
+                  <span className="lp-fx-pull-step">
+                    <Icon icon={IconLogoGithub} size={14} />
+                    Edited on GitHub
+                  </span>
+                  <span className="lp-fx-pull-arrow">
+                    <Icon icon={IconArrowDown} size={14} />
+                    Pull
+                  </span>
+                  <span className="lp-fx-pull-step" data-done="">
+                    <Icon icon={IconCheck} size={14} />
+                    Canvas redrawn from the files
+                  </span>
+                </div>
+              </div>
+              <div className="lp-feature-text">
+                <h3 className="lp-card-title">Pull changes back</h3>
+                <p className="lp-card-body">Keep editing in your own editor or on GitHub. Pull into EveLab and the canvas redraws from the files.</p>
+              </div>
+            </li>
+          </ul>
+        </section>
+
         <section className="lp-cta" aria-labelledby="cta-title">
           <h2 className="lp-display lp-display-small" id="cta-title">
             Draw your first agent
@@ -387,9 +479,10 @@ export default async function LandingPage() {
         </div>
         <nav className="lp-footer-links" aria-label="Product">
           <p className="lp-label">Product</p>
-          <a href="#demo">Demo</a>
+          <a href="#demo">Tour</a>
           <a href="#how">How it works</a>
           <a href="#features">Features</a>
+          <a href="#export">Export</a>
         </nav>
         <nav className="lp-footer-links" aria-label="Resources">
           <p className="lp-label">Resources</p>

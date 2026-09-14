@@ -203,12 +203,6 @@
     scroll-margin-top: 80px;
   }
 
-  .lp-demo-label {
-    margin-bottom: var(--space-3);
-    color: var(--foreground-tertiary);
-    font-size: 14px;
-    line-height: 20px;
-  }
 
   /* ---------- Sections ---------- */
 
@@ -647,6 +641,125 @@
     .lp-principles li:first-child {
       border-top: none;
     }
+  }
+
+  /* ---------- Export ---------- */
+
+  .lp-bento-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  @media (max-width: 1000px) {
+    .lp-bento-3 {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  .lp-fx-zip,
+  .lp-fx-commit {
+    width: 100%;
+    max-width: 300px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+  }
+
+  .lp-fx-zip-head,
+  .lp-fx-commit-repo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 42px;
+    padding-inline: 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .lp-fx-zip-head > span,
+  .lp-fx-branch {
+    margin-inline-start: auto;
+    color: var(--foreground-tertiary);
+    font-weight: 400;
+  }
+
+  .lp-fx-branch {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+
+  .lp-fx-zip ul {
+    margin: 0;
+    padding: 8px 12px 10px;
+    list-style: none;
+    color: var(--foreground-secondary);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 24px;
+  }
+
+  .lp-fx-commit-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px;
+    font-size: 13px;
+    line-height: 18px;
+  }
+
+  .lp-fx-commit-row code {
+    color: var(--foreground-tertiary);
+    font-size: 12px;
+  }
+
+  .lp-fx-commit-done {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-top: 1px solid var(--border);
+    color: var(--teal);
+    font-size: 13px;
+  }
+
+  .lp-fx-pull {
+    display: grid;
+    justify-items: center;
+    gap: 10px;
+  }
+
+  .lp-fx-pull-step {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 38px;
+    padding-inline: 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    font-size: 13px;
+  }
+
+  .lp-fx-pull-step[data-done] {
+    border-color: color-mix(in srgb, var(--teal) 40%, var(--border));
+  }
+
+  .lp-fx-pull-step[data-done] .icon {
+    color: var(--teal);
+  }
+
+  .lp-fx-pull-arrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--foreground-tertiary);
+    font-family: var(--font-mono);
+    font-size: 12px;
   }
 
   /* ---------- Closing ---------- */
