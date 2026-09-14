@@ -83,6 +83,8 @@ function withTimeout<T>(promise: Promise<T>): Promise<T> {
 
 async function listWith(transport: Transport): Promise<DiscoveredTool[]> {
   const client = new Client({ name: "evelab", version: "1.0.0" });
+  // Closing the client aborts its background stream; that is expected, not an error worth logging.
+  client.onerror = () => {};
   try {
     await client.connect(transport);
     const tools: DiscoveredTool[] = [];
