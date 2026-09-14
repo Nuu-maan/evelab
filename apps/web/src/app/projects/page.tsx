@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import type { CanvasNodeKind } from "@evelab/eve-project";
 import { IconArrowUpRight, IconGridSquare, IconLogoGithub, IconPlus } from "@/components/icons";
@@ -14,6 +15,8 @@ import { readLayout } from "@/lib/layout";
 import { listProjects, type ProjectSummary } from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = { title: "Projects" };
 
 const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
   ["year", 31_536_000_000],

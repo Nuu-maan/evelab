@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { IconLogoGithub } from "@/components/icons";
 import { Icon } from "@/components/icon";
@@ -8,6 +9,11 @@ import { signInAction } from "@/lib/actions";
 import { getAccount, isAuthEnabled } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Sign in",
+  robots: { index: false, follow: false },
+};
 
 export default async function SignInPage() {
   if (!isAuthEnabled() || (await getAccount())) redirect("/projects");
