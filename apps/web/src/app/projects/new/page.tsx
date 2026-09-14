@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { NewProjectWizard } from "@/components/new-project-wizard";
 import { PlainShell } from "@/components/plain-shell";
 import { Reveal } from "@/components/motion";
@@ -5,6 +6,8 @@ import { DEFAULT_MODEL_ID, listModels } from "@/lib/models";
 import { requireAccount } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = { title: "New project" };
 
 export default async function NewProjectPage() {
   await requireAccount();

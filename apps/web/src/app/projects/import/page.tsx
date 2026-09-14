@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { IconLogoGithub, IconPlus } from "@/components/icons";
 import { Icon } from "@/components/icon";
@@ -11,6 +12,8 @@ import { requireAccount } from "@/lib/session";
 import type { RepositoryOption } from "@/lib/source-types";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = { title: "Import from GitHub" };
 
 export default async function ImportPage() {
   await requireAccount();

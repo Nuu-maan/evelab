@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { after } from "next/server";
@@ -14,6 +15,12 @@ import { SIDEBAR_COOKIE, parseSidebarState } from "@/lib/sidebar-state";
 import { getProject, listProjectNames, projectExists, syncProjectDocs, validateProject } from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
+
+/** Tabs and history name the project; the page stays noindex from the projects layout. */
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  return { title: id };
+}
 
 export default async function ProjectLayout({
   children,
