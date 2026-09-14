@@ -362,6 +362,7 @@
     font-weight: var(--weight-semibold);
     line-height: 1;
     text-transform: uppercase;
+    object-fit: cover;
   }
 
   .avatar[data-size="large"] {

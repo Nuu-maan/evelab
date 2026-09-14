@@ -31,7 +31,7 @@ export async function PlainShell({ children }: { children: React.ReactNode }) {
           {account && (
             <>
               <span className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Avatar name={account.name} />
+                <Avatar name={account.name} image={account.image} />
                 {account.name}
               </span>
               <form action={signOutAction}>

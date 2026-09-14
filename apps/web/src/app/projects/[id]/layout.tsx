@@ -60,7 +60,7 @@ export default async function ProjectLayout({
           connections: project.connections.length,
           channels: project.channels.length,
         }}
-        account={account && { name: account.name }}
+        account={account && { name: account.name, image: account.image }}
       />
 
       <div className="workspace">

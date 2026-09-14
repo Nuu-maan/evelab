@@ -18,7 +18,13 @@ export interface SwitcherProject {
   name: string;
 }
 
-export function Avatar({ name, size }: { name: string; size?: "large" }) {
+/** A person's GitHub photo when there is one, otherwise the first letter of the name. */
+export function Avatar({ name, image, size }: { name: string; image?: string | null; size?: "large" }) {
+  if (image) {
+    // A plain img: GitHub avatars are already sized and cached, and need no optimisation route.
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img className="avatar" data-size={size} src={image} alt="" referrerPolicy="no-referrer" />;
+  }
   return (
     <span className="avatar" data-size={size} aria-hidden="true">
       {name.trim().charAt(0) || "?"}
