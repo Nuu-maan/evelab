@@ -22,7 +22,7 @@ export function ThemeToggle() {
     const onChange = (event: MediaQueryListEvent) => {
       if (localStorage.getItem(THEME_KEY)) return;
       const next: Theme = event.matches ? "dark" : "light";
-      root.dataset.theme = next;
+      apply(next);
       setTheme(next);
     };
     query.addEventListener("change", onChange);
@@ -30,6 +30,16 @@ export function ThemeToggle() {
   }, []);
 
   const next: Theme = theme === "dark" ? "light" : "dark";
+
+  const apply = (value: Theme) => {
+    // Pause every transition for one frame, so the new theme lands at once instead of each hover fade rippling in.
+    const pause = document.createElement("style");
+    pause.textContent = "*,*::before,*::after{transition:none!important}";
+    document.head.appendChild(pause);
+    document.documentElement.dataset.theme = value;
+    void window.getComputedStyle(document.body).opacity;
+    requestAnimationFrame(() => pause.remove());
+  };
 
   return (
     <Tooltip>
@@ -40,12 +50,13 @@ export function ThemeToggle() {
           type="button"
           aria-label={`Switch to ${next} theme`}
           onClick={() => {
-            document.documentElement.dataset.theme = next;
+            apply(next);
             localStorage.setItem(THEME_KEY, next);
             setTheme(next);
           }}
         >
-          <Icon icon={theme === "dark" ? IconSun : IconMoon} />
+          {/* Keyed, so the new glyph mounts and eases in over the old one. */}
+          <Icon key={theme ?? "unset"} icon={theme === "dark" ? IconSun : IconMoon} className="theme-toggle-icon" />
         </Button>
       </TooltipTrigger>
       <TooltipContent side="bottom">{theme === "dark" ? "Light theme" : "Dark theme"}</TooltipContent>

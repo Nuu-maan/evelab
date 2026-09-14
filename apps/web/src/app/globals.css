@@ -226,6 +226,26 @@
     outline-offset: 2px;
   }
 
+  /* The theme toggle's glyph: a quick scale and fade in, so the switch reads as a change of state. */
+  .theme-toggle-icon {
+    transition: opacity 150ms var(--ease-out), transform 150ms var(--ease-out);
+
+    @starting-style {
+      opacity: 0;
+      transform: scale(0.9) rotate(-30deg);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .theme-toggle-icon {
+      transition: opacity 150ms ease;
+
+      @starting-style {
+        transform: none;
+      }
+    }
+  }
+
   /* Icons sit in text runs and flex rows; Preflight's block display breaks both. */
   svg {
     display: inline-block;
