@@ -94,7 +94,8 @@ function ProjectCard({ project, positions }: { project: ProjectSummary; position
 
 export default async function ProjectsPage() {
   await requireAccount();
-  const [all, visible] = await Promise.all([listProjects(), visibleProjectIds()]);
+  const visible = await visibleProjectIds();
+  const all = await listProjects(visible);
   const projects = visible ? all.filter((project) => visible.has(project.id)) : all;
   const layouts = new Map(
     await Promise.all(projects.map(async (project) => [project.id, (await readLayout(project.id)).positions] as const)),
