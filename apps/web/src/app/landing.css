@@ -37,8 +37,8 @@
   }
 
   .lp-brand .topbar-mark {
-    width: 17px;
-    height: 17px;
+    width: 14px;
+    height: 14px;
   }
 
   .lp-credit {
@@ -120,83 +120,133 @@
   /* ---------- Hero ---------- */
 
   .lp-hero {
-    display: grid;
-    grid-template-columns: minmax(0, 1.7fr) minmax(0, 0.9fr) minmax(0, 0.8fr);
-    align-items: center;
-    gap: var(--space-8);
-    min-height: min(720px, calc(100vh - 64px));
-    padding: var(--space-16) var(--lp-gutter);
-  }
-
-  .lp-hero-copy {
     display: flex;
     flex-direction: column;
-    gap: var(--space-8);
+    align-items: flex-start;
+    gap: var(--space-6);
+    padding: clamp(72px, 10vw, 136px) var(--lp-gutter) clamp(48px, 6vw, 72px);
   }
 
-  .lp-hero-mark {
+  .lp-lede {
+    max-width: 52ch;
+    margin-bottom: var(--space-2);
+    color: var(--foreground-secondary);
+    font-size: clamp(18px, 1.6vw, 21px);
+    letter-spacing: -0.02em;
+    line-height: 1.5;
+    text-wrap: pretty;
+  }
+
+  /* The product, full width under the hero: a palette of pieces beside the canvas. */
+  .lp-product {
+    margin-inline: var(--lp-gutter);
+  }
+
+  .lp-product-body {
     display: grid;
-    place-items: center;
+    grid-template-columns: 200px minmax(0, 1fr);
   }
 
-  .lp-mark {
-    width: clamp(180px, 20vw, 280px);
-    height: auto;
-    color: var(--foreground);
-    filter: drop-shadow(0 28px 36px rgb(0 0 0 / 0.16));
+  .lp-palette {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 0;
+    padding: var(--space-3);
+    border-inline-end: 1px solid var(--border);
+    list-style: none;
+    font-size: 14px;
   }
 
-  .lp-hero-lines {
-    display: grid;
+  .lp-palette li {
+    display: flex;
+    align-items: center;
     gap: 10px;
+    height: 34px;
+    padding-inline: 10px;
+    border-radius: var(--radius);
+    color: var(--foreground-secondary);
+  }
+
+  .lp-palette li:first-child {
+    background: var(--surface-active);
+    color: var(--foreground);
+  }
+
+  .lp-palette svg {
+    color: var(--kind);
+  }
+
+  @media (max-width: 760px) {
+    .lp-product-body {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .lp-palette {
+      display: none;
+    }
+  }
+
+  /* ---------- Feature grid ---------- */
+
+  .lp-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     margin: 0;
     padding: 0;
+    border-block-start: 1px solid var(--border);
+    border-inline-start: 1px solid var(--border);
     list-style: none;
-    font-size: 17px;
-    letter-spacing: -0.01em;
   }
 
-  @media (max-width: 960px) {
-    .lp-hero {
+  @media (max-width: 1080px) {
+    .lp-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 600px) {
+    .lp-grid {
       grid-template-columns: minmax(0, 1fr);
+    }
+
+    .lp-cell {
       min-height: 0;
-      padding-block: var(--space-12);
+      padding-block: var(--space-6);
     }
 
-    .lp-hero-mark {
-      order: -1;
-      justify-items: start;
-    }
-
-    .lp-mark {
-      width: 112px;
+    .lp-cell-title {
+      margin-top: var(--space-2);
     }
   }
 
-  /* ---------- Strip ---------- */
-
-  .lp-strip {
+  .lp-cell {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-5) var(--space-8);
-    padding: var(--space-8) var(--lp-gutter);
-    border-block: 1px solid var(--border);
+    flex-direction: column;
+    gap: var(--space-3);
+    min-height: 220px;
+    padding: var(--space-8) var(--space-6);
+    border-block-end: 1px solid var(--border);
+    border-inline-end: 1px solid var(--border);
   }
 
-  .lp-strip-item {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    color: var(--foreground-secondary);
-    font-size: clamp(16px, 1.8vw, 22px);
+  .lp-cell svg {
+    margin-bottom: auto;
+    color: var(--kind);
+  }
+
+  .lp-cell-title {
+    margin-top: var(--space-8);
+    font-size: 19px;
     font-weight: var(--weight-medium);
     letter-spacing: -0.03em;
   }
 
-  .lp-strip-item svg {
-    color: var(--kind);
+  .lp-cell-body {
+    color: var(--foreground-secondary);
+    font-size: 15px;
+    line-height: 1.6;
+    text-wrap: pretty;
   }
 
   /* ---------- Feature sections ---------- */
@@ -220,13 +270,8 @@
     gap: clamp(32px, 5vw, 80px);
   }
 
-  .lp-feature-window-first {
-    grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr);
-  }
-
   @media (max-width: 960px) {
-    .lp-feature,
-    .lp-feature-window-first {
+    .lp-feature {
       grid-template-columns: minmax(0, 1fr);
     }
 
@@ -306,7 +351,7 @@
 
   .lp-board {
     position: relative;
-    height: clamp(360px, 44vw, 600px);
+    height: clamp(340px, 42vw, 580px);
     background: var(--background);
   }
 
