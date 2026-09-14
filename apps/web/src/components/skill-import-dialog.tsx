@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { IconWarning } from "@/components/icons";
@@ -10,14 +10,7 @@ import { Icon } from "@/components/icon";
 import { EASE_OUT } from "@/components/interaction";
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 
@@ -26,15 +19,18 @@ import { Input } from "@/components/ui/input";
  *
  * The review step shows where the skill came from, every file that would be
  * written, and which of them can run code. Nothing is written until Install.
+ * The canvas shows it in its side panel; other pages wrap it in a dialog.
  */
-export function SkillImportDialog({
+export function SkillImportForm({
   projectId,
-  open,
-  onClose,
+  onInstalled,
+  onCancel,
+  autoFocus,
 }: {
   projectId: string;
-  open: boolean;
-  onClose: () => void;
+  onInstalled: (skillId: string) => void;
+  onCancel?: () => void;
+  autoFocus?: boolean;
 }) {
   const router = useRouter();
   const [url, setUrl] = useState("");
@@ -42,14 +38,6 @@ export function SkillImportDialog({
   const [openFile, setOpenFile] = useState<string | undefined>();
   const [error, setError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    if (open) return;
-    setCandidate(undefined);
-    setOpenFile(undefined);
-    setError(undefined);
-    setBusy(false);
-  }, [open]);
 
   const preview = async () => {
     setBusy(true);
@@ -74,7 +62,7 @@ export function SkillImportDialog({
         files: candidate.files.map((file) => ({ path: file.path, content: file.content })),
       });
       router.refresh();
-      onClose();
+      onInstalled(candidate.id);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not install that skill.");
     } finally {
@@ -83,113 +71,124 @@ export function SkillImportDialog({
   };
 
   return (
+    <div className="flex flex-col gap-5">
+      <Field>
+        <FieldLabel htmlFor="skill-url">Source</FieldLabel>
+        <Input
+          className="font-mono"
+          id="skill-url"
+          value={url}
+          placeholder="@skills/vercel-labs/agent-skills/vercel-react-best-practices"
+          onChange={(event) => {
+            setUrl(event.target.value);
+            setCandidate(undefined);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && url && !busy) void preview();
+          }}
+          autoFocus={autoFocus}
+        />
+        <FieldDescription>A GitHub directory with a SKILL.md, a skills.sh link, or @skills/owner/repo/skill. Nothing is installed yet.</FieldDescription>
+        {error && <FieldError>{error}</FieldError>}
+      </Field>
+
+      {candidate && (
+        <>
+          <div className="grid-2">
+            <div className="stat">
+              <span className="stat-label">Name</span>
+              <span className="stat-value">{candidate.name}</span>
+            </div>
+            <div className="stat">
+              <span className="stat-label">Installs as</span>
+              <span className="stat-value mono">skills/{candidate.id}/</span>
+            </div>
+          </div>
+
+          {candidate.description && <p>{candidate.description}</p>}
+
+          {candidate.warnings.map((warning) => (
+            <Alert key={warning}>
+              <Icon icon={IconWarning} className="text-warning" />
+              <AlertTitle className="font-normal">{warning}</AlertTitle>
+            </Alert>
+          ))}
+
+          <div className="section">
+            <p className="label">{candidate.files.length} files</p>
+            {candidate.files.map((file) => (
+              <div key={file.path}>
+                <button
+                  className="file-chip"
+                  data-flagged={file.executable}
+                  type="button"
+                  onClick={() => setOpenFile(openFile === file.path ? undefined : file.path)}
+                >
+                  <span>{file.path}</span>
+                  <span className="hint">
+                    {file.executable ? "can run code · " : ""}
+                    {openFile === file.path ? "hide" : "read"}
+                  </span>
+                </button>
+                <MotionConfig reducedMotion="user">
+                  <AnimatePresence>
+                    {openFile === file.path && (
+                      <motion.pre
+                        className="code"
+                        style={{ marginTop: "var(--space-2)", maxHeight: 260 }}
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={EASE_OUT}
+                      >
+                        {file.content.slice(0, 8000)}
+                      </motion.pre>
+                    )}
+                  </AnimatePresence>
+                </MotionConfig>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      <div className="row">
+        {!candidate ? (
+          <Button type="button" disabled={!url || busy} onClick={() => void preview()}>
+            {busy ? "Reading" : "Read source"}
+          </Button>
+        ) : (
+          <>
+            <Button type="button" disabled={busy} onClick={() => void install()}>
+              {busy ? "Installing" : `Install ${candidate.files.length} files`}
+            </Button>
+            <Button variant="ghost" type="button" onClick={() => setCandidate(undefined)}>
+              Back
+            </Button>
+          </>
+        )}
+        {onCancel && !candidate && (
+          <Button variant="ghost" type="button" onClick={onCancel}>
+            Cancel
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function SkillImportDialog({ projectId, open, onClose }: { projectId: string; open: boolean; onClose: () => void }) {
+  return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent className="flex max-h-[82vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
         <DialogHeader className="p-5 pb-4">
           <DialogTitle>Import skill</DialogTitle>
-          <DialogDescription>A GitHub directory with a SKILL.md, a skills.sh link, or @skills/owner/repo/skill.</DialogDescription>
+          <DialogDescription>Read a skill from GitHub or skills.sh, review its files, then install it.</DialogDescription>
         </DialogHeader>
-
-        <div className="flex min-h-0 flex-col gap-5 overflow-y-auto px-5 pb-5">
-          <Field>
-            <FieldLabel htmlFor="skill-url">Source</FieldLabel>
-            <Input
-              className="font-mono"
-              id="skill-url"
-              value={url}
-              placeholder="@skills/vercel-labs/agent-skills/vercel-react-best-practices"
-              onChange={(event) => {
-                setUrl(event.target.value);
-                setCandidate(undefined);
-              }}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && url && !busy) void preview();
-              }}
-              autoFocus
-            />
-            <FieldDescription>
-              EveLab reads the directory and shows you what it found. It installs nothing yet.
-            </FieldDescription>
-            {error && <FieldError>{error}</FieldError>}
-          </Field>
-
-          {candidate && (
-            <>
-              <div className="grid-2">
-                <div className="stat">
-                  <span className="stat-label">Name</span>
-                  <span className="stat-value">{candidate.name}</span>
-                </div>
-                <div className="stat">
-                  <span className="stat-label">Installs as</span>
-                  <span className="stat-value mono">skills/{candidate.id}/</span>
-                </div>
-              </div>
-
-              {candidate.description && <p>{candidate.description}</p>}
-
-              {candidate.warnings.map((warning) => (
-                <Alert key={warning}>
-                  <Icon icon={IconWarning} className="text-warning" />
-                  <AlertTitle className="font-normal">{warning}</AlertTitle>
-                </Alert>
-              ))}
-
-              <div className="section">
-                <p className="label">{candidate.files.length} files</p>
-                {candidate.files.map((file) => (
-                  <div key={file.path}>
-                    <button
-                      className="file-chip"
-                      data-flagged={file.executable}
-                      type="button"
-                      onClick={() => setOpenFile(openFile === file.path ? undefined : file.path)}
-                    >
-                      <span>{file.path}</span>
-                      <span className="hint">
-                        {file.executable ? "can run code · " : ""}
-                        {openFile === file.path ? "hide" : "read"}
-                      </span>
-                    </button>
-                    <MotionConfig reducedMotion="user">
-                    <AnimatePresence>
-                      {openFile === file.path && (
-                        <motion.pre
-                          className="code"
-                          style={{ marginTop: "var(--space-2)", maxHeight: 260 }}
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          exit={{ opacity: 0, height: 0 }}
-                          transition={EASE_OUT}
-                        >
-                          {file.content.slice(0, 8000)}
-                        </motion.pre>
-                      )}
-                    </AnimatePresence>
-                    </MotionConfig>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
+        <div className="min-h-0 overflow-y-auto px-5 pb-5">
+          {/* Remounting on open starts every import from an empty form. */}
+          {open && <SkillImportForm projectId={projectId} autoFocus onInstalled={onClose} onCancel={onClose} />}
         </div>
-
-        <DialogFooter className="m-0 px-5 py-3">
-          {!candidate ? (
-            <Button type="button" disabled={!url || busy} onClick={() => void preview()}>
-              {busy ? "Reading" : "Read source"}
-            </Button>
-          ) : (
-            <>
-              <Button variant="ghost" type="button" onClick={() => setCandidate(undefined)}>
-                Back
-              </Button>
-              <Button type="button" disabled={busy} onClick={() => void install()}>
-                {busy ? "Installing" : `Install ${candidate.files.length} files`}
-              </Button>
-            </>
-          )}
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

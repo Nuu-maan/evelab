@@ -7,12 +7,13 @@ import { ChannelForm, type ChatSdkOption } from "@/components/channel-form";
 import { ConnectionForm } from "@/components/connection-form";
 import { Icon } from "@/components/icon";
 import { KindTile } from "@/components/kinds";
+import { SkillImportForm } from "@/components/skill-import-dialog";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { createSubagentAction, createToolAction } from "@/lib/actions";
 
-export type DraftKind = "tool" | "subagent" | "connection" | "channel";
+export type DraftKind = "tool" | "subagent" | "skill" | "connection" | "channel";
 
 const NAME_PATTERN = "[A-Za-z0-9][A-Za-z0-9_\\-]*";
 
@@ -24,6 +25,10 @@ const COPY: Record<DraftKind, { title: string; detail: (base: string) => string 
   subagent: {
     title: "New subagent",
     detail: (base) => `Writes ${base}subagents/<name>/ with its own agent.ts and instructions.`,
+  },
+  skill: {
+    title: "Add skill",
+    detail: (base) => `Imports a skill into ${base}skills/<name>/ from GitHub or skills.sh. Nothing is written until you install it.`,
   },
   connection: {
     title: "New connection",
@@ -103,7 +108,9 @@ export function CanvasCreatePanel({
       </header>
 
       <div className="inspector-scroll">
-        {kind === "connection" ? (
+        {kind === "skill" ? (
+          <SkillImportForm projectId={projectId} autoFocus onInstalled={onSubmitted} onCancel={onClose} />
+        ) : kind === "connection" ? (
           <ConnectionForm projectId={projectId} onCreated={onSubmitted} onCancel={onClose} autoFocus />
         ) : kind === "channel" ? (
           <ChannelForm
