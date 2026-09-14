@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { animate, motion, useMotionValue, useReducedMotion } from "motion/react";
+import { animate, motion, useMotionTemplate, useMotionValue, useReducedMotion } from "motion/react";
 import {
   IconHand,
   IconLockClosed,
@@ -92,6 +92,8 @@ function PieceButton({
   const y = useMotionValue(0);
   const scale = useMotionValue(1);
   const opacity = useMotionValue(1);
+  // One transform string: Motion's x, y and scale shorthands run on the main thread and drop frames mid-drag.
+  const transform = useMotionTemplate`translate3d(${x}px, ${y}px, 0) scale(${scale})`;
   const [ghost, setGhost] = useState(false);
   const [label, setLabel] = useState<string>();
   const drag = useRef<{ start: Point; home: Point; active: boolean }>(undefined);
@@ -200,7 +202,7 @@ function PieceButton({
             data-kind={kind}
             data-over={label ? "" : undefined}
             aria-hidden="true"
-            style={{ x, y, scale, opacity }}
+            style={{ transform, opacity }}
           >
             <span className="tool-ghost-tile">
               <Icon icon={piece.icon} />
@@ -356,6 +358,8 @@ export function CanvasPicker({
   kind,
   targetName,
   at,
+  origin,
+  instant,
   options,
   onPick,
   onCreate,
@@ -364,6 +368,10 @@ export function CanvasPicker({
   kind: CreateKind;
   targetName: string;
   at: Point;
+  /** Where it grows from, relative to its own corner. */
+  origin: string;
+  /** Opened from the keyboard, so it appears without animating. */
+  instant: boolean;
   options: PickerOption[];
   onPick: (id: string) => void;
   onCreate: () => void;
@@ -395,7 +403,8 @@ export function CanvasPicker({
     <div
       ref={ref}
       className="canvas-float canvas-picker"
-      style={{ insetInlineStart: at.x, top: at.y, width: PICKER_WIDTH }}
+      data-instant={instant || undefined}
+      style={{ insetInlineStart: at.x, top: at.y, width: PICKER_WIDTH, transformOrigin: origin }}
       role="dialog"
       aria-label={`Choose a ${noun}`}
     >
