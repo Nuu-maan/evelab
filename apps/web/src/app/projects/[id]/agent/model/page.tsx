@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { updateModelAction } from "@/lib/actions";
 import { describeModel, listModels } from "@/lib/models";
-import { readProject } from "@/lib/workspace";
+import { getProject } from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +23,7 @@ const REASONING = [
 
 export default async function ModelPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [project, models] = await Promise.all([readProject(id), listModels()]);
+  const [project, models] = await Promise.all([getProject(id), listModels()]);
   const { model, reasoning } = project.agent;
   const configPath = agentPath(project.root, "agent.ts");
   const configHref = `/projects/${id}/files?path=${encodeURIComponent(configPath)}`;

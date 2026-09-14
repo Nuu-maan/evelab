@@ -4,7 +4,7 @@ import { SettingCard } from "@/components/setting-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { updateAgentAction } from "@/lib/actions";
-import { readProject } from "@/lib/workspace";
+import { getProject } from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +14,7 @@ function countSubagents(subagents: Subagent[]): number {
 
 export default async function AgentGeneralPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const project = await readProject(id);
+  const project = await getProject(id);
   const base = `/projects/${id}`;
   const fileHref = (path: string) => `${base}/files?path=${encodeURIComponent(path)}`;
   const configPath = agentPath(project.root, "agent.ts");

@@ -5,7 +5,7 @@ import { Reveal } from "@/components/motion";
 import { Avatar } from "@/components/project-switcher";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { readProject } from "@/lib/workspace";
+import { getProject } from "@/lib/workspace";
 
 export default async function AgentLayout({
   children,
@@ -15,7 +15,7 @@ export default async function AgentLayout({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const project = await readProject(id);
+  const project = await getProject(id);
   const configPath = agentPath(project.root, "agent.ts");
   const { model, reasoning } = project.agent;
   const modelLabel = model?.id || (model?.expression ? "Model set in code" : "Default model");

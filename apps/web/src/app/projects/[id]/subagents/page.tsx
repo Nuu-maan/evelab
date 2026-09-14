@@ -19,7 +19,7 @@ import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { createSubagentAction, deleteEntityAction } from "@/lib/actions";
 import { DEFAULT_MODEL_ID } from "@/lib/models";
-import { readProject } from "@/lib/workspace";
+import { getProject } from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +29,7 @@ function plural(count: number, word: string): string {
 
 export default async function SubagentsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const project = await readProject(id);
+  const project = await getProject(id);
   const directory = agentPath(project.root, "subagents/");
 
   return (

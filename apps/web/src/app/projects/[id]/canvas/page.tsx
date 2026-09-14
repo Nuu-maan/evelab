@@ -2,13 +2,13 @@ import { CHAT_SDK_ADAPTERS, CHAT_SDK_STATES, getCanvasGraph, validateProject } f
 import { CanvasView } from "@/components/canvas/canvas-view";
 import { readLayout } from "@/lib/layout";
 import { DEFAULT_MODEL_ID, listModels } from "@/lib/models";
-import { readProject } from "@/lib/workspace";
+import { getProject } from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
 
 export default async function CanvasPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [project, layout, models] = await Promise.all([readProject(id), readLayout(id), listModels()]);
+  const [project, layout, models] = await Promise.all([getProject(id), readLayout(id), listModels()]);
   const graph = getCanvasGraph(project);
 
   // Node files are small and few; sending them with the page makes selecting a
