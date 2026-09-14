@@ -25,23 +25,17 @@ import {
 } from "@xyflow/react";
 import type { CanvasEdge, CanvasGraph, CanvasNode, CanvasNodeKind } from "@evelab/eve-project";
 import {
-  IconCheckCircle,
   IconFullscreen,
-  IconHeadArrow,
-  IconHeadDot,
-  IconHeadNone,
+  IconHelp,
+  IconMinus,
+  IconPlus,
+  IconRedo,
+  IconSettingsSliders,
+  IconSidebarLeft,
+  IconUndo,
   IconWireCurved,
   IconWireElbow,
   IconWireStraight,
-  IconInformation,
-  IconMinus,
-  IconWarning,
-  IconPlus,
-  IconRedo,
-  IconShare,
-  IconUndo,
-  IconSettingsSliders,
-  IconSidebarLeft,
 } from "@/components/icons";
 import {
   AnnotationContext,
@@ -77,9 +71,17 @@ import {
 import { CanvasCreatePanel, type DraftKind } from "@/components/canvas/canvas-create-panel";
 import { ResourceBrowser } from "@/components/canvas/resource-browser";
 import {
+  CanvasPicker,
+  CanvasToolbar,
+  isAnnotationPiece,
+  PICKER_WIDTH,
+  PIECE_ORDER,
+  type CanvasTool,
+  type PieceKind,
+} from "@/components/canvas/canvas-toolbar";
+import {
   autoLayout,
   type Annotation,
-  type Arrowhead,
   type LayoutMode,
   type NodeSizes,
   type Positions,
@@ -88,7 +90,7 @@ import {
 import type { ChatSdkOption } from "@/components/channel-form";
 import { ConfirmDialog } from "@/components/confirm";
 import { Icon, type IconData } from "@/components/icon";
-import { KINDS, KindTile } from "@/components/kinds";
+import { KINDS } from "@/components/kinds";
 import { SkillImportDialog } from "@/components/skill-import-dialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -100,9 +102,6 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -124,7 +123,6 @@ export interface CanvasProps {
   collapsed: string[];
   annotations: Annotation[];
   wireStyle: WireStyle;
-  arrowhead: Arrowhead;
   defaultModel: string;
   models: { id: string; label: string }[];
   /** Where the agent lives: "agent" or "" for the flat layout. */
@@ -136,16 +134,6 @@ export interface CanvasProps {
 
 type Result = { ok: true } | { ok: false; message: string };
 
-interface Stat {
-  label: string;
-  value: number;
-  icon: IconData;
-  kind?: CanvasNodeKind;
-  match: (node: CanvasNode) => boolean;
-  create?: CreateKind;
-  /** Hidden first when the canvas is narrow. */
-  optional?: boolean;
-}
 type Point = { x: number; y: number };
 
 type HistoryEntry =
@@ -157,14 +145,6 @@ const LAYOUTS: { mode: LayoutMode; label: string }[] = [
   { mode: "hierarchical", label: "Hierarchical" },
   { mode: "horizontal", label: "Horizontal" },
   { mode: "freeform", label: "Freeform" },
-];
-
-const ADD_ITEMS: { kind: CreateKind; hint: string }[] = [
-  { kind: "subagent", hint: "An agent the root delegates to" },
-  { kind: "tool", hint: "A function the model calls" },
-  { kind: "skill", hint: "Instructions loaded on demand" },
-  { kind: "connection", hint: "An MCP server or OpenAPI service" },
-  { kind: "channel", hint: "Chat SDK, Slack, HTTP and more" },
 ];
 
 /** Room for the floating panels, so fitting never tucks a card under them. */
@@ -181,24 +161,20 @@ const LEGEND: { kind: CanvasNodeKind; hint: string; dashed?: boolean }[] = [
 ];
 
 const WIRE_OPTIONS: { value: WireStyle; label: string; icon: IconData }[] = [
-  { value: "straight", label: "Straight", icon: IconWireStraight },
   { value: "curved", label: "Curved", icon: IconWireCurved },
   { value: "elbow", label: "Elbow", icon: IconWireElbow },
-];
-
-const ARROWHEAD_OPTIONS: { value: Arrowhead; label: string; icon: IconData }[] = [
-  { value: "none", label: "No arrowhead", icon: IconHeadNone },
-  { value: "arrow", label: "Arrow", icon: IconHeadArrow },
-  { value: "dot", label: "Dot", icon: IconHeadDot },
+  { value: "straight", label: "Straight", icon: IconWireStraight },
 ];
 
 const SHORTCUTS: [string, string][] = [
-  ["A", "Add resource"],
-  ["N", "New note"],
-  ["S", "New section"],
+  ["1 to 5", "Add a subagent, tool, skill, connection or channel"],
+  ["6 or N", "New note"],
+  ["7 or S", "New section"],
+  ["V", "Select"],
+  ["H", "Hand"],
   ["F", "Focus selection"],
   ["0", "Fit everything"],
-  ["1", "Go to root"],
+  ["G", "Go to root"],
   ["Space", "Hold to pan"],
   ["Shift drag", "Select an area"],
   ["Ctrl Z", "Undo"],
@@ -391,7 +367,7 @@ function CanvasInner(props: CanvasProps) {
   const [locked, setLocked] = useState(false);
   const [minimap, setMinimap] = useState(false);
   const [wireStyle, setWireStyle] = useState<WireStyle>(props.wireStyle);
-  const [arrowhead, setArrowhead] = useState<Arrowhead>(props.arrowhead);
+  const [tool, setTool] = useState<CanvasTool>("select");
   const [panelOpen, setPanelOpen] = useState(true);
   useEffect(() => {
     if ((surfaceRef.current?.clientWidth ?? 1024) < 640) setPanelOpen(false);
@@ -403,7 +379,7 @@ function CanvasInner(props: CanvasProps) {
   const [settling, setSettling] = useState(false);
   const [draft, setDraft] = useState<{ kind: DraftKind; owner?: string }>();
   const [importOpen, setImportOpen] = useState(false);
-  const [addOpen, setAddOpen] = useState(false);
+  const [picker, setPicker] = useState<{ kind: CreateKind; target: string; at: Point }>();
   const [confirmDelete, setConfirmDelete] = useState<CanvasNode>();
   const [notice, setNotice] = useState<{ text: string; tone?: "error"; undo?: boolean }>();
   const [pendingCount, setPendingCount] = useState(0);
@@ -411,15 +387,15 @@ function CanvasInner(props: CanvasProps) {
   const [editingId, setEditingId] = useState<string>();
   const [annotations, setAnnotations] = useState<AnnotationNode[]>(() => props.annotations.map(toAnnotationNode));
 
-  const layoutState = useRef<{ mode: LayoutMode; collapsed: Set<string>; wireStyle: WireStyle; arrowhead: Arrowhead }>({
+  const layoutState = useRef<{ mode: LayoutMode; collapsed: Set<string>; wireStyle: WireStyle }>({
     mode: initialMode,
     collapsed: new Set(props.collapsed),
     wireStyle: props.wireStyle,
-    arrowhead: props.arrowhead,
   });
   const annotationsRef = useRef(annotations);
   const savedAnnotations = useRef(JSON.stringify(props.annotations));
   const surfaceRef = useRef<HTMLDivElement>(null);
+  const layoutRef = useRef<HTMLDivElement>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const settleTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const noticeTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -568,7 +544,6 @@ function CanvasInner(props: CanvasProps) {
         collapsed: [...layoutState.current.collapsed],
         annotations: annotationsRef.current.map(fromAnnotationNode),
         wireStyle: layoutState.current.wireStyle,
-        arrowhead: layoutState.current.arrowhead,
       });
     };
     flushRef.current = save;
@@ -785,7 +760,7 @@ function CanvasInner(props: CanvasProps) {
   );
 
   const create = useCallback((kind: CreateKind, owner?: string) => {
-    setAddOpen(false);
+    setPicker(undefined);
     setSummaryOpen(false);
     if (kind === "skill") {
       setImportOpen(true);
@@ -793,6 +768,73 @@ function CanvasInner(props: CanvasProps) {
     }
     setDraft({ kind, owner: owner && owner !== "agent" && kind !== "channel" ? owner : undefined });
   }, []);
+
+  const agentAt = useCallback(
+    (point: Point): string | undefined => {
+      for (const element of document.elementsFromPoint(point.x, point.y)) {
+        const id = (element as HTMLElement).closest<HTMLElement>(".react-flow__node")?.dataset.id;
+        if (id && isAgentKind(kinds.get(id))) return id;
+      }
+      return undefined;
+    },
+    [kinds],
+  );
+
+  const overCanvas = useCallback((point: Point) => {
+    const target = document.elementFromPoint(point.x, point.y);
+    return Boolean(target && surfaceRef.current?.contains(target) && !target.closest(".canvas-float"));
+  }, []);
+
+  /**
+   * A piece from the toolbar asks which one to add. With nothing to choose from,
+   * such as a new subagent or channel, it goes straight to the create form.
+   */
+  const openPicker = useCallback(
+    (kind: CreateKind, options: { drop?: Point; anchor?: DOMRect } = {}) => {
+      setAttachTarget(undefined);
+      const chosen = getNodes().filter((node): node is CapabilityNode => node.selected === true && isCapability(node));
+      const selectedAgent = chosen.length === 1 && isAgentKind(chosen[0]!.data.kind) ? chosen[0]!.id : undefined;
+      const target =
+        kind === "channel" ? "agent" : options.drop ? (agentAt(options.drop) ?? "agent") : (selectedAgent ?? "agent");
+      const choices = isResourceKind(kind) ? graph.nodes.filter((node) => node.kind === kind && !uses(target, node.id)) : [];
+      const rect = layoutRef.current?.getBoundingClientRect();
+      if (choices.length === 0 || !rect) {
+        create(kind, target);
+        return;
+      }
+      const screen = options.drop
+        ? { x: options.drop.x + 12, y: options.drop.y + 12 }
+        : options.anchor
+          ? { x: options.anchor.left + options.anchor.width / 2 - PICKER_WIDTH / 2, y: options.anchor.bottom + 36 }
+          : { x: rect.left + rect.width / 2 - PICKER_WIDTH / 2, y: rect.top + 104 };
+      setPicker({
+        kind,
+        target,
+        at: {
+          x: Math.max(12, Math.min(screen.x - rect.left, rect.width - PICKER_WIDTH - 12)),
+          y: Math.max(12, Math.min(screen.y - rect.top, rect.height - 400)),
+        },
+      });
+    },
+    [agentAt, create, getNodes, graph.nodes, uses],
+  );
+
+  const closePicker = useCallback(() => setPicker(undefined), []);
+
+  /** What dropping a toolbar piece here would do, shown on the tile while it is carried. */
+  const describeDrop = useCallback(
+    (kind: PieceKind, point: Point): string | undefined => {
+      if (!overCanvas(point)) {
+        setAttachTarget(undefined);
+        return undefined;
+      }
+      if (isAnnotationPiece(kind)) return "Release to place";
+      const agent = kind === "channel" ? "agent" : (agentAt(point) ?? "agent");
+      setAttachTarget((current) => (current === agent ? current : agent));
+      return `Add to ${byId.get(agent)?.name ?? "the agent"}`;
+    },
+    [agentAt, byId, overCanvas],
+  );
 
   /* ---------- Annotations ---------- */
 
@@ -899,23 +941,6 @@ function CanvasInner(props: CanvasProps) {
     if (ok) say({ text: `Deleted ${node.name}` });
   }, [clearSelection, confirmDelete, projectId, run, say]);
 
-  /** Selects every card of a kind and brings them into view; an empty kind opens its create form instead. */
-  const focusGroup = useCallback(
-    (match: (node: CanvasNode) => boolean, createKind?: CreateKind) => {
-      const ids = new Set(graph.nodes.filter(match).map((node) => node.id));
-      if (ids.size === 0) {
-        if (createKind) create(createKind);
-        return;
-      }
-      setDraft(undefined);
-      setSummaryOpen(false);
-      setAnnotations((current) => current.map((node) => (node.selected ? ({ ...node, selected: false } as AnnotationNode) : node)));
-      setNodes((current) => current.map((node) => ({ ...node, selected: ids.has(node.id) })));
-      void fitView({ nodes: [...ids].map((id) => ({ id })), duration: 360, padding: FIT_PADDING, maxZoom: 1.1 });
-    },
-    [create, fitView, graph.nodes, setNodes],
-  );
-
   const selectedNodes = nodes.filter((node) => node.selected);
   const selectedEdges = edges.filter((edge) => edge.selected);
   const selectedAnnotations = annotations.filter((node) => node.selected);
@@ -998,25 +1023,40 @@ function CanvasInner(props: CanvasProps) {
         case "0":
           void fitView({ duration: 320, padding: FIT_PADDING, maxZoom: 1 });
           break;
-        case "1":
+        case "g":
+        case "G":
           void fitView({ nodes: [{ id: "agent" }], duration: 320, padding: 0.6, maxZoom: 1 });
           break;
-        case "a":
-        case "A":
+        case "1":
+        case "2":
+        case "3":
+        case "4":
+        case "5":
           event.preventDefault();
-          setAddOpen(true);
+          openPicker(PIECE_ORDER[Number(event.key) - 1]!);
           break;
+        case "h":
+        case "H":
+          setTool("hand");
+          break;
+        case "v":
+        case "V":
+          setTool("select");
+          break;
+        case "6":
         case "n":
         case "N":
           event.preventDefault();
           addAnnotation("note");
           break;
+        case "7":
         case "s":
         case "S":
           event.preventDefault();
           addAnnotation("section");
           break;
         case "Escape":
+          setPicker(undefined);
           setDraft(undefined);
           setSummaryOpen(false);
           clearSelection();
@@ -1036,6 +1076,7 @@ function CanvasInner(props: CanvasProps) {
     fitView,
     focusSelection,
     getNodes,
+    openPicker,
     redo,
     removeSelectedAnnotations,
     say,
@@ -1178,32 +1219,15 @@ function CanvasInner(props: CanvasProps) {
     [applyPositions, attach, attachTarget, persist, record],
   );
 
-  const agentAt = useCallback(
-    (point: Point): string | undefined => {
-      for (const element of document.elementsFromPoint(point.x, point.y)) {
-        const id = (element as HTMLElement).closest<HTMLElement>(".react-flow__node")?.dataset.id;
-        if (id && isAgentKind(kinds.get(id))) return id;
-      }
-      return undefined;
-    },
-    [kinds],
-  );
-
-  const overCanvas = useCallback((point: Point) => {
-    const target = document.elementFromPoint(point.x, point.y);
-    return Boolean(target && surfaceRef.current?.contains(target) && !target.closest(".canvas-float"));
-  }, []);
-
   const context = useMemo<CanvasContextValue>(
     () => ({
       mode,
       wireStyle,
-      arrowhead,
       uses,
       toggleCollapse,
       detachEdge: (agent, resource) => void detach(resource, agent),
     }),
-    [arrowhead, detach, mode, toggleCollapse, uses, wireStyle],
+    [detach, mode, toggleCollapse, uses, wireStyle],
   );
 
   const errors = issues.filter((issue) => issue.level === "error");
@@ -1216,43 +1240,16 @@ function CanvasInner(props: CanvasProps) {
           ? { label: "Unsaved", tone: "warning" }
           : { label: "Saved", tone: "ok" };
 
-  const count = (kind: CanvasNodeKind) => graph.nodes.filter((node) => node.kind === kind).length;
-  const agents = count("agent") + count("subagent");
-  const resources = count("tool") + count("skill") + count("connection");
-  const kindStat = (kind: Exclude<CanvasNodeKind, "agent" | "subagent">): Stat => ({
-    label: count(kind) === 1 ? KINDS[kind].label : KINDS[kind].plural,
-    value: count(kind),
-    icon: KINDS[kind].icon,
-    kind,
-    match: (node) => node.kind === kind,
-    create: kind,
-  });
-  const sharedCount = graph.nodes.filter((node) => node.shared).length;
-  const stats: Stat[] = [
-    {
-      label: agents === 1 ? "Agent" : "Agents",
-      value: agents,
-      icon: KINDS.subagent.icon,
-      kind: "subagent",
-      match: (node) => isAgentKind(node.kind),
-      create: "subagent",
-    },
-    kindStat("tool"),
-    kindStat("skill"),
-    kindStat("connection"),
-    { ...kindStat("channel"), optional: true },
-    { label: "Shared", value: sharedCount, icon: IconShare, match: (node) => node.shared === true, optional: true },
-  ];
   const notes = annotations.length;
   const rootNode = byId.get("agent");
   const empty = graph.nodes.every((node) => node.kind === "agent" || node.kind === "channel");
-  const attachable = addTarget ? graph.nodes.filter((node) => isResourceKind(node.kind) && !uses(addTarget.id, node.id)) : [];
   const showInspector = Boolean(draft || selected || summaryOpen);
 
   return (
     <CanvasContext.Provider value={context}>
       <AnnotationContext.Provider value={annotationContext}>
         <div
+          ref={layoutRef}
           className="canvas-layout"
           data-mode={mode}
           data-panel={panelOpen || undefined}
@@ -1262,6 +1259,7 @@ function CanvasInner(props: CanvasProps) {
             className="canvas-surface"
             ref={surfaceRef}
             data-locked={locked || undefined}
+            data-tool={tool}
             onDoubleClick={(event) => {
               // Double-click on empty canvas writes a note there, as on a whiteboard.
               if (!(event.target as HTMLElement).classList.contains("react-flow__pane")) return;
@@ -1291,8 +1289,9 @@ function CanvasInner(props: CanvasProps) {
               isValidConnection={isValidConnection}
               connectionLineComponent={CanvasConnectionLine}
               connectionRadius={40}
-              // Whiteboard controls: drag and scroll pan, Ctrl or pinch zooms, Shift draws a selection.
-              panOnDrag
+              // Whiteboard controls as in Excalidraw: select drags a selection, hand or Space pans, scroll pans, Ctrl or pinch zooms.
+              panOnDrag={tool === "hand" ? true : [1, 2]}
+              selectionOnDrag={tool === "select"}
               panOnScroll
               selectionKeyCode="Shift"
               multiSelectionKeyCode={["Meta", "Control"]}
@@ -1301,8 +1300,9 @@ function CanvasInner(props: CanvasProps) {
               deleteKeyCode={null}
               snapToGrid={snap}
               snapGrid={[24, 24]}
-              nodesDraggable={!locked}
-              nodesConnectable={!locked}
+              nodesDraggable={!locked && tool === "select"}
+              nodesConnectable={!locked && tool === "select"}
+              elementsSelectable={tool === "select"}
               elevateEdgesOnSelect
               onlyRenderVisibleElements={graph.nodes.length > 120}
               // React Flow asks open projects without a Pro plan to keep its attribution.
@@ -1337,128 +1337,51 @@ function CanvasInner(props: CanvasProps) {
                 {saveState.label}
               </p>
             </div>
-            <ToolbarButton label="Undo" tooltip="Undo (Ctrl Z)" onClick={undo}>
-              <Icon icon={IconUndo} />
-            </ToolbarButton>
-            <ToolbarButton label="Redo" tooltip="Redo (Ctrl Shift Z)" onClick={redo}>
-              <Icon icon={IconRedo} />
-            </ToolbarButton>
           </div>
 
-          <div className="canvas-float canvas-stats" role="toolbar" aria-label="Canvas">
-            <DropdownMenu open={addOpen} onOpenChange={setAddOpen}>
-              <DropdownMenuTrigger asChild>
-                <Button size="sm" className="gap-1.5 pe-1.5">
-                  <Icon icon={IconPlus} />
-                  Add
-                  <kbd className="button-kbd">A</kbd>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" sideOffset={10} className="w-72">
-                <DropdownMenuLabel>Add to {addTarget?.kind === "subagent" ? addTarget.name : "the architecture"}</DropdownMenuLabel>
-                {ADD_ITEMS.map((item) => (
-                  <DropdownMenuItem
-                    key={item.kind}
-                    onSelect={() => create(item.kind, addTarget?.id)}
-                    disabled={item.kind === "channel" && addTarget?.kind === "subagent"}
-                  >
-                    <KindTile kind={item.kind} />
-                    <span className="menu-text">
-                      {KINDS[item.kind].label}
-                      <span className="menu-hint">{item.hint}</span>
-                    </span>
-                  </DropdownMenuItem>
-                ))}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={() => addAnnotation("note")}>
-                  <span className="menu-text">
-                    Note
-                    <span className="menu-hint">Handwritten text on the canvas</span>
-                  </span>
-                  <kbd className="menu-kbd">N</kbd>
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => addAnnotation("section")}>
-                  <span className="menu-text">
-                    Section
-                    <span className="menu-hint">A coloured frame to group agents</span>
-                  </span>
-                  <kbd className="menu-kbd">S</kbd>
-                </DropdownMenuItem>
-                {attachable.length > 0 && addTarget && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuSub>
-                      <DropdownMenuSubTrigger>Attach existing to {addTarget.name}</DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent className="w-60">
-                        {attachable.map((resource) => (
-                          <DropdownMenuItem key={resource.id} onSelect={() => void attach(resource.id, addTarget.id)}>
-                            <KindTile kind={resource.kind} />
-                            <span className="min-w-0 flex-1 truncate">{resource.name}</span>
-                            {resource.shared && <span className="menu-meta">Shared</span>}
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuSubContent>
-                    </DropdownMenuSub>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+          <CanvasToolbar
+            tool={tool}
+            onTool={setTool}
+            locked={locked}
+            onLock={() => setLocked((value) => !value)}
+            issueCount={issues.length}
+            issueTone={errors.length > 0 ? "error" : issues.length > 0 ? "warning" : "ok"}
+            issuesOpen={summaryOpen}
+            onIssues={() => {
+              clearSelection();
+              setDraft(undefined);
+              setSummaryOpen((open) => !open);
+            }}
+            describeDrop={describeDrop}
+            onDragEnd={() => setAttachTarget(undefined)}
+            onPieceDrop={(kind, point) => {
+              if (isAnnotationPiece(kind)) addAnnotation(kind, screenToFlowPosition(point));
+              else openPicker(kind, { drop: point });
+            }}
+            onPieceActivate={(kind, anchor) => {
+              if (isAnnotationPiece(kind)) addAnnotation(kind);
+              else openPicker(kind, { anchor });
+            }}
+          />
 
-            <span className="canvas-stats-separator" aria-hidden="true" />
-
-            {stats.map((stat) => (
-              <Tooltip key={stat.label}>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    className="canvas-stat"
-                    // The label hides on a narrow canvas, so the name travels with the button.
-                    aria-label={`${stat.value} ${stat.label}`}
-                    data-kind={stat.kind}
-                    data-optional={stat.optional || undefined}
-                    data-empty={stat.value === 0 || undefined}
-                    onClick={() => focusGroup(stat.match, stat.create)}
-                  >
-                    <Icon icon={stat.icon} />
-                    <span className="canvas-stat-value">{stat.value}</span>
-                    <span className="canvas-stat-label">{stat.label}</span>
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" sideOffset={8}>
-                  {stat.value === 0 && stat.create
-                    ? `Add ${stat.create === "subagent" ? "a subagent" : `a ${KINDS[stat.create].label.toLowerCase()}`}`
-                    : `Show on the canvas`}
-                </TooltipContent>
-              </Tooltip>
-            ))}
-            <span className="canvas-stats-separator" aria-hidden="true" />
-            <button
-              type="button"
-              className="canvas-stat"
-              data-tone={errors.length > 0 ? "error" : issues.length > 0 ? "warning" : "ok"}
-              aria-pressed={summaryOpen}
-              onClick={() => {
-                clearSelection();
-                setDraft(undefined);
-                setSummaryOpen((open) => !open);
+          {picker && (
+            <CanvasPicker
+              key={`${picker.kind}-${picker.target}`}
+              kind={picker.kind}
+              targetName={byId.get(picker.target)?.name ?? "the agent"}
+              at={picker.at}
+              options={graph.nodes
+                .filter((node) => node.kind === picker.kind && !uses(picker.target, node.id))
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .map((node) => ({ id: node.id, name: node.name, detail: node.detail, shared: node.shared }))}
+              onPick={(id) => {
+                setPicker(undefined);
+                void attach(id, picker.target);
               }}
-            >
-              <Icon icon={issues.length > 0 ? IconWarning : IconCheckCircle} />
-              <span className="canvas-stat-value">{issues.length}</span>
-              <span className="canvas-stat-label">{issues.length === 1 ? "Issue" : "Issues"}</span>
-            </button>
-          </div>
-
-
-
-          {/* The arrowhead marker every wire can point at; it takes the colour of the wire using it. */}
-          <svg className="wire-defs" aria-hidden="true" width="0" height="0">
-            <defs>
-              <marker id="wire-arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-                <path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke" />
-              </marker>
-            </defs>
-          </svg>
+              onCreate={() => create(picker.kind, picker.target)}
+              onClose={closePicker}
+            />
+          )}
 
           <div className="canvas-float canvas-view-menu">
             <DropdownMenu>
@@ -1472,9 +1395,9 @@ function CanvasInner(props: CanvasProps) {
                 </TooltipTrigger>
                 <TooltipContent side="bottom">Wire style</TooltipContent>
               </Tooltip>
-              <DropdownMenuContent align="end" sideOffset={10} className="wire-panel w-60">
-                <p className="wire-panel-label">Arrow type</p>
-                <div className="wire-panel-row" role="radiogroup" aria-label="Arrow type">
+              <DropdownMenuContent align="end" sideOffset={10} className="wire-panel">
+                <p className="wire-panel-label">Wire style</p>
+                <div className="wire-panel-row" role="radiogroup" aria-label="Wire style">
                   {WIRE_OPTIONS.map((option) => (
                     <button
                       key={option.value}
@@ -1494,47 +1417,6 @@ function CanvasInner(props: CanvasProps) {
                     </button>
                   ))}
                 </div>
-                <p className="wire-panel-label">Arrowheads</p>
-                <div className="wire-panel-row" role="radiogroup" aria-label="Arrowheads">
-                  {ARROWHEAD_OPTIONS.map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      role="radio"
-                      aria-checked={arrowhead === option.value}
-                      aria-label={option.label}
-                      title={option.label}
-                      className="wire-panel-option"
-                      onClick={() => {
-                        setArrowhead(option.value);
-                        layoutState.current.arrowhead = option.value;
-                        persist();
-                      }}
-                    >
-                      <Icon icon={option.icon} />
-                    </button>
-                  ))}
-                </div>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon-sm" aria-label="Keyboard shortcuts">
-                  <Icon icon={IconInformation} />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" sideOffset={10} className="w-64">
-                <DropdownMenuLabel>Shortcuts</DropdownMenuLabel>
-                <dl className="shortcut-list">
-                  {SHORTCUTS.map(([keys, label]) => (
-                    <div key={keys}>
-                      <dt>{label}</dt>
-                      <dd>
-                        <kbd>{keys}</kbd>
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
               </DropdownMenuContent>
             </DropdownMenu>
             <DropdownMenu>
@@ -1575,9 +1457,6 @@ function CanvasInner(props: CanvasProps) {
                 </DropdownMenuCheckboxItem>
                 <DropdownMenuCheckboxItem checked={minimap} onCheckedChange={(value) => setMinimap(value === true)}>
                   Minimap
-                </DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem checked={locked} onCheckedChange={(value) => setLocked(value === true)}>
-                  Lock canvas
                 </DropdownMenuCheckboxItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -1621,6 +1500,18 @@ function CanvasInner(props: CanvasProps) {
                 <Icon icon={IconSidebarLeft} />
               </ToolbarButton>
             </div>
+            <ZoomControls />
+            <div className="canvas-float canvas-icon-float canvas-history">
+              <ToolbarButton label="Undo" tooltip="Undo (Ctrl Z)" onClick={undo}>
+                <Icon icon={IconUndo} />
+              </ToolbarButton>
+              <ToolbarButton label="Redo" tooltip="Redo (Ctrl Shift Z)" onClick={redo}>
+                <Icon icon={IconRedo} />
+              </ToolbarButton>
+            </div>
+          </div>
+
+          <div className="canvas-bottom-right">
             <div className="canvas-float canvas-status" role="list" aria-label="Wire colours">
               <span className="legend-title" aria-hidden="true">
                 Wires to
@@ -1647,25 +1538,45 @@ function CanvasInner(props: CanvasProps) {
               ))}
               <span className="canvas-status-mode">{LAYOUTS.find((layout) => layout.mode === mode)?.label}</span>
             </div>
+            <div className="canvas-float canvas-icon-float">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon-sm" aria-label="Keyboard shortcuts">
+                    <Icon icon={IconHelp} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" side="top" sideOffset={10} className="w-72">
+                  <DropdownMenuLabel>Shortcuts</DropdownMenuLabel>
+                  <dl className="shortcut-list">
+                    {SHORTCUTS.map(([keys, label]) => (
+                      <div key={keys}>
+                        <dt>{label}</dt>
+                        <dd>
+                          <kbd>{keys}</kbd>
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
 
           {selectedAnnotations.length > 0 && (
             <AnnotationToolbar selection={selectedAnnotations.map((node) => node.data)} onChange={styleSelected} />
           )}
 
-          <ZoomControls />
-
           {empty && !draft && annotations.length === 0 && (
             <div className="canvas-empty">
               <p className="canvas-empty-title">Build your agent architecture</p>
               <p className="canvas-empty-text">
-                Give the root agent subagents, tools, skills and connections, then sketch around them with notes and
-                sections. A resource can be shared by any number of agents and is still defined once.
+                Drag a subagent, tool, skill or connection from the toolbar onto an agent, then sketch around them with
+                notes and sections. A resource can be shared by any number of agents and is still defined once.
               </p>
               <div className="row justify-center">
-                <Button size="sm" onClick={() => setAddOpen(true)}>
+                <Button size="sm" onClick={() => openPicker("tool")}>
                   <Icon icon={IconPlus} />
-                  Add resource
+                  Add a tool
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => addAnnotation("note")}>
                   Write a note

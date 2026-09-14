@@ -207,54 +207,264 @@
     }
   }
 
-  /* The stats bar: one row of kind-coloured readings, each a way to find those cards. */
   /*
-   * Centred in the space between the title card and the view menu, never
-   * under either: both insets are set and auto margins do the centring.
+   * The toolbar, as in Excalidraw: square tools with their key in the corner,
+   * centred between the title card and the view menu, with a hint underneath.
    */
-  .canvas-stats {
+  .canvas-toolbar-wrap {
     position: absolute;
     top: var(--float-gap);
     inset-inline-start: calc(var(--browser-width) + var(--float-gap) * 2);
     inset-inline-end: calc(76px + var(--float-gap) * 2);
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    pointer-events: none;
+  }
+
+  .canvas-toolbar {
     display: flex;
     align-items: center;
-    gap: 1px;
-    width: fit-content;
-    max-width: calc(100% - var(--browser-width) - 76px - var(--float-gap) * 4);
+    gap: 2px;
+    max-width: 100%;
     height: 52px;
-    margin-inline: auto;
-    padding-inline: 7px;
+    padding-inline: 6px;
+    pointer-events: auto;
+  }
+
+  .tool-group {
+    display: contents;
+  }
+
+  .tool-separator {
+    flex: none;
+    width: 1px;
+    height: 24px;
+    margin-inline: 5px;
+    background: var(--border);
+  }
+
+  .tool-button {
+    position: relative;
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 9px;
+    color: var(--foreground-secondary);
+    touch-action: none;
+    transition: background-color var(--duration-hover) ease, color var(--duration-hover) ease,
+      transform var(--duration-press) var(--ease-out);
+  }
+
+  .tool-button[data-kind] {
+    cursor: grab;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .tool-button:hover {
+      background: var(--surface-hover);
+      color: var(--foreground);
+    }
+
+    .tool-button[data-kind]:hover {
+      color: var(--kind);
+    }
+  }
+
+  .tool-button:active {
+    transform: scale(0.94);
+  }
+
+  .tool-button:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: -2px;
+  }
+
+  .tool-button[aria-pressed="true"] {
+    background: color-mix(in srgb, var(--focus) 16%, transparent);
+    color: var(--focus);
+  }
+
+  .tool-button[data-lifted] {
+    background: color-mix(in srgb, var(--kind, var(--foreground)) 12%, transparent);
+    color: var(--kind, var(--foreground));
+  }
+
+  .tool-button[data-tone="ok"] {
+    color: var(--success);
+  }
+
+  .tool-button[data-tone="warning"] {
+    color: var(--warning);
+  }
+
+  .tool-button[data-tone="error"] {
+    color: var(--danger);
+  }
+
+  .tool-key {
+    position: absolute;
+    inset-inline-end: 4px;
+    bottom: 2px;
+    color: var(--foreground-tertiary);
+    font-family: var(--font-mono);
+    font-size: 9px;
+    line-height: 1;
+    pointer-events: none;
+  }
+
+  .tool-button[data-tone] .tool-key {
+    color: currentColor;
+    font-weight: var(--weight-semibold);
+  }
+
+  .canvas-toolbar-hint {
+    max-width: 100%;
     overflow: hidden;
+    color: var(--foreground-tertiary);
+    font-size: 11.5px;
+    text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  /* Labels go first as the free space narrows; the counts, icons and Add stay. The open panel takes 260px of it. */
-  @container canvas (max-width: 1240px) {
-    .canvas-layout[data-panel] .canvas-stat-label {
-      display: none;
-    }
+  .canvas-toolbar-hint kbd {
+    padding: 0 4px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface);
+    font-size: 10px;
+  }
 
-    .canvas-layout[data-panel] .canvas-stat {
-      padding-inline: 8px;
+  /* The tile carried off the toolbar, naming where it will land. */
+  .tool-ghost {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: -21px 0 0 -21px;
+    padding: 3px 12px 3px 3px;
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    background: var(--surface-raised);
+    box-shadow: var(--shadow-large, var(--shadow));
+    transform-origin: 21px 21px;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  .tool-ghost-tile {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--kind, var(--foreground)) 14%, var(--surface));
+    color: var(--kind, var(--foreground));
+  }
+
+  .tool-ghost-label {
+    color: var(--foreground-secondary);
+    font-size: 12.5px;
+  }
+
+  .tool-ghost[data-over] {
+    border-color: color-mix(in srgb, var(--kind, var(--focus)) 55%, var(--border));
+  }
+
+  .tool-ghost[data-over] .tool-ghost-label {
+    color: var(--foreground);
+  }
+
+  /* The question a dropped piece asks. */
+  .canvas-picker {
+    position: absolute;
+    z-index: 30;
+    overflow: hidden;
+    animation: picker-in 160ms var(--ease-out) both;
+    transform-origin: top left;
+  }
+
+  @keyframes picker-in {
+    from {
+      opacity: 0;
+      transform: scale(0.96);
     }
   }
 
-  @container canvas (max-width: 990px) {
-    .canvas-stat-label {
+  @media (prefers-reduced-motion: reduce) {
+    .canvas-picker {
+      animation: none;
+    }
+  }
+
+  .canvas-picker [data-slot="command"] {
+    background: transparent;
+  }
+
+  .canvas-picker-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 12px 4px;
+  }
+
+  .canvas-picker-title {
+    font-size: 13px;
+    font-weight: var(--weight-semibold);
+  }
+
+  .canvas-picker-target {
+    overflow: hidden;
+    color: var(--foreground-tertiary);
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .canvas-picker-list {
+    max-height: 300px;
+  }
+
+  .picker-new-tile {
+    color: var(--foreground-secondary);
+  }
+
+  /* The lock, hand and select tools go first when the toolbar runs out of room; the pieces stay. */
+  @container canvas (max-width: 1080px) {
+    .canvas-layout[data-panel] .tool-group-optional {
       display: none;
     }
+  }
 
-    .canvas-stat {
-      padding-inline: 8px;
+  @container canvas (max-width: 820px) {
+    .tool-group-optional {
+      display: none;
+    }
+  }
+
+  /* The legend shares the bottom row with zoom and history; its words go first. */
+  @container canvas (max-width: 1360px) {
+    .canvas-layout[data-panel] .canvas-status .legend-text,
+    .canvas-layout[data-panel] .canvas-status .legend-title,
+    .canvas-layout[data-panel] .canvas-status .canvas-status-mode {
+      display: none;
+    }
+  }
+
+  @container canvas (max-width: 1040px) {
+    .canvas-layout[data-panel] .canvas-status {
+      display: none;
     }
   }
 
   @container canvas (max-width: 940px) {
-    .canvas-stat[data-optional] {
-      display: none;
-    }
-
     .canvas-status .legend-text,
     .canvas-status .legend-title {
       display: none;
@@ -273,35 +483,36 @@
   }
 
   @container canvas (max-width: 760px) {
-    .canvas-stat:not([data-tone]) {
+    .canvas-status {
       display: none;
     }
 
-    .canvas-status .legend-item {
-      display: none;
-    }
-
-    .canvas-stats-separator {
-      display: none;
+    .canvas-layout[data-panel] .canvas-toolbar-wrap {
+      inset-inline-start: calc(var(--browser-width) + var(--float-gap) * 2);
     }
   }
 
   /*
    * A phone-width canvas stacks the chrome: the title shrinks to leave the view
-   * menu room, and the stats bar drops to its own row so Add is never squeezed out.
+   * menu room, and the toolbar drops to its own row so no piece is squeezed out.
    */
   @container canvas (max-width: 560px) {
     .canvas-layout .canvas-title {
       width: calc(100% - 76px - var(--float-gap) * 3);
     }
 
-    .canvas-layout .canvas-stats {
+    .canvas-layout .canvas-toolbar-wrap {
       top: calc(52px + var(--float-gap) * 2);
       inset-inline: var(--float-gap);
-      width: auto;
-      max-width: none;
-      margin-inline: 0;
-      justify-content: space-between;
+    }
+
+    .canvas-toolbar {
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .canvas-toolbar-hint {
+      display: none;
     }
 
     .canvas-layout .canvas-browser {
@@ -317,93 +528,6 @@
     .canvas-layout[data-panel] .canvas-bottom-left {
       inset-inline-start: var(--float-gap);
     }
-  }
-
-  .button-kbd {
-    margin-inline-start: 2px;
-    padding: 0 5px;
-    border-radius: 4px;
-    background: color-mix(in srgb, var(--primary-foreground) 16%, transparent);
-    font-family: var(--font-mono);
-    font-size: 10px;
-    line-height: 16px;
-    opacity: 0.75;
-  }
-
-  .canvas-stats-separator {
-    flex: none;
-    width: 1px;
-    height: 22px;
-    margin: 0 7px;
-    background: var(--border);
-  }
-
-  .canvas-stat {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    height: 38px;
-    padding: 0 10px;
-    border-radius: 8px;
-    color: var(--kind, var(--foreground-secondary));
-    transition: background-color var(--duration-hover) ease, transform var(--duration-press) var(--ease-out);
-  }
-
-  @media (hover: hover) and (pointer: fine) {
-    .canvas-stat:hover {
-      background: var(--surface-hover);
-    }
-  }
-
-  .canvas-stat:active {
-    transform: scale(0.97);
-  }
-
-  .canvas-stat:focus-visible {
-    outline: 2px solid var(--focus);
-    outline-offset: -2px;
-  }
-
-  .canvas-stat svg {
-    flex: none;
-  }
-
-  .canvas-stat-value {
-    color: var(--foreground);
-    font-family: var(--font-mono);
-    font-size: 15px;
-    font-weight: var(--weight-semibold);
-    font-variant-numeric: tabular-nums;
-  }
-
-  .canvas-stat-label {
-    color: var(--foreground-secondary);
-    font-size: 12px;
-  }
-
-  .canvas-stat[data-empty] svg {
-    opacity: 0.45;
-  }
-
-  .canvas-stat[data-empty] .canvas-stat-value,
-  .canvas-stat[data-empty] .canvas-stat-label {
-    color: var(--foreground-tertiary);
-  }
-
-  .canvas-stat[data-tone="ok"] {
-    color: var(--success);
-  }
-
-  .canvas-stat[data-tone="warning"] {
-    color: var(--warning);
-  }
-
-  .canvas-stat[data-tone="error"] {
-    color: var(--danger);
-  }
-
-  .canvas-stat[aria-pressed="true"] {
-    background: var(--surface-active);
   }
 
   .shortcut-list {
@@ -444,6 +568,20 @@
     padding: 3px;
   }
 
+  .canvas-bottom-right {
+    position: absolute;
+    bottom: var(--float-gap);
+    inset-inline-end: var(--float-gap);
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .canvas-surface[data-tool="hand"] .react-flow__pane {
+    cursor: grab;
+  }
+
   .canvas-view-menu [data-slot="button"],
   .canvas-title [data-slot="button"],
   .canvas-zoom [data-slot="button"],
@@ -468,6 +606,10 @@
 
   .canvas-icon-float {
     padding: 3px;
+  }
+
+  .canvas-history {
+    gap: 1px;
   }
 
   /* The legend: each wire colour with the kind it leads to, its icon and a plain name. */
@@ -532,10 +674,8 @@
     color: var(--foreground-tertiary);
   }
 
-  .canvas-zoom {
-    position: absolute;
-    inset-inline-end: var(--float-gap);
-    bottom: var(--float-gap);
+  .canvas-zoom,
+  .canvas-history {
     display: flex;
     align-items: center;
     gap: 1px;
@@ -2755,18 +2895,6 @@
 
   /* ---------- Wire style ---------- */
 
-  .wire-defs {
-    position: absolute;
-    width: 0;
-    height: 0;
-  }
-
-  .wire-dot {
-    fill: var(--kind);
-    stroke: var(--background);
-    stroke-width: 2;
-  }
-
   .wire-panel {
     padding: 10px;
   }
@@ -2781,10 +2909,6 @@
     display: grid;
     grid-template-columns: repeat(3, 40px);
     gap: 6px;
-  }
-
-  .wire-panel-row + .wire-panel-label {
-    margin-top: 12px;
   }
 
   .wire-panel-option {

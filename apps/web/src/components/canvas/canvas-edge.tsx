@@ -37,8 +37,8 @@ const TURN = 22;
 const PORT_STEP = 8;
 
 /**
- * A wire from an agent's port to what it uses: right angles in the port's
- * colour, no arrowhead, since the port already says which way it runs. The
+ * A wire from an agent's port to what it uses, curved, elbowed or straight as
+ * chosen, in the port's colour, no arrowhead, since the port already says which way it runs. The
  * label is a small tag beside the far end that fades in only while the wire is
  * hovered or selected.
  */
@@ -55,7 +55,7 @@ function RelationEdgeBase({
   selected,
   data,
 }: EdgeProps<RelationEdge>) {
-  const { mode, detachEdge } = useContext(CanvasContext);
+  const { mode, wireStyle, detachEdge } = useContext(CanvasContext);
   // Once cards are big enough to read, every wire names itself; zoomed out, only the one being looked at does.
   const readable = useStore((state) => state.transform[2] >= 0.7);
   const horizontal = mode === "horizontal";
@@ -77,7 +77,6 @@ function RelationEdgeBase({
     centerY = sourceY + TURN + port * PORT_STEP;
   }
 
-  const { wireStyle, arrowhead } = useContext(CanvasContext);
   const [path] =
     wireStyle === "straight"
       ? getStraightPath({ sourceX, sourceY, targetX, targetY })
@@ -107,8 +106,7 @@ function RelationEdgeBase({
 
   return (
     <>
-      <BaseEdge id={id} path={path} interactionWidth={18} markerEnd={arrowhead === "arrow" ? "url(#wire-arrow)" : undefined} />
-      {arrowhead === "dot" && <circle className="wire-dot" cx={targetX} cy={targetY} r={4.5} />}
+      <BaseEdge id={id} path={path} interactionWidth={18} />
       {data?.relation && (active || readable) && (
         <EdgeLabelRenderer>
           <div className="edge-label-anchor nodrag nopan" style={{ transform: labelTransform }}>
@@ -144,15 +142,14 @@ export function CanvasConnectionLine({
   toPosition,
   connectionStatus,
 }: ConnectionLineComponentProps) {
-  const [path] = getSmoothStepPath({
-    sourceX: fromX,
-    sourceY: fromY,
-    sourcePosition: fromPosition,
-    targetX: toX,
-    targetY: toY,
-    targetPosition: toPosition,
-    borderRadius: RADIUS,
-  });
+  const { wireStyle } = useContext(CanvasContext);
+  const ends = { sourceX: fromX, sourceY: fromY, sourcePosition: fromPosition, targetX: toX, targetY: toY, targetPosition: toPosition };
+  const [path] =
+    wireStyle === "straight"
+      ? getStraightPath(ends)
+      : wireStyle === "curved"
+        ? getBezierPath({ ...ends, curvature: 0.35 })
+        : getSmoothStepPath({ ...ends, borderRadius: RADIUS });
 
   return (
     <g className="connection-line" data-status={connectionStatus ?? undefined}>

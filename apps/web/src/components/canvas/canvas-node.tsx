@@ -4,7 +4,7 @@ import { createContext, memo, useContext } from "react";
 import { Handle, Position, useConnection, type Node, type NodeProps } from "@xyflow/react";
 import type { CanvasNodeKind, CapabilityCounts } from "@evelab/eve-project";
 import { IconChevronDown, IconChevronRight } from "@/components/icons";
-import { portFraction, portsFor, type Arrowhead, type LayoutMode, type PortKind, type WireStyle } from "@/components/canvas/layout";
+import { portFraction, portsFor, type LayoutMode, type PortKind, type WireStyle } from "@/components/canvas/layout";
 import { Icon } from "@/components/icon";
 import { KINDS } from "@/components/kinds";
 
@@ -32,7 +32,6 @@ export type CapabilityNode = Node<CanvasNodeData, "capability">;
 export interface CanvasContextValue {
   mode: LayoutMode;
   wireStyle: WireStyle;
-  arrowhead: Arrowhead;
   /** Whether an agent already uses a resource, so a drag can show where it may land. */
   uses: (agentId: string, resourceId: string) => boolean;
   toggleCollapse: (agentId: string) => void;
@@ -41,8 +40,7 @@ export interface CanvasContextValue {
 
 export const CanvasContext = createContext<CanvasContextValue>({
   mode: "hierarchical",
-  wireStyle: "elbow",
-  arrowhead: "none",
+  wireStyle: "curved",
   uses: () => false,
   toggleCollapse: () => {},
   detachEdge: () => {},
