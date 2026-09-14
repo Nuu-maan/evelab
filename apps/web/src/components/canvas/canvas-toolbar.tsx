@@ -4,7 +4,6 @@ import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, ty
 import { createPortal } from "react-dom";
 import { animate, motion, useMotionValue, useReducedMotion } from "motion/react";
 import {
-  IconCheckCircle,
   IconHand,
   IconLockClosed,
   IconLockOpen,
@@ -12,7 +11,6 @@ import {
   IconPointer,
   IconSquareDashed,
   IconStickyNote,
-  IconWarning,
 } from "@/components/icons";
 import type { CreateKind } from "@/components/canvas/canvas-inspector";
 import { Icon, type IconData } from "@/components/icon";
@@ -260,16 +258,12 @@ function ModeButton({
   );
 }
 
-/** The canvas toolbar: how the pointer behaves, the pieces an architecture is built from, and the check. */
+/** The canvas toolbar: how the pointer behaves, and the pieces an architecture is built from. */
 export function CanvasToolbar({
   tool,
   onTool,
   locked,
   onLock,
-  issueCount,
-  issueTone,
-  issuesOpen,
-  onIssues,
   describeDrop,
   onPieceDrop,
   onPieceActivate,
@@ -279,10 +273,6 @@ export function CanvasToolbar({
   onTool: (tool: CanvasTool) => void;
   locked: boolean;
   onLock: () => void;
-  issueCount: number;
-  issueTone: "ok" | "warning" | "error";
-  issuesOpen: boolean;
-  onIssues: () => void;
   describeDrop: (kind: PieceKind, point: Point) => string | undefined;
   onPieceDrop: (kind: PieceKind, point: Point) => void;
   onPieceActivate: (kind: PieceKind, anchor: DOMRect) => void;
@@ -337,17 +327,6 @@ export function CanvasToolbar({
         {PIECES.map(piece)}
         <span className="tool-separator" aria-hidden="true" />
         {ANNOTATIONS.map(piece)}
-        <span className="tool-separator" aria-hidden="true" />
-        <ModeButton
-          label={`${issueCount} ${issueCount === 1 ? "issue" : "issues"}`}
-          hint={issueCount === 0 ? "Architecture check: nothing to fix." : `Architecture check: ${issueCount} to look at.`}
-          icon={issueCount > 0 ? IconWarning : IconCheckCircle}
-          pressed={issuesOpen}
-          tone={issueTone}
-          count={issueCount > 0 ? issueCount : undefined}
-          onHint={setHint}
-          onClick={onIssues}
-        />
       </div>
       <p className="canvas-toolbar-hint" aria-live="polite">
         {hint ??

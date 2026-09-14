@@ -1344,14 +1344,6 @@ function CanvasInner(props: CanvasProps) {
             onTool={setTool}
             locked={locked}
             onLock={() => setLocked((value) => !value)}
-            issueCount={issues.length}
-            issueTone={errors.length > 0 ? "error" : issues.length > 0 ? "warning" : "ok"}
-            issuesOpen={summaryOpen}
-            onIssues={() => {
-              clearSelection();
-              setDraft(undefined);
-              setSummaryOpen((open) => !open);
-            }}
             describeDrop={describeDrop}
             onDragEnd={() => setAttachTarget(undefined)}
             onPieceDrop={(kind, point) => {

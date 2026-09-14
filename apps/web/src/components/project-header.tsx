@@ -66,9 +66,11 @@ export function ProjectHeader({
         </span>
       </nav>
 
-      <Link className="status" data-tone={errors > 0 ? "error" : "ready"} href={`${base}#issues`}>
-        {errors > 0 ? `${errors} config ${errors === 1 ? "error" : "errors"}` : "Valid"}
-      </Link>
+      {errors > 0 && (
+        <Link className="status" data-tone="error" href={`${base}#issues`}>
+          {`${errors} config ${errors === 1 ? "error" : "errors"}`}
+        </Link>
+      )}
 
       {git && (
         <>
