@@ -45,8 +45,8 @@ const COLOR_VALUES: Record<Annotation["color"], string> = {
 
 export const FONT_FAMILIES: Record<Annotation["font"], string> = {
   hand: '"Caveat", "Comic Sans MS", cursive',
-  sans: "var(--font-plex-sans), system-ui, sans-serif",
-  mono: "var(--font-plex-mono), ui-monospace, monospace",
+  sans: "var(--font-geist-sans), system-ui, sans-serif",
+  mono: "var(--font-geist-mono), ui-monospace, monospace",
   serif: "ui-serif, Georgia, serif",
 };
 
