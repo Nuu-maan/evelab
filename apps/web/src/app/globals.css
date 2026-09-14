@@ -14,8 +14,11 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Tailwind's dark: variant follows the theme attribute, not the system query. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
 
   /* Page and sidebar sit on --background; panels and cards on --surface. */
   --background: #fafafa;
@@ -116,37 +119,37 @@
   --content-width: 1080px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #000000;
-    --surface: #0a0a0a;
-    --surface-raised: #111111;
-    --surface-hover: #1a1a1a;
-    --surface-active: #242424;
-    --border: #242424;
-    --border-strong: #383838;
-    --foreground: #ededed;
-    --foreground-secondary: #a1a1a1;
-    --foreground-tertiary: #7c7c7c;
-    --primary: #ededed;
-    --primary-foreground: #0a0a0a;
-    --success: #62c073;
-    --warning: #f5a623;
-    --danger: #ff6166;
-    --focus: #52a8ff;
+/* Dark theme: chosen with the toggle, or taken from the system until someone chooses. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #000000;
+  --surface: #0a0a0a;
+  --surface-raised: #111111;
+  --surface-hover: #1a1a1a;
+  --surface-active: #242424;
+  --border: #242424;
+  --border-strong: #383838;
+  --foreground: #ededed;
+  --foreground-secondary: #a1a1a1;
+  --foreground-tertiary: #7c7c7c;
+  --primary: #ededed;
+  --primary-foreground: #0a0a0a;
+  --success: #62c073;
+  --warning: #f5a623;
+  --danger: #ff6166;
+  --focus: #52a8ff;
 
-    --blue: #52a8ff;
-    --purple: #bf7af0;
-    --amber: #ffb224;
-    --teal: #0ac7b4;
-    --pink: #f75f8f;
-    --chart-series: #3291ff;
+  --blue: #52a8ff;
+  --purple: #bf7af0;
+  --amber: #ffb224;
+  --teal: #0ac7b4;
+  --pink: #f75f8f;
+  --chart-series: #3291ff;
 
-    --shadow-small: 0 1px 1px rgb(0 0 0 / 0.3), 0 2px 2px rgb(0 0 0 / 0.3);
-    --shadow: 0 2px 2px rgb(0 0 0 / 0.35), 0 8px 16px -4px rgb(0 0 0 / 0.45);
-    --shadow-large: 0 1px 1px rgb(0 0 0 / 0.3), 0 8px 16px -4px rgb(0 0 0 / 0.45),
-      0 24px 32px -8px rgb(0 0 0 / 0.6);
-  }
+  --shadow-small: 0 1px 1px rgb(0 0 0 / 0.3), 0 2px 2px rgb(0 0 0 / 0.3);
+  --shadow: 0 2px 2px rgb(0 0 0 / 0.35), 0 8px 16px -4px rgb(0 0 0 / 0.45);
+  --shadow-large: 0 1px 1px rgb(0 0 0 / 0.3), 0 8px 16px -4px rgb(0 0 0 / 0.45),
+    0 24px 32px -8px rgb(0 0 0 / 0.6);
 }
 
 @theme inline {

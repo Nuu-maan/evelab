@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Mark } from "@/components/mark";
 import { Avatar } from "@/components/project-switcher";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { signOutAction } from "@/lib/actions";
 import { getAccount } from "@/lib/session";
@@ -23,6 +24,7 @@ export async function PlainShell({ children }: { children: React.ReactNode }) {
           EveLab
         </Link>
         <div className="topbar-actions">
+          <ThemeToggle />
           <Button asChild variant="ghost" size="sm">
             <Link href="/projects">Projects</Link>
           </Button>
