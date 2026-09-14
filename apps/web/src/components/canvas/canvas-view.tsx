@@ -91,7 +91,6 @@ import type { ChatSdkOption } from "@/components/channel-form";
 import { ConfirmDialog } from "@/components/confirm";
 import { Icon, type IconData } from "@/components/icon";
 import { KINDS } from "@/components/kinds";
-import { SkillImportDialog } from "@/components/skill-import-dialog";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -378,7 +377,6 @@ function CanvasInner(props: CanvasProps) {
   const [dragging, setDragging] = useState<string>();
   const [settling, setSettling] = useState(false);
   const [draft, setDraft] = useState<{ kind: DraftKind; owner?: string }>();
-  const [importOpen, setImportOpen] = useState(false);
   const [picker, setPicker] = useState<{ kind: CreateKind; target: string; at: Point; origin: string; instant: boolean }>();
   const [confirmDelete, setConfirmDelete] = useState<CanvasNode>();
   const [notice, setNotice] = useState<{ text: string; tone?: "error"; undo?: boolean }>();
@@ -762,11 +760,8 @@ function CanvasInner(props: CanvasProps) {
   const create = useCallback((kind: CreateKind, owner?: string) => {
     setPicker(undefined);
     setSummaryOpen(false);
-    if (kind === "skill") {
-      setImportOpen(true);
-      return;
-    }
-    setDraft({ kind, owner: owner && owner !== "agent" && kind !== "channel" ? owner : undefined });
+    // Skills install at the root, so only other kinds are created for a subagent.
+    setDraft({ kind, owner: owner && owner !== "agent" && kind !== "channel" && kind !== "skill" ? owner : undefined });
   }, []);
 
   const agentAt = useCallback(
@@ -1332,17 +1327,19 @@ function CanvasInner(props: CanvasProps) {
             </ReactFlow>
           </div>
 
-          <div className="canvas-float canvas-title">
-            <div className="canvas-title-text">
-              <p className="canvas-title-name" title={rootNode?.name}>
-                {rootNode?.name}
-              </p>
-              <p className="canvas-save" data-tone={saveState.tone} role="status" aria-label="Save state">
-                <span className="sync-dot" aria-hidden="true" />
-                {saveState.label}
-              </p>
+          {!panelOpen && (
+            <div className="canvas-float canvas-title">
+              <div className="canvas-title-text">
+                <p className="canvas-title-name" title={rootNode?.name}>
+                  {rootNode?.name}
+                </p>
+                <p className="canvas-save" data-tone={saveState.tone} role="status" aria-label="Save state">
+                  <span className="sync-dot" aria-hidden="true" />
+                  {saveState.label}
+                </p>
+              </div>
             </div>
-          </div>
+          )}
 
           <CanvasToolbar
             tool={tool}
@@ -1463,6 +1460,8 @@ function CanvasInner(props: CanvasProps) {
 
           {panelOpen && (
             <ResourceBrowser
+              title={rootNode?.name}
+              save={saveState}
               nodes={graph.nodes}
               selectedId={selected?.id}
               onSelect={select}
@@ -1565,7 +1564,7 @@ function CanvasInner(props: CanvasProps) {
             <AnnotationToolbar selection={selectedAnnotations.map((node) => node.data)} onChange={styleSelected} />
           )}
 
-          {empty && !draft && annotations.length === 0 && (
+          {empty && !draft && !notice && annotations.length === 0 && (
             <p className="canvas-empty">Drag a piece from the toolbar onto the agent</p>
           )}
 
@@ -1628,8 +1627,6 @@ function CanvasInner(props: CanvasProps) {
               )}
             </InspectorColumn>
           )}
-
-          <SkillImportDialog projectId={projectId} open={importOpen} onClose={() => setImportOpen(false)} />
 
           <ConfirmDialog
             open={Boolean(confirmDelete)}

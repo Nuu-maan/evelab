@@ -98,10 +98,9 @@ function RelationEdgeBase({
           });
 
   // Far enough from the end that the label, and the Detach button it grows when selected, never reaches the card.
+  // A channel's name and kind sit under its tile, right where the wire leaves, so its label waits halfway along instead.
   const labelTransform = channel
-    ? horizontal
-      ? `translate(0, -50%) translate(${targetX + 24}px, ${targetY}px)`
-      : `translate(-50%, 0) translate(${targetX}px, ${targetY + 22}px)`
+    ? `translate(-50%, -50%) translate(${(sourceX + targetX) / 2}px, ${(sourceY + targetY) / 2}px)`
     : horizontal
       ? `translate(-100%, -50%) translate(${targetX - 24}px, ${targetY}px)`
       : `translate(-50%, -100%) translate(${targetX}px, ${targetY - 22}px)`;
