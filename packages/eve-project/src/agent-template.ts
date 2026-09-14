@@ -175,6 +175,16 @@ dist
 *.tsbuildinfo
 `;
 
+/** What \`eve init\` keeps out of a Vercel upload: dependencies, secrets and build output. */
+const SCAFFOLD_VERCELIGNORE = `node_modules
+.env*
+.eve
+.next
+.output
+.nitro
+dist
+`;
+
 const SCAFFOLD_EVE_CHANNEL = `import { eveChannel } from "eve/channels/eve";
 import { localDev, placeholderAuth, vercelOidc } from "eve/channels/auth";
 
@@ -270,7 +280,7 @@ export function renderProjectScaffold(input: ProjectScaffoldInput): ProjectFile[
     dependencies: {
       "@vercel/connect": "1.0.0",
       ai: "^7.0.93",
-      eve: "^0.54.3",
+      eve: "^0.54.4",
       zod: "4.5.4",
       ...(input.provider === "anthropic" || input.provider === "openai"
         ? { [DIRECT_PROVIDERS[input.provider].package]: DIRECT_PROVIDERS[input.provider].version }
@@ -281,6 +291,7 @@ export function renderProjectScaffold(input: ProjectScaffoldInput): ProjectFile[
   };
   return [
     { path: ".gitignore", content: SCAFFOLD_GITIGNORE },
+    { path: ".vercelignore", content: SCAFFOLD_VERCELIGNORE },
     { path: "AGENTS.md", content: SCAFFOLD_AGENTS_MD },
     { path: "CLAUDE.md", content: "@AGENTS.md\n" },
     { path: "agent/agent.ts", content: renderAgentConfigFor(input.provider ?? "ai-gateway-project", input.model, input.reasoning) },
