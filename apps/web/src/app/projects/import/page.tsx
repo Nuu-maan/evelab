@@ -15,8 +15,12 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = { title: "Import from GitHub" };
 
-export default async function ImportPage() {
+const REPOSITORY = /^[\w.-]+\/[\w.-]+$/;
+
+export default async function ImportPage({ searchParams }: { searchParams: Promise<{ repo?: string | string[] }> }) {
   await requireAccount();
+  const { repo } = await searchParams;
+  const initialRepository = typeof repo === "string" && REPOSITORY.test(repo) ? repo : undefined;
   const mode = sourceControlMode();
   let repositories: RepositoryOption[] = [];
   let listError: string | undefined;
@@ -54,7 +58,7 @@ export default async function ImportPage() {
 
           <Reveal delay={0.06}>
             {mode ? (
-              <ImportRepository repositories={repositories} listError={listError} />
+              <ImportRepository repositories={repositories} listError={listError} initialRepository={initialRepository} />
             ) : (
               <EmptyState icon={IconLogoGithub} title="GitHub is not configured.">
                 Set GITHUB_TOKEN to a token that can read the repository, then restart EveLab. The token
