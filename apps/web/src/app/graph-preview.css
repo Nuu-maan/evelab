@@ -69,18 +69,122 @@
     font-size: 12px;
   }
 
-  /* Project cards: the drawing on a grid, the details underneath. */
-  .project-card {
+  /* Projects: a filter row, then cards with the drawing on top and details underneath. */
+  .projects {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .projects-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+  }
+
+  .projects-search {
+    display: flex;
+    flex: 1 1 260px;
+    align-items: center;
+    gap: var(--space-2);
+    max-width: 380px;
+    height: 36px;
+    padding: 0 var(--space-3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--foreground-tertiary);
+    transition: border-color var(--duration-hover) ease, box-shadow var(--duration-hover) ease;
+  }
+
+  .projects-search:focus-within {
+    border-color: var(--border-strong);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 18%, transparent);
+  }
+
+  .projects-search input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: var(--foreground);
+    font-size: var(--text-compact);
+  }
+
+  .projects-sort {
+    display: inline-flex;
+    gap: 2px;
+    padding: 2px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+  }
+
+  .projects-sort-option {
+    height: 30px;
+    padding: 0 12px;
+    border-radius: 6px;
+    color: var(--foreground-secondary);
+    font-size: 13px;
+    transition: background-color var(--duration-hover) ease, color var(--duration-hover) ease;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .projects-sort-option:hover {
+      color: var(--foreground);
+    }
+  }
+
+  .projects-sort-option[aria-checked="true"] {
+    background: var(--surface-active);
+    color: var(--foreground);
+  }
+
+  .projects-sort-option:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: -2px;
+  }
+
+  .projects-count {
+    margin-inline-start: auto;
+    color: var(--foreground-tertiary);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .projects-empty {
+    padding: var(--space-8) 0;
+    color: var(--foreground-secondary);
+    text-align: center;
+  }
+
+  .projects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
+    gap: var(--space-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .project-card,
+  .project-new {
     display: flex;
     flex-direction: column;
     height: 100%;
     overflow: hidden;
     border: 1px solid var(--border);
     border-radius: 14px;
-    background: var(--surface);
-    box-shadow: var(--shadow-small);
     transition: border-color var(--duration-hover) ease, box-shadow 200ms var(--ease-out),
       transform var(--duration-press) var(--ease-out);
+  }
+
+  .project-card {
+    background: var(--surface);
+    box-shadow: var(--shadow-small);
   }
 
   @media (hover: hover) and (pointer: fine) {
@@ -90,16 +194,32 @@
     }
   }
 
-  .project-card:active {
+  .project-card:active,
+  .project-new:active {
     transform: scale(0.99);
+  }
+
+  .project-card:focus-visible,
+  .project-new:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
   }
 
   .project-card-preview {
     position: relative;
-    height: 196px;
+    height: 188px;
     overflow: hidden;
     border-bottom: 1px solid var(--border);
     background: var(--background);
+  }
+
+  /* The same dot grid as the canvas, drawn as a pattern rather than a gradient. */
+  .project-card-dots {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    color: var(--border-strong);
   }
 
   .project-card-preview .graph-preview {
@@ -119,10 +239,90 @@
     }
   }
 
+  .project-card-id {
+    position: absolute;
+    inset-block-start: 10px;
+    inset-inline-start: 10px;
+    max-width: calc(100% - 20px);
+    overflow: hidden;
+    padding: 0 7px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--foreground-secondary);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 20px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .project-card-body {
     display: flex;
+    flex: 1;
     flex-direction: column;
     gap: var(--space-3);
-    padding: 14px 16px 16px;
+    padding: 14px 16px;
+  }
+
+  .project-card-model {
+    color: var(--foreground-tertiary);
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+
+  .project-card-counts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-4);
+  }
+
+  .project-card-footer {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: 9px 16px;
+    border-top: 1px solid var(--border);
+    color: var(--foreground-tertiary);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .project-new {
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 240px;
+    padding: var(--space-6);
+    border-style: dashed;
+    border-color: var(--border-strong);
+    color: var(--foreground);
+    text-align: center;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .project-new:hover {
+      border-color: var(--foreground-tertiary);
+      background: var(--surface-hover);
+    }
+  }
+
+  .project-new-mark {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    margin-bottom: 6px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    box-shadow: var(--shadow-small);
+  }
+
+  .project-new-hint {
+    color: var(--foreground-tertiary);
+    font-family: var(--font-mono);
+    font-size: 11px;
   }
 }

@@ -1,6 +1,6 @@
 import "server-only";
 import { z } from "zod";
-import { annotationSchema, LAYOUT_MODES } from "@/components/canvas/layout";
+import { annotationSchema, ARROWHEADS, LAYOUT_MODES, WIRE_STYLES } from "@/components/canvas/layout";
 import { stateStore } from "@/lib/state-store";
 
 /**
@@ -17,9 +17,18 @@ const layoutSchema = z.object({
   /** Agents whose subagents and resources are folded away. */
   collapsed: z.array(z.string()).default([]),
   annotations: z.array(annotationSchema).default([]),
+  wireStyle: z.enum(WIRE_STYLES).default("elbow"),
+  arrowhead: z.enum(ARROWHEADS).default("none"),
 });
 
-const EMPTY: CanvasLayout = { positions: {}, mode: "hierarchical", collapsed: [], annotations: [] };
+const EMPTY: CanvasLayout = {
+  positions: {},
+  mode: "hierarchical",
+  collapsed: [],
+  annotations: [],
+  wireStyle: "elbow",
+  arrowhead: "none",
+};
 
 export type CanvasLayout = z.infer<typeof layoutSchema>;
 

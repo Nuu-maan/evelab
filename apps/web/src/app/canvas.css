@@ -255,7 +255,8 @@
       display: none;
     }
 
-    .canvas-status .legend-item {
+    .canvas-status .legend-text,
+    .canvas-status .legend-title {
       display: none;
     }
 
@@ -273,6 +274,10 @@
 
   @container canvas (max-width: 760px) {
     .canvas-stat:not([data-tone]) {
+      display: none;
+    }
+
+    .canvas-status .legend-item {
       display: none;
     }
 
@@ -465,31 +470,55 @@
     padding: 3px;
   }
 
-  /* The legend: what each wire colour and stroke means. */
+  /* The legend: each wire colour with the kind it leads to, its icon and a plain name. */
   .canvas-status {
     display: flex;
     align-items: center;
-    gap: 14px;
-    height: 34px;
-    padding: 0 12px;
+    gap: 4px;
+    height: 36px;
+    padding-inline: 12px 6px;
     color: var(--foreground-secondary);
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+    font-size: 12px;
     white-space: nowrap;
+  }
+
+  .legend-title {
+    margin-inline-end: 6px;
+    color: var(--foreground-tertiary);
   }
 
   .legend-item {
     display: inline-flex;
     align-items: center;
     gap: 6px;
+    height: 26px;
+    padding-inline: 8px;
+    border-radius: 6px;
+    color: var(--foreground);
+    cursor: default;
+    transition: background-color var(--duration-hover) ease;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .legend-item:hover {
+      background: var(--surface-hover);
+    }
+  }
+
+  .legend-item:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: -2px;
+  }
+
+  .legend-item svg {
+    color: var(--kind);
   }
 
   .legend-item i {
-    width: 16px;
+    width: 18px;
     height: 0;
     border-top: 2px solid var(--kind);
+    border-radius: 1px;
   }
 
   .legend-item i[data-dashed] {
@@ -497,7 +526,8 @@
   }
 
   .canvas-status-mode {
-    padding-inline-start: 12px;
+    margin-inline-start: 6px;
+    padding-inline: 10px 6px;
     border-inline-start: 1px solid var(--border);
     color: var(--foreground-tertiary);
   }
@@ -1183,6 +1213,42 @@
 
   .node-port + .node-port {
     border-inline-start: 1px solid color-mix(in srgb, var(--kind) 18%, var(--border));
+  }
+
+  /* Horizontal: the card splits into its content and a port column on the right edge. */
+  .node[data-horizontal][data-tier="root"],
+  .node[data-horizontal][data-tier="agent"] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 56px;
+    grid-template-rows: auto 1fr;
+  }
+
+  .node[data-horizontal] > .node-head {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .node[data-horizontal] > .node-body {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .node[data-horizontal] > .node-ports {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    border-top: none;
+    border-inline-start: 1px solid color-mix(in srgb, var(--kind) 25%, var(--border));
+    border-radius: 0 10px 10px 0;
+  }
+
+  .node[data-horizontal] .node-port {
+    height: auto;
+    min-height: 28px;
+  }
+
+  .node[data-horizontal] .node-port + .node-port {
+    border-inline-start: none;
+    border-top: 1px solid color-mix(in srgb, var(--kind) 18%, var(--border));
   }
 
   .node-port span {
@@ -2685,5 +2751,72 @@
 
   .insp-quick-item:active {
     transform: scale(0.98);
+  }
+
+  /* ---------- Wire style ---------- */
+
+  .wire-defs {
+    position: absolute;
+    width: 0;
+    height: 0;
+  }
+
+  .wire-dot {
+    fill: var(--kind);
+    stroke: var(--background);
+    stroke-width: 2;
+  }
+
+  .wire-panel {
+    padding: 10px;
+  }
+
+  .wire-panel-label {
+    padding: 2px 2px 8px;
+    color: var(--foreground-secondary);
+    font-size: 12px;
+  }
+
+  .wire-panel-row {
+    display: grid;
+    grid-template-columns: repeat(3, 40px);
+    gap: 6px;
+  }
+
+  .wire-panel-row + .wire-panel-label {
+    margin-top: 12px;
+  }
+
+  .wire-panel-option {
+    display: grid;
+    place-items: center;
+    height: 36px;
+    border-radius: 8px;
+    background: var(--surface-hover);
+    color: var(--foreground-secondary);
+    transition: background-color var(--duration-hover) ease, color var(--duration-hover) ease,
+      box-shadow var(--duration-hover) ease, transform var(--duration-press) var(--ease-out);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .wire-panel-option:hover {
+      background: var(--surface-active);
+      color: var(--foreground);
+    }
+  }
+
+  .wire-panel-option:active {
+    transform: scale(0.95);
+  }
+
+  .wire-panel-option[aria-checked="true"] {
+    background: color-mix(in srgb, var(--focus) 18%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--focus) 55%, transparent);
+    color: var(--foreground);
+  }
+
+  .wire-panel-option:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 1px;
   }
 }

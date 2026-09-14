@@ -216,11 +216,15 @@
   }
 
   .stat-label {
-    font-size: var(--text-label);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
     color: var(--foreground-tertiary);
   }
 
   .stat-value {
+    font-family: var(--font-mono);
     font-size: var(--text-section);
     font-weight: var(--weight-medium);
     font-variant-numeric: tabular-nums;
@@ -520,7 +524,8 @@
     align-items: center;
     gap: 6px;
     color: var(--foreground-secondary);
-    font-size: var(--text-compact);
+    font-family: var(--font-mono);
+    font-size: 12px;
     font-variant-numeric: tabular-nums;
   }
 
@@ -754,9 +759,13 @@
     mask-image: none;
   }
 
+  /* Eyebrows, readings and counts set in Geist Mono, so figures and labels read as data. */
   .page-kicker {
     color: var(--foreground-tertiary);
-    font-size: 13px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
 
   .agent-meta {

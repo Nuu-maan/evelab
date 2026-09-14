@@ -4,7 +4,9 @@ import { memo, useContext } from "react";
 import {
   BaseEdge,
   EdgeLabelRenderer,
+  getBezierPath,
   getSmoothStepPath,
+  getStraightPath,
   useStore,
   type ConnectionLineComponentProps,
   type Edge,
@@ -75,18 +77,24 @@ function RelationEdgeBase({
     centerY = sourceY + TURN + port * PORT_STEP;
   }
 
-  const [path] = getSmoothStepPath({
-    sourceX,
-    sourceY,
-    sourcePosition,
-    targetX,
-    targetY,
-    targetPosition,
-    borderRadius: RADIUS,
-    offset: 16,
-    centerX,
-    centerY,
-  });
+  const { wireStyle, arrowhead } = useContext(CanvasContext);
+  const [path] =
+    wireStyle === "straight"
+      ? getStraightPath({ sourceX, sourceY, targetX, targetY })
+      : wireStyle === "curved"
+        ? getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition, curvature: 0.35 })
+        : getSmoothStepPath({
+            sourceX,
+            sourceY,
+            sourcePosition,
+            targetX,
+            targetY,
+            targetPosition,
+            borderRadius: RADIUS,
+            offset: 16,
+            centerX,
+            centerY,
+          });
 
   const labelTransform = channel
     ? horizontal
@@ -99,7 +107,8 @@ function RelationEdgeBase({
 
   return (
     <>
-      <BaseEdge id={id} path={path} interactionWidth={18} />
+      <BaseEdge id={id} path={path} interactionWidth={18} markerEnd={arrowhead === "arrow" ? "url(#wire-arrow)" : undefined} />
+      {arrowhead === "dot" && <circle className="wire-dot" cx={targetX} cy={targetY} r={4.5} />}
       {data?.relation && (active || readable) && (
         <EdgeLabelRenderer>
           <div className="edge-label-anchor nodrag nopan" style={{ transform: labelTransform }}>

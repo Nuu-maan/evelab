@@ -5,6 +5,14 @@ export type Positions = Record<string, { x: number; y: number }>;
 
 export const LAYOUT_MODES = ["hierarchical", "horizontal", "vertical", "freeform"] as const;
 
+/** How wires are drawn, as Excalidraw offers arrows: straight, curved or elbow. */
+export const WIRE_STYLES = ["elbow", "curved", "straight"] as const;
+export type WireStyle = (typeof WIRE_STYLES)[number];
+
+/** What sits at the far end of a wire. */
+export const ARROWHEADS = ["none", "arrow", "dot"] as const;
+export type Arrowhead = (typeof ARROWHEADS)[number];
+
 export const ANNOTATION_COLORS = [
   "default",
   "gray",
