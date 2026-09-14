@@ -1,6 +1,6 @@
 import "server-only";
 import { cache } from "react";
-import { mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import {
@@ -166,6 +166,27 @@ export async function readProject(id: string): Promise<EveProject> {
  * from this cache.
  */
 export const getProjectFiles = cache(readProjectFiles);
+
+/** A file operation the person asked for that cannot be done as asked, with a message to show them. */
+export class ProjectPathError extends Error {}
+
+async function readDirectories(directory: string, base = directory): Promise<string[]> {
+  const entries = await readdir(directory, { withFileTypes: true });
+  const found: string[] = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory() || IGNORED.has(entry.name)) continue;
+    const absolute = join(directory, entry.name);
+    found.push(relative(base, absolute).split(sep).join("/"), ...(await readDirectories(absolute, base)));
+  }
+  return found;
+}
+
+/** Every folder in a project, empty ones included, so the explorer can show a folder before it holds a file. */
+export async function readProjectDirectories(id: string): Promise<string[]> {
+  return (await readDirectories(projectRoot(id))).sort();
+}
+
+export const getProjectDirectories = cache(readProjectDirectories);
 export const getProject = cache(async (id: string): Promise<EveProject> => {
   return parseProject(await getProjectFiles(id), { fallbackName: id }).project;
 });
@@ -245,6 +266,45 @@ export async function writeProjectFile(
   await mkdir(dirname(absolute), { recursive: true });
   await writeFile(absolute, content, "utf8");
   emitProjectFilesChanged(id, [{ path, content }]);
+  if (path !== README_PATH && path !== ENV_EXAMPLE_PATH) await syncProjectDocs(id);
+}
+
+/** An empty file, refusing to replace anything already at that path. */
+export async function createProjectFile(id: string, path: string): Promise<void> {
+  if (existsSync(resolveInProject(id, path))) throw new ProjectPathError(`${path} already exists.`);
+  await writeProjectFile(id, path, "");
+}
+
+export async function createProjectFolder(id: string, path: string): Promise<void> {
+  const absolute = resolveInProject(id, path);
+  if (existsSync(absolute)) throw new ProjectPathError(`${path} already exists.`);
+  await mkdir(absolute, { recursive: true });
+}
+
+/** Moves a file or a whole folder. The runtime hears it as the old paths deleted and the new ones written. */
+export async function renameProjectPath(id: string, from: string, to: string): Promise<void> {
+  const source = resolveInProject(id, from);
+  const target = resolveInProject(id, to);
+  if (!existsSync(source)) throw new ProjectPathError(`${from} no longer exists.`);
+  if (existsSync(target)) throw new ProjectPathError(`${to} already exists.`);
+  const moved = (await readProjectFiles(id)).filter((file) => file.path === from || file.path.startsWith(`${from}/`));
+  await mkdir(dirname(target), { recursive: true });
+  await rename(source, target);
+  emitProjectFilesChanged(id, [
+    ...moved.map((file) => ({ path: file.path })),
+    ...moved.map((file) => ({ path: `${to}${file.path.slice(from.length)}`, content: file.content })),
+  ]);
+  await syncProjectDocs(id);
+}
+
+/** Removes a file or a folder with everything in it. */
+export async function deleteProjectPath(id: string, path: string): Promise<void> {
+  const absolute = resolveInProject(id, path);
+  if (!existsSync(absolute)) throw new ProjectPathError(`${path} no longer exists.`);
+  const removed = (await readProjectFiles(id)).filter((file) => file.path === path || file.path.startsWith(`${path}/`));
+  await rm(absolute, { recursive: true, force: true });
+  emitProjectFilesChanged(id, removed.map((file) => ({ path: file.path })));
+  // Deleting the generated README or .env.example is a choice; regenerating them straight away would undo it.
   if (path !== README_PATH && path !== ENV_EXAMPLE_PATH) await syncProjectDocs(id);
 }
 

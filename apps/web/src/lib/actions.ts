@@ -51,9 +51,15 @@ import {
 } from "@/lib/skill-import";
 import {
   createProject,
+  createProjectFile,
+  createProjectFolder,
   deleteProject,
+  deleteProjectPath,
+  isIgnoredPath,
+  ProjectPathError,
   readProject,
   readProjectFile,
+  renameProjectPath,
   writeProject,
   writeProjectFile,
 } from "@/lib/workspace";
@@ -200,6 +206,72 @@ export async function saveFileAction(projectId: string, path: string, content: s
   const id = await projectFrom(projectId);
   await writeProjectFile(id, path, z.string().max(2_000_000).parse(content));
   revalidatePath(`/projects/${id}`, "layout");
+}
+
+/** A path as someone types it in the explorer: inside the project, and not a dependency or build folder. */
+const projectPathSchema = z
+  .string()
+  .trim()
+  .min(1, "Give it a name.")
+  .max(200, "That path is too long.")
+  .refine((path) => !path.startsWith("/") && !path.includes("\\"), "Use a path inside the project.")
+  .refine(
+    (path) => path.split("/").every((segment) => segment.length > 0 && segment !== "." && segment !== ".."),
+    "Use a path inside the project.",
+  )
+  .refine((path) => /^[\w .@+()[\]/-]+$/.test(path), "Use letters, digits, spaces and . - _ in names.")
+  .refine((path) => !isIgnoredPath(path), "That folder is managed outside the project.");
+
+export type FileOperationResult = { ok: true } | { ok: false; message: string };
+
+function parseProjectPath(value: unknown): { ok: true; path: string } | { ok: false; message: string } {
+  const parsed = projectPathSchema.safeParse(value);
+  return parsed.success
+    ? { ok: true, path: parsed.data }
+    : { ok: false, message: parsed.error.issues[0]?.message ?? "That path is not allowed." };
+}
+
+/** Runs a file operation, turning a refusal into a message and refreshing every view of the project, the canvas included. */
+async function fileOperation(id: string, run: () => Promise<void>): Promise<FileOperationResult> {
+  try {
+    await run();
+  } catch (error) {
+    if (error instanceof ProjectPathError) return { ok: false, message: error.message };
+    throw error;
+  }
+  revalidatePath(`/projects/${id}`, "layout");
+  return { ok: true };
+}
+
+export async function createFileAction(projectId: string, path: string): Promise<FileOperationResult> {
+  const id = await projectFrom(projectId);
+  const target = parseProjectPath(path);
+  if (!target.ok) return target;
+  return fileOperation(id, () => createProjectFile(id, target.path));
+}
+
+export async function createFolderAction(projectId: string, path: string): Promise<FileOperationResult> {
+  const id = await projectFrom(projectId);
+  const target = parseProjectPath(path);
+  if (!target.ok) return target;
+  return fileOperation(id, () => createProjectFolder(id, target.path));
+}
+
+export async function renamePathAction(projectId: string, from: string, to: string): Promise<FileOperationResult> {
+  const id = await projectFrom(projectId);
+  const source = parseProjectPath(from);
+  if (!source.ok) return source;
+  const target = parseProjectPath(to);
+  if (!target.ok) return target;
+  if (target.path.startsWith(`${source.path}/`)) return { ok: false, message: "A folder cannot move inside itself." };
+  return fileOperation(id, () => renameProjectPath(id, source.path, target.path));
+}
+
+export async function deletePathAction(projectId: string, path: string): Promise<FileOperationResult> {
+  const id = await projectFrom(projectId);
+  const target = parseProjectPath(path);
+  if (!target.ok) return target;
+  return fileOperation(id, () => deleteProjectPath(id, target.path));
 }
 
 export async function createToolAction(formData: FormData) {

@@ -8,25 +8,28 @@ import { ConfirmDialog } from "@/components/confirm";
 import { EmptyState } from "@/components/empty-state";
 import { CodeEditor, languageFor } from "@/components/editor";
 import { FileIcon } from "@/components/files/file-icon";
-import { FileTree } from "@/components/files/file-tree";
+import { FileTree, type EntryKind } from "@/components/files/file-tree";
 import { Icon } from "@/components/icon";
 import { ResizeHandle } from "@/components/resize-handle";
 import { SaveIndicator, type SaveState } from "@/components/save-state";
 import { Shortcut } from "@/components/shortcut";
 import { Button } from "@/components/ui/button";
-import { saveFileAction } from "@/lib/actions";
+import { createFileAction, createFolderAction, deletePathAction, renamePathAction, saveFileAction } from "@/lib/actions";
 import "@/app/explorer.css";
 
 /**
  * The "never get locked into the GUI" surface: every project file, editable,
- * including the ones the GUI generates.
+ * including the ones the GUI generates. Files and folders are created, renamed
+ * and deleted here as in a code editor, and each change reaches the canvas.
  */
 export function FileWorkbench({
   projectId,
   files,
+  folders,
 }: {
   projectId: string;
   files: ProjectFile[];
+  folders: string[];
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -55,6 +58,8 @@ export function FileWorkbench({
   }, [files, initialPath]);
 
   const [pendingPath, setPendingPath] = useState<string | undefined>();
+  const [pendingDelete, setPendingDelete] = useState<{ path: string; kind: EntryKind }>();
+  const [operationError, setOperationError] = useState<string>();
 
   const openNow = useCallback(
     (nextPath: string) => {
@@ -90,6 +95,50 @@ export function FileWorkbench({
     }
   }, [content, path, projectId, router]);
 
+  const create = useCallback(
+    async (kind: EntryKind, target: string): Promise<string | undefined> => {
+      const result = kind === "file" ? await createFileAction(projectId, target) : await createFolderAction(projectId, target);
+      if (!result.ok) return result.message;
+      router.refresh();
+      if (kind === "file") open(target);
+      return undefined;
+    },
+    [open, projectId, router],
+  );
+
+  const renameEntry = useCallback(
+    async (from: string, to: string): Promise<string | undefined> => {
+      const result = await renamePathAction(projectId, from, to);
+      if (!result.ok) return result.message;
+      // The open file keeps its edits when it, or a folder above it, moves.
+      if (path === from || path.startsWith(`${from}/`)) {
+        const moved = `${to}${path.slice(from.length)}`;
+        setPath(moved);
+        router.replace(`/projects/${projectId}/files?path=${encodeURIComponent(moved)}`);
+      }
+      router.refresh();
+      return undefined;
+    },
+    [path, projectId, router],
+  );
+
+  const removeEntry = useCallback(async () => {
+    const target = pendingDelete;
+    setPendingDelete(undefined);
+    if (!target) return;
+    const result = await deletePathAction(projectId, target.path);
+    if (!result.ok) {
+      setOperationError(result.message);
+      return;
+    }
+    setOperationError(undefined);
+    if (path === target.path || path.startsWith(`${target.path}/`)) {
+      savedRef.current = "";
+      router.replace(`/projects/${projectId}/files`);
+    }
+    router.refresh();
+  }, [path, pendingDelete, projectId, router]);
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key.toLowerCase() === "s" && (event.metaKey || event.ctrlKey)) {
@@ -117,10 +166,19 @@ export function FileWorkbench({
         <FileTree
           rootName={projectId}
           paths={paths}
+          folders={folders}
           current={path}
           dirty={state === "dirty"}
           onOpen={open}
+          onCreate={create}
+          onRename={renameEntry}
+          onDelete={(target, kind) => setPendingDelete({ path: target, kind })}
         />
+        {operationError && (
+          <p className="tree-draft-error" role="alert">
+            {operationError}
+          </p>
+        )}
         <ResizeHandle pane="explorer" label="Resize file explorer" />
       </aside>
 
@@ -174,6 +232,25 @@ export function FileWorkbench({
           />
         </div>
       </div>
+
+      <ConfirmDialog
+        open={pendingDelete !== undefined}
+        onOpenChange={(next) => !next && setPendingDelete(undefined)}
+        title={`Delete ${pendingDelete?.path.split("/").pop() ?? ""}?`}
+        description={
+          pendingDelete?.kind === "directory" ? (
+            <>
+              This removes <span className="mono">{pendingDelete.path}</span> and everything inside it from the project.
+            </>
+          ) : (
+            <>
+              This removes <span className="mono">{pendingDelete?.path}</span> from the project.
+            </>
+          )
+        }
+        confirmLabel="Delete"
+        onConfirm={() => void removeEntry()}
+      />
 
       <ConfirmDialog
         open={pendingPath !== undefined}
