@@ -1,8 +1,17 @@
-import Image from "next/image";
 import Link from "next/link";
-import { IconArrowUpRight, IconChevronRight, IconLogoGithub } from "@/components/icons";
+import {
+  IconArrowUpRight,
+  IconCheck,
+  IconChevronRight,
+  IconCodeBracket,
+  IconFileText,
+  IconGlobe,
+  IconLogoGithub,
+  IconPointer,
+} from "@/components/icons";
 import { Icon } from "@/components/icon";
 import { KINDS } from "@/components/kinds";
+import { LandingDemo } from "@/components/landing/landing-demo";
 import { Mark } from "@/components/mark";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -12,47 +21,42 @@ import "@/app/landing.css";
 
 export const dynamic = "force-dynamic";
 
-const FEATURES = [
-  { kind: "subagent", title: "Drag pieces onto agents", body: "Drop a subagent, tool, skill or connection on an agent and EveLab writes its file." },
-  { kind: "tool", title: "Share what agents need", body: "One tool, skill or connection can serve every agent that uses it." },
-  { kind: "connection", title: "Discover MCP tools", body: "Point a connection at an MCP server and pick the tools your agent may call." },
-  { kind: "channel", title: "Lay it out your way", body: "Hierarchical, horizontal or freeform, with notes and sections to sketch around it." },
-] as const;
+const REPO = "https://github.com/anishfn/evelab";
 
-/** A real screenshot of EveLab, swapped for its dark twin when the page is dark. */
-function Shot({ name, alt, priority }: { name: string; alt: string; priority?: boolean }) {
-  const sizes = "(max-width: 1448px) calc(100vw - 48px), 1400px";
-  return (
-    <div className="lp-shot">
-      <Image className="lp-shot-light" src={`/landing/${name}-light.webp`} width={2880} height={1800} alt={alt} sizes={sizes} priority={priority} />
-      <Image className="lp-shot-dark" src={`/landing/${name}-dark.webp`} width={2880} height={1800} alt="" aria-hidden="true" sizes={sizes} />
-    </div>
-  );
-}
+const KIND_ORDER = ["subagent", "tool", "skill", "connection", "channel"] as const;
+
+const PRINCIPLES = [
+  { icon: IconFileText, title: "Real files, not a runtime", body: "EveLab writes a plain Eve project. There is no EveLab SDK in your code and nothing extra to host." },
+  { icon: IconCodeBracket, title: "Code and canvas stay in step", body: "Change a file in the editor and the canvas redraws. Attach a piece on the canvas and the code is written." },
+  { icon: IconLogoGithub, title: "Open source", body: "Read how it works, run it on your own machine and shape it with the community on GitHub." },
+];
 
 /**
- * The public front door, in the spirit of vercel.com: big type, lots of room,
- * and the product itself doing the explaining. Everyone can read it; building
- * needs an account once sign-in is configured, and in local mode it opens
- * straight into the app.
+ * The public front door. The playground near the top does the selling: a
+ * visitor builds a small agent and sees the Eve code EveLab writes before they
+ * sign up. Everyone can read and play; building a real project needs an
+ * account once sign-in is configured, and in local mode it opens straight into
+ * the app.
  */
 export default async function LandingPage() {
   const authEnabled = isAuthEnabled();
   const account = authEnabled ? await getAccount() : undefined;
   const canOpen = !authEnabled || Boolean(account);
 
-  const start = (label: string) =>
-    canOpen ? (
-      <Button asChild size="lg" className="h-11 rounded-full px-6 text-[15px]">
-        <Link href="/projects">{account ? "Open your projects" : label}</Link>
+  const start = (label: string, href: string, size: "sm" | "lg" = "lg") => {
+    const className = size === "lg" ? "h-11 rounded-full px-6 text-[15px]" : "rounded-full px-4";
+    return canOpen ? (
+      <Button asChild size={size} className={className}>
+        <Link href={href}>{label}</Link>
       </Button>
     ) : (
       <form action={signInAction}>
-        <Button type="submit" size="lg" className="h-11 rounded-full px-6 text-[15px]">
+        <Button type="submit" size={size} className={className}>
           {label}
         </Button>
       </form>
     );
+  };
 
   return (
     <div className="lp">
@@ -66,9 +70,9 @@ export default async function LandingPage() {
           EveLab
         </Link>
         <nav className="lp-nav" aria-label="Sections">
-          <a href="#canvas">Canvas</a>
-          <a href="#code">Code</a>
-          <a href="#setup">Setup</a>
+          <a href="#demo">Demo</a>
+          <a href="#how">How it works</a>
+          <a href="#features">Features</a>
           <a href="https://eve.dev/docs" target="_blank" rel="noreferrer">
             Docs
           </a>
@@ -76,7 +80,7 @@ export default async function LandingPage() {
         <div className="lp-header-actions">
           <ThemeToggle />
           <Button asChild variant="outline" size="sm" className="lp-header-link max-[760px]:hidden">
-            <a href="https://github.com/anishfn/evelab" target="_blank" rel="noreferrer">
+            <a href={REPO} target="_blank" rel="noreferrer">
               <Icon icon={IconLogoGithub} size={14} />
               GitHub
             </a>
@@ -104,96 +108,262 @@ export default async function LandingPage() {
 
       <main id="main">
         <section className="lp-hero" aria-labelledby="hero-title">
-          <h1 className="lp-display" id="hero-title">
-            Visual agents,
-            <br />
-            real code
-          </h1>
-          <p className="lp-lede">
-            EveLab is a visual IDE for Eve agents. Design an agent on a canvas and EveLab writes the project file for file, so
-            it runs with eve dev and ships like any Eve agent.
-          </p>
-          <div className="lp-actions">
-            {start("Start building")}
-            <Button asChild variant="outline" size="lg" className="h-11 rounded-full px-6 text-[15px]">
-              <a href="#canvas">See how it works</a>
-            </Button>
+          <div className="lp-hero-main">
+            <a className="lp-kicker" href={REPO} target="_blank" rel="noreferrer">
+              <i aria-hidden="true" />
+              Open source visual IDE for eve
+              <Icon icon={IconChevronRight} size={12} />
+            </a>
+            <h1 className="lp-display" id="hero-title">
+              Draw your agent.
+              <br />
+              Get real code.
+            </h1>
+          </div>
+          <div className="lp-hero-side">
+            <p className="lp-lede">
+              Wire subagents, tools, skills, connections and channels on a canvas. EveLab writes the TypeScript project file for
+              file, the way eve init would, so it runs with eve dev and ships like any Eve agent.
+            </p>
+            <div className="lp-actions">
+              {start(account ? "Open your projects" : "Start building", account ? "/projects" : "/projects/new")}
+              <Button asChild variant="outline" size="lg" className="h-11 rounded-full px-6 text-[15px]">
+                <a href="#demo">Try the demo</a>
+              </Button>
+            </div>
           </div>
         </section>
 
-        <section className="lp-section" id="canvas" aria-labelledby="canvas-title">
+        <section className="lp-demo" id="demo" aria-label="Try EveLab">
+          <p className="lp-demo-label">Live demo. No sign up. Drag a piece onto the agent.</p>
+          <LandingDemo cta={start("Build this for real", "/projects/new", "sm")} />
+        </section>
+
+        <section className="lp-section" id="how" aria-labelledby="how-title">
           <div className="lp-section-head">
-            <p className="lp-eyebrow">Canvas</p>
-            <h2 className="lp-heading" id="canvas-title">
-              Build agents the way you picture them
+            <p className="lp-eyebrow">How it works</p>
+            <h2 className="lp-heading" id="how-title">
+              From idea to a running agent in three steps
             </h2>
-            <p className="lp-section-lede">
-              Every card on the canvas is a file in your project and every wire is a real reference. Drag pieces onto an agent
-              and EveLab writes the code.
-            </p>
           </div>
-          <Shot name="canvas" alt="The EveLab canvas showing an agent wired to its subagents, tools, skills, connections and channels" priority />
-          <ul className="lp-grid">
-            {FEATURES.map((feature) => (
-              <li key={feature.title} className="lp-cell" data-kind={feature.kind}>
-                <Icon icon={KINDS[feature.kind].icon} size={20} />
-                <h3 className="lp-cell-title">{feature.title}</h3>
-                <p className="lp-cell-body">{feature.body}</p>
+          <ol className="lp-steps">
+            <li className="lp-step">
+              <div className="lp-step-visual" aria-hidden="true">
+                <div className="lp-mini-form">
+                  <span className="lp-mini-field">
+                    <span>Name</span>
+                    <code>support-desk</code>
+                  </span>
+                  <span className="lp-mini-field">
+                    <span>Provider</span>
+                    <code>AI Gateway</code>
+                  </span>
+                  <span className="lp-mini-field">
+                    <span>Model</span>
+                    <code>claude-opus-4.8</code>
+                  </span>
+                </div>
+              </div>
+              <div className="lp-step-text">
+                <span className="lp-step-number">01</span>
+                <h3 className="lp-card-title">Name your agent</h3>
+                <p className="lp-card-body">Pick a name, a provider and a model. EveLab asks what eve init asks and writes the same files.</p>
+              </div>
+            </li>
+            <li className="lp-step">
+              <div className="lp-step-visual" aria-hidden="true">
+                <div className="lp-mini-kinds">
+                  {KIND_ORDER.map((kind) => (
+                    <span key={kind} className="lp-mini-kind" data-kind={kind}>
+                      <Icon icon={KINDS[kind].icon} size={14} />
+                      {KINDS[kind].plural}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="lp-step-text">
+                <span className="lp-step-number">02</span>
+                <h3 className="lp-card-title">Draw the architecture</h3>
+                <p className="lp-card-body">Drag pieces onto agents and wire them together. Every card is a file and every wire is a real reference.</p>
+              </div>
+            </li>
+            <li className="lp-step">
+              <div className="lp-step-visual" aria-hidden="true">
+                <div className="lp-mini-term">
+                  <span>
+                    <b>$</b> npm install
+                  </span>
+                  <span>
+                    <b>$</b> npm run dev
+                  </span>
+                </div>
+              </div>
+              <div className="lp-step-text">
+                <span className="lp-step-number">03</span>
+                <h3 className="lp-card-title">Take the code</h3>
+                <p className="lp-card-body">Download a zip or push to GitHub, then run it anywhere with eve dev. Nothing ties it to EveLab.</p>
+              </div>
+            </li>
+          </ol>
+        </section>
+
+        <section className="lp-section" id="features" aria-labelledby="features-title">
+          <div className="lp-section-split">
+            <div className="lp-section-head">
+              <p className="lp-eyebrow">Features</p>
+              <h2 className="lp-heading" id="features-title">
+                Build agents the way you picture them
+              </h2>
+            </div>
+            <p className="lp-section-lede">Everything an Eve agent is made of, on one canvas, with the code one click away.</p>
+          </div>
+
+          <ul className="lp-bento">
+            <li className="lp-feature-card">
+              <div className="lp-feature-visual" aria-hidden="true">
+                <div className="lp-fx-drop">
+                  <span className="lp-fx-chip lp-fx-dragged" data-kind="tool">
+                    <Icon icon={KINDS.tool.icon} size={13} />
+                    search_docs
+                    <Icon icon={IconPointer} size={16} className="lp-fx-cursor" />
+                  </span>
+                  <span className="lp-fx-agent">
+                    <span className="lp-fx-agent-icon">
+                      <Icon icon={KINDS.agent.icon} size={15} />
+                    </span>
+                    support-desk
+                  </span>
+                </div>
+              </div>
+              <div className="lp-feature-text">
+                <h3 className="lp-card-title">Drag pieces onto agents</h3>
+                <p className="lp-card-body">Drop a subagent, tool, skill or connection on an agent and EveLab writes its file.</p>
+              </div>
+            </li>
+
+            <li className="lp-feature-card">
+              <div className="lp-feature-visual" aria-hidden="true">
+                <div className="lp-fx-share">
+                  <span className="lp-fx-share-row">
+                    <span className="lp-fx-chip" data-kind="subagent">
+                      <Icon icon={KINDS.subagent.icon} size={13} />
+                      billing
+                    </span>
+                    <span className="lp-fx-chip" data-kind="subagent">
+                      <Icon icon={KINDS.subagent.icon} size={13} />
+                      researcher
+                    </span>
+                  </span>
+                  <svg className="lp-fx-wires" data-kind="tool" viewBox="0 0 240 48">
+                    <path d="M60 0 C60 26, 120 22, 120 48" />
+                    <path d="M180 0 C180 26, 120 22, 120 48" />
+                  </svg>
+                  <span className="lp-fx-tile" data-kind="tool">
+                    <Icon icon={KINDS.tool.icon} size={18} />
+                  </span>
+                  <span className="lp-fx-caption">search_docs, shared by 2 agents</span>
+                </div>
+              </div>
+              <div className="lp-feature-text">
+                <h3 className="lp-card-title">Share what agents need</h3>
+                <p className="lp-card-body">One tool, skill or connection can serve every agent that uses it, from a single file.</p>
+              </div>
+            </li>
+
+            <li className="lp-feature-card">
+              <div className="lp-feature-visual" aria-hidden="true">
+                <div className="lp-fx-mcp" data-kind="connection">
+                  <span className="lp-fx-url">
+                    <Icon icon={IconGlobe} size={13} />
+                    mcp.linear.app/mcp
+                    <span className="lp-fx-found">3 tools found</span>
+                  </span>
+                  <ul>
+                    <li data-on="">
+                      <span className="lp-fx-check">
+                        <Icon icon={IconCheck} size={11} />
+                      </span>
+                      list_issues
+                    </li>
+                    <li data-on="">
+                      <span className="lp-fx-check">
+                        <Icon icon={IconCheck} size={11} />
+                      </span>
+                      get_issue
+                    </li>
+                    <li>
+                      <span className="lp-fx-check" />
+                      create_issue
+                    </li>
+                  </ul>
+                </div>
+              </div>
+              <div className="lp-feature-text">
+                <h3 className="lp-card-title">Discover MCP tools</h3>
+                <p className="lp-card-body">Point a connection at an MCP server, see its tools and tick the ones your agent may call.</p>
+              </div>
+            </li>
+
+            <li className="lp-feature-card">
+              <div className="lp-feature-visual" aria-hidden="true">
+                <div className="lp-fx-layouts">
+                  <span className="lp-fx-layout" data-on="">
+                    <svg viewBox="0 0 56 40">
+                      <rect x="22" y="2" width="12" height="8" rx="2" />
+                      <rect x="4" y="30" width="12" height="8" rx="2" />
+                      <rect x="22" y="30" width="12" height="8" rx="2" />
+                      <rect x="40" y="30" width="12" height="8" rx="2" />
+                      <path d="M28 10 V20 M10 30 V20 H46 V30 M28 20 V30" />
+                    </svg>
+                    Hierarchy
+                  </span>
+                  <span className="lp-fx-layout">
+                    <svg viewBox="0 0 56 40">
+                      <rect x="2" y="16" width="12" height="8" rx="2" />
+                      <rect x="42" y="2" width="12" height="8" rx="2" />
+                      <rect x="42" y="16" width="12" height="8" rx="2" />
+                      <rect x="42" y="30" width="12" height="8" rx="2" />
+                      <path d="M14 20 H28 M28 6 V34 M28 6 H42 M28 20 H42 M28 34 H42" />
+                    </svg>
+                    Horizontal
+                  </span>
+                  <span className="lp-fx-layout">
+                    <svg viewBox="0 0 56 40">
+                      <rect x="4" y="6" width="12" height="8" rx="2" />
+                      <rect x="30" y="2" width="12" height="8" rx="2" />
+                      <rect x="18" y="26" width="12" height="8" rx="2" />
+                      <rect x="40" y="22" width="12" height="14" rx="2" className="lp-fx-note" />
+                      <path d="M16 10 C22 10, 24 6, 30 6 M10 14 C10 22, 16 30, 18 30" />
+                    </svg>
+                    Freeform
+                  </span>
+                </div>
+              </div>
+              <div className="lp-feature-text">
+                <h3 className="lp-card-title">Lay it out your way</h3>
+                <p className="lp-card-body">Hierarchical, horizontal or freeform, with notes and sections to sketch around the agent.</p>
+              </div>
+            </li>
+          </ul>
+
+          <ul className="lp-principles">
+            {PRINCIPLES.map((principle) => (
+              <li key={principle.title}>
+                <Icon icon={principle.icon} size={18} />
+                <h3 className="lp-card-title">{principle.title}</h3>
+                <p className="lp-card-body">{principle.body}</p>
               </li>
             ))}
           </ul>
-        </section>
-
-        <section className="lp-section" id="code" aria-labelledby="code-title">
-          <div className="lp-feature">
-            <div className="lp-section-head">
-              <p className="lp-eyebrow">Code</p>
-              <h2 className="lp-heading" id="code-title">
-                Every node is a file
-              </h2>
-              <p className="lp-section-lede">
-                Open any file in the editor. Change the code and the canvas follows. Close EveLab and the project still runs,
-                commits to Git and deploys like any Eve agent.
-              </p>
-              <ul className="lp-list">
-                <li>The same files eve init creates</li>
-                <li>A code editor that updates the canvas</li>
-                <li>Create, rename and delete files and folders</li>
-              </ul>
-            </div>
-            <Shot name="code" alt="The EveLab file editor with a connection file open beside the project tree" />
-          </div>
-        </section>
-
-        <section className="lp-section" id="setup" aria-labelledby="setup-title">
-          <div className="lp-section-head">
-            <p className="lp-eyebrow">Setup</p>
-            <h2 className="lp-heading" id="setup-title">
-              From zero to real code in a minute
-            </h2>
-          </div>
-          <ol className="lp-cards">
-            <li className="lp-card">
-              <Shot name="create" alt="The new project wizard asking for the agent's name and description" />
-              <span className="lp-step-number">01</span>
-              <h3 className="lp-cell-title">Create a project</h3>
-              <p className="lp-cell-body">Name the agent and pick a provider and model. EveLab asks what eve init asks and writes the same files.</p>
-            </li>
-            <li className="lp-card">
-              <Shot name="export" alt="The Export menu with Download ZIP and Push to GitHub" />
-              <span className="lp-step-number">02</span>
-              <h3 className="lp-cell-title">Take the code</h3>
-              <p className="lp-cell-body">Download a zip or push to a new or existing GitHub repository, then run it anywhere with eve dev.</p>
-            </li>
-          </ol>
         </section>
 
         <section className="lp-cta" aria-labelledby="cta-title">
           <h2 className="lp-display lp-display-small" id="cta-title">
             Draw your first agent
           </h2>
+          <p className="lp-lede">Free and open source. Your project stays a plain Eve app you can take anywhere.</p>
           <div className="lp-actions">
-            {start("Get started")}
+            {start(account ? "Open your projects" : "Get started", account ? "/projects" : "/projects/new")}
             <Button asChild variant="outline" size="lg" className="h-11 rounded-full px-6 text-[15px]">
               <a href="https://eve.dev/docs" target="_blank" rel="noreferrer">
                 Read the Eve docs
@@ -210,16 +380,16 @@ export default async function LandingPage() {
             <Mark />
             EveLab
           </span>
-          <p>The open-source visual IDE for Eve agents.</p>
+          <p>The open source visual IDE for Eve agents.</p>
           <a className="lp-credit" href="https://eve.dev" target="_blank" rel="noreferrer">
             Built for eve
           </a>
         </div>
         <nav className="lp-footer-links" aria-label="Product">
           <p className="lp-label">Product</p>
-          <a href="#canvas">Canvas</a>
-          <a href="#code">Code</a>
-          <a href="#setup">Setup</a>
+          <a href="#demo">Demo</a>
+          <a href="#how">How it works</a>
+          <a href="#features">Features</a>
         </nav>
         <nav className="lp-footer-links" aria-label="Resources">
           <p className="lp-label">Resources</p>
@@ -227,7 +397,7 @@ export default async function LandingPage() {
             Eve docs
             <Icon icon={IconChevronRight} size={12} />
           </a>
-          <a href="https://github.com/anishfn/evelab" target="_blank" rel="noreferrer">
+          <a href={REPO} target="_blank" rel="noreferrer">
             GitHub
             <Icon icon={IconChevronRight} size={12} />
           </a>
