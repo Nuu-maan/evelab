@@ -4,6 +4,7 @@ import { GraphPreview } from "@/components/graph-preview";
 import { Icon } from "@/components/icon";
 import { KINDS } from "@/components/kinds";
 import { SAMPLE_GRAPH } from "@/components/landing/sample-graph";
+import { EveLogo } from "@/components/eve-logo";
 import { Mark } from "@/components/mark";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -107,6 +108,11 @@ export default async function LandingPage() {
       <main id="main">
         <section className="lp-hero" aria-labelledby="hero-title">
           <div className="lp-hero-copy">
+            <a className="lp-built" href="https://eve.dev" target="_blank" rel="noreferrer">
+              <span>Built for</span>
+              <EveLogo className="lp-eve" />
+              <Icon icon={IconArrowUpRight} size={13} />
+            </a>
             <h1 className="lp-display" id="hero-title">
               Visual agents,
               <br />
@@ -273,6 +279,10 @@ export default defineMcpClientConnection({
             EveLab
           </span>
           <p>The open-source visual IDE for Eve agents.</p>
+          <a className="lp-built lp-built-quiet" href="https://eve.dev" target="_blank" rel="noreferrer">
+            <span>Built for</span>
+            <EveLogo className="lp-eve" />
+          </a>
         </div>
         <nav className="lp-footer-links" aria-label="Product">
           <p className="lp-label">Product</p>
