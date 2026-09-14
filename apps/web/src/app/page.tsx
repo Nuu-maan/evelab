@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import {
   IconArrowDown,
@@ -20,9 +21,15 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { signInAction } from "@/lib/actions";
 import { getAccount, isAuthEnabled } from "@/lib/session";
+import { OPEN_GRAPH } from "@/lib/site";
 import "@/app/landing.css";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+  openGraph: { ...OPEN_GRAPH, url: "/" },
+};
 
 const REPO = "https://github.com/anishfn/evelab";
 
