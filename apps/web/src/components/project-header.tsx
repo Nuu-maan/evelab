@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { IconArrowDown, IconCloudUpload, IconPlay } from "@/components/icons";
+import { IconArrowDown, IconCloudUpload, IconDownload, IconLogoGithub, IconPlay } from "@/components/icons";
 import { Icon } from "@/components/icon";
 import { SidebarToggle } from "@/components/sidebar-toggle";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import type { SidebarState } from "@/lib/sidebar-state";
 
 const PAGES: Record<string, string> = {
@@ -93,6 +94,35 @@ export function ProjectHeader({
 
       <div className="header-actions">
         <ThemeToggle />
+        {/* Taking the code out: the files as a zip, or committed to GitHub through Source control. */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" aria-label="Export code">
+              <Icon icon={IconDownload} size={14} />
+              <span className="header-action-label">Export</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" sideOffset={8} className="w-64">
+            <DropdownMenuItem asChild>
+              <a href={`/api/projects/${projectId}/export`} download={`${projectId}.zip`}>
+                <Icon icon={IconDownload} />
+                <span className="flex min-w-0 flex-col">
+                  <span>Download ZIP</span>
+                  <span className="text-xs text-muted-foreground">Every project file, ready for eve dev</span>
+                </span>
+              </a>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href={`${base}/source`}>
+                <Icon icon={IconLogoGithub} />
+                <span className="flex min-w-0 flex-col">
+                  <span>Push to GitHub</span>
+                  <span className="text-xs text-muted-foreground">Commit to a new or existing repository</span>
+                </span>
+              </Link>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         {/* Running and deploying are not wired up yet, so the buttons say so instead of opening empty pages. */}
         <Button variant="outline" size="sm" disabled aria-label="Run, coming soon" title="Coming soon">
           <Icon icon={IconPlay} size={14} />
