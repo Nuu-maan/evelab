@@ -56,7 +56,7 @@ export function ImportRepository({
       commit: preview.commit,
     });
     if (result.ok) {
-      router.push(`/projects/${result.projectId}`);
+      router.push(`/projects/${result.projectId}/canvas`);
       return;
     }
     setBusy(undefined);

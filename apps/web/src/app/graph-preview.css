@@ -265,6 +265,32 @@
     }
   }
 
+  /* The card with its delete control, which floats in the preview's corner beside the open arrow. */
+  .project-card-wrap {
+    position: relative;
+  }
+
+  .project-card-delete {
+    position: absolute;
+    top: 10px;
+    inset-inline-end: 42px;
+    z-index: 2;
+    opacity: 0;
+    transition: opacity var(--duration-hover) ease;
+  }
+
+  .project-card-wrap:hover .project-card-delete,
+  .project-card-delete:focus-within {
+    opacity: 1;
+  }
+
+  /* Without hover, the control has to be visible to be found. */
+  @media (hover: none) {
+    .project-card-delete {
+      opacity: 1;
+    }
+  }
+
   .project-card-body {
     display: flex;
     flex: 1;
