@@ -12,12 +12,6 @@ import { DRAWER, EXIT } from "@/components/interaction";
 import { Button } from "@/components/ui/button";
 import "@/app/assistant.css";
 
-export const OPEN_ASSISTANT_EVENT = "evelab:assistant";
-
-export function openAssistant(prompt?: string) {
-  window.dispatchEvent(new CustomEvent(OPEN_ASSISTANT_EVENT, { detail: prompt }));
-}
-
 const SUGGESTIONS = [
   "Write instructions for a customer support agent that never promises refunds",
   "Add a tool that looks up an order by id",
@@ -80,12 +74,27 @@ function ToolCard({ part, projectId }: { part: ToolPart; projectId: string }) {
 /**
  * A side panel that builds the agent with you. Every change it makes goes
  * through the same file operations as the rest of EveLab, and each one shows up
- * as a card that links to the file it wrote.
+ * as a card that links to the file it wrote. The launcher decides when it is
+ * open, and loads this module the first time it is.
  */
-export function AssistantPanel({ projectId, available, model }: { projectId: string; available: boolean; model: string }) {
+export function AssistantPanel({
+  projectId,
+  available,
+  model,
+  open,
+  prompt,
+  onClose,
+}: {
+  projectId: string;
+  available: boolean;
+  model: string;
+  open: boolean;
+  /** Text to start from when something opened the assistant with a request. */
+  prompt?: string;
+  onClose: () => void;
+}) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState(prompt ?? "");
   const scroller = useRef<HTMLDivElement>(null);
   const composer = useRef<HTMLTextAreaElement>(null);
 
@@ -95,26 +104,12 @@ export function AssistantPanel({ projectId, available, model }: { projectId: str
   });
   const busy = status === "submitted" || status === "streaming";
 
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key.toLowerCase() === "i" && (event.metaKey || event.ctrlKey)) {
-        event.preventDefault();
-        setOpen((value) => !value);
-      }
-      if (event.key === "Escape") setOpen(false);
-    };
-    const onOpen = (event: Event) => {
-      setOpen(true);
-      const prompt = (event as CustomEvent<string | undefined>).detail;
-      if (prompt) setInput(prompt);
-    };
-    window.addEventListener("keydown", onKeyDown);
-    window.addEventListener(OPEN_ASSISTANT_EVENT, onOpen);
-    return () => {
-      window.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener(OPEN_ASSISTANT_EVENT, onOpen);
-    };
-  }, []);
+  // A later request replaces what was typed, as opening with a prompt always did.
+  const [lastPrompt, setLastPrompt] = useState(prompt);
+  if (prompt !== lastPrompt) {
+    setLastPrompt(prompt);
+    if (prompt) setInput(prompt);
+  }
 
   useEffect(() => {
     if (open) composer.current?.focus();
@@ -152,7 +147,7 @@ export function AssistantPanel({ projectId, available, model }: { projectId: str
                   Clear
                 </Button>
               )}
-              <Button variant="ghost" size="icon" aria-label="Close assistant" onClick={() => setOpen(false)}>
+              <Button variant="ghost" size="icon" aria-label="Close assistant" onClick={onClose}>
                 <Icon icon={IconCross} />
               </Button>
             </div>
