@@ -27,9 +27,8 @@
     z-index: 10;
     border: 1px solid var(--border);
     border-radius: 12px;
-    background: color-mix(in srgb, var(--surface-raised) 94%, transparent);
+    background: var(--surface-raised);
     box-shadow: var(--shadow);
-    backdrop-filter: blur(8px);
   }
 
   /* ---------- Surface ---------- */
@@ -821,13 +820,13 @@
     flex-direction: column;
     width: var(--browser-width);
     overflow: hidden;
-    animation: float-in-left 220ms var(--ease-out) both;
+    animation: float-in-left 160ms var(--ease-out) both;
   }
 
   @keyframes float-in-left {
     from {
       opacity: 0;
-      transform: translateX(-8px);
+      transform: translateX(-4px);
     }
   }
 
@@ -1178,7 +1177,6 @@
       inset 0 0 0 1px color-mix(in srgb, var(--kind) 30%, transparent),
       0 1px 2px color-mix(in srgb, var(--kind) 18%, transparent);
     color: var(--kind);
-    backdrop-filter: blur(6px);
   }
 
   .node[data-tier="root"] .node-glyph {
@@ -1499,24 +1497,16 @@
     stroke-dasharray: 5 5;
   }
 
+  /* A wire being looked at brightens and thickens; it stays still, so a busy board does not shimmer. */
   .react-flow__edge.is-related .react-flow__edge-path,
   .react-flow__edge.selected .react-flow__edge-path {
     stroke: var(--kind);
     stroke-width: 2;
-    stroke-dasharray: 8 5;
-    animation: edge-flow 650ms linear infinite;
   }
 
   .react-flow__edge.is-preview .react-flow__edge-path {
     stroke: var(--focus);
     stroke-dasharray: 6 4;
-    animation: edge-flow 500ms linear infinite;
-  }
-
-  @keyframes edge-flow {
-    to {
-      stroke-dashoffset: -13;
-    }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -1881,13 +1871,13 @@
     width: var(--pane-inspector, 360px);
     max-width: calc(100% - 32px);
     overflow: hidden;
-    animation: float-in-right 220ms var(--ease-out) both;
+    animation: float-in-right 160ms var(--ease-out) both;
   }
 
   @keyframes float-in-right {
     from {
       opacity: 0;
-      transform: translateX(8px);
+      transform: translateX(4px);
     }
   }
 
@@ -1896,13 +1886,13 @@
     flex: 1;
     flex-direction: column;
     min-height: 0;
-    animation: inspector-in 180ms var(--ease-out) both;
+    animation: inspector-in 120ms ease both;
   }
 
+  /* Selecting another card swaps the inspector many times a session, so it only fades. */
   @keyframes inspector-in {
     from {
       opacity: 0;
-      transform: translateY(4px);
     }
   }
 

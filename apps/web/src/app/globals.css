@@ -299,33 +299,28 @@
    * hydration to become visible. Reduced motion removes the movement and leaves
    * the element in its natural, visible state.
    */
+  /* Pages are opened all day, so content only fades in, quickly, without moving. */
   @keyframes reveal {
     from {
       opacity: 0;
-      transform: translateY(6px);
     }
     to {
       opacity: 1;
-      transform: none;
     }
   }
 
   .reveal {
-    animation: reveal 280ms var(--ease-out) both;
-    animation-delay: var(--reveal-delay, 0ms);
+    animation: reveal 160ms ease both;
+    animation-delay: min(var(--reveal-delay, 0ms), 60ms);
   }
 
   .stagger > * {
-    animation: reveal 280ms var(--ease-out) both;
+    animation: reveal 160ms ease both;
   }
 
-  .stagger > *:nth-child(1) { animation-delay: 0ms; }
-  .stagger > *:nth-child(2) { animation-delay: 40ms; }
-  .stagger > *:nth-child(3) { animation-delay: 80ms; }
-  .stagger > *:nth-child(4) { animation-delay: 120ms; }
-  .stagger > *:nth-child(5) { animation-delay: 160ms; }
-  .stagger > *:nth-child(6) { animation-delay: 200ms; }
-  .stagger > *:nth-child(n + 7) { animation-delay: 240ms; }
+  .stagger > *:nth-child(2) { animation-delay: 20ms; }
+  .stagger > *:nth-child(3) { animation-delay: 40ms; }
+  .stagger > *:nth-child(n + 4) { animation-delay: 60ms; }
 
   @media (prefers-reduced-motion: reduce) {
     .reveal,
