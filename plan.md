@@ -230,9 +230,6 @@ overridable with `EVELAB_WORKSPACE`. Canvas layouts sit in
 
 ### 3.4 What does not exist
 
-- **Claiming existing directories.** With sign-in on, workspace directories that
-  have no project row (created before sign-in) are invisible. There is no flow
-  to adopt them yet.
 - **MCP tool discovery.** Connections are written, but EveLab does not yet list
   a server's tools before writing the allow list.
 - **Vercel Connect connector management.** EveLab writes the connector UID into
@@ -465,8 +462,9 @@ unit tests and an e2e suite against Postgres that seeds signed sessions, checks
 the GitHub redirect, the signed-out 404, that a second account cannot see a
 project, and that a directly fired delete action from that account is refused.
 
-Deferred: driving a real GitHub OAuth round trip in CI, adopting directories
-created before sign-in, and moving sync records into `git_repositories`.
+Deferred: driving a real GitHub OAuth round trip in CI, and moving sync records
+into `git_repositories`. Adopting directories created before sign-in is out of
+scope: with sign-in on, a directory without a project row stays invisible.
 
 **Design**
 
