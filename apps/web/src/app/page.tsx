@@ -15,6 +15,13 @@ export const dynamic = "force-dynamic";
 
 const KIND_ORDER = ["subagent", "tool", "skill", "connection", "channel"] as const;
 
+const FEATURES = [
+  { kind: "subagent", title: "Drag pieces onto agents", body: "Drop a subagent, tool, skill or connection on an agent and EveLab writes its file." },
+  { kind: "tool", title: "Share what agents need", body: "One tool, skill or connection can serve every agent that uses it." },
+  { kind: "connection", title: "Discover MCP tools", body: "Point a connection at an MCP server and pick the tools your agent may call." },
+  { kind: "channel", title: "Lay it out your way", body: "Hierarchical, horizontal or freeform, with notes and sections to sketch around it." },
+] as const;
+
 const STEPS = [
   { title: "Create a project", body: "Name the agent and pick a model. EveLab writes the same project eve init would." },
   { title: "Build on the canvas", body: "Drag subagents, tools, skills and connections onto agents and wire them together." },
@@ -106,37 +113,52 @@ export default async function LandingPage() {
 
       <main id="main">
         <section className="lp-hero" aria-labelledby="hero-title">
-          <div className="lp-hero-copy">
-            <h1 className="lp-display" id="hero-title">
-              Visual agents,
-              <br />
-              real code
-            </h1>
-            <div className="lp-actions">
-              {start("Start building")}
-              <Button asChild variant="outline" size="lg" className="h-11 rounded-full px-6 text-[15px]">
-                <a href="#canvas">See the canvas</a>
-              </Button>
-            </div>
+          <h1 className="lp-display" id="hero-title">
+            Visual agents,
+            <br />
+            real code
+          </h1>
+          <p className="lp-lede">
+            Design Eve agents on a canvas. EveLab writes the project file for file, so it runs with eve dev and ships like any
+            Eve agent.
+          </p>
+          <div className="lp-actions">
+            {start("Start building")}
+            <Button asChild variant="outline" size="lg" className="h-11 rounded-full px-6 text-[15px]">
+              <a href="#canvas">See how it works</a>
+            </Button>
           </div>
-          <div className="lp-hero-mark">
-            <Mark className="lp-mark" />
-          </div>
-          <ul className="lp-hero-lines">
-            <li>For Eve agents</li>
-            <li>Drawn on a canvas</li>
-            <li>Shipped as code you own</li>
-          </ul>
         </section>
 
-        <section className="lp-strip" aria-label="What an agent is made of">
-          {KIND_ORDER.map((kind) => (
-            <span key={kind} className="lp-strip-item" data-kind={kind}>
-              <Icon icon={KINDS[kind].icon} size={22} />
-              {KINDS[kind].plural}
+        <figure className="lp-window lp-product" aria-label="An example agent on the EveLab canvas">
+          <div className="lp-window-bar" aria-hidden="true">
+            <span className="lp-window-dots">
+              <i />
+              <i />
+              <i />
             </span>
-          ))}
-        </section>
+            <span className="lp-window-title">support-desk / Canvas</span>
+          </div>
+          <div className="lp-product-body">
+            <ul className="lp-palette" aria-label="Pieces">
+              {KIND_ORDER.map((kind) => (
+                <li key={kind} data-kind={kind}>
+                  <Icon icon={KINDS[kind].icon} size={15} />
+                  {KINDS[kind].plural}
+                </li>
+              ))}
+            </ul>
+            <div className="lp-board">
+              <svg className="lp-board-dots" aria-hidden="true">
+                <pattern id="lp-dots" width="20" height="20" patternUnits="userSpaceOnUse">
+                  <circle cx="10" cy="10" r="1" fill="currentColor" />
+                </pattern>
+                <rect width="100%" height="100%" fill="url(#lp-dots)" />
+              </svg>
+              <GraphPreview graph={SAMPLE_GRAPH} positions={{}} className="lp-graph" />
+            </div>
+          </div>
+        </figure>
 
         <section className="lp-section" id="canvas" aria-labelledby="canvas-title">
           <h2 className="lp-heading" id="canvas-title">
@@ -144,39 +166,15 @@ export default async function LandingPage() {
             <br />
             you picture them
           </h2>
-          <div className="lp-feature lp-feature-window-first">
-            <figure className="lp-window lp-window-canvas" aria-label="An example agent on the EveLab canvas">
-              <div className="lp-window-bar" aria-hidden="true">
-                <span className="lp-window-dots">
-                  <i />
-                  <i />
-                  <i />
-                </span>
-                <span className="lp-window-title">support-desk · Canvas</span>
-              </div>
-              <div className="lp-board">
-                <svg className="lp-board-dots" aria-hidden="true">
-                  <pattern id="lp-dots" width="20" height="20" patternUnits="userSpaceOnUse">
-                    <circle cx="10" cy="10" r="1" fill="currentColor" />
-                  </pattern>
-                  <rect width="100%" height="100%" fill="url(#lp-dots)" />
-                </svg>
-                <GraphPreview graph={SAMPLE_GRAPH} positions={{}} className="lp-graph" />
-              </div>
-            </figure>
-            <div className="lp-feature-text">
-              <p className="lp-statement">
-                <strong>The canvas is the architecture.</strong> <span>Every card, port and wire is a real file in your project.</span>
-              </p>
-              <p className="lp-label">Features</p>
-              <ul className="lp-list">
-                <li>Drag pieces onto agents</li>
-                <li>Shared tools, skills and connections</li>
-                <li>Hierarchical, horizontal or freeform layouts</li>
-                <li>Notes and sections to sketch around it</li>
-              </ul>
-            </div>
-          </div>
+          <ul className="lp-grid">
+            {FEATURES.map((feature) => (
+              <li key={feature.title} className="lp-cell" data-kind={feature.kind}>
+                <Icon icon={KINDS[feature.kind].icon} size={20} />
+                <h3 className="lp-cell-title">{feature.title}</h3>
+                <p className="lp-cell-body">{feature.body}</p>
+              </li>
+            ))}
+          </ul>
         </section>
 
         <section className="lp-section" id="code" aria-labelledby="code-title">
