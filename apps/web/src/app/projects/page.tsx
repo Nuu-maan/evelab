@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { IconGridSquare, IconLogoGithub, IconPlus } from "@/components/icons";
+import type { CanvasNodeKind } from "@evelab/eve-project";
+import { IconArrowUpRight, IconGridSquare, IconLogoGithub, IconPlus } from "@/components/icons";
 import { EmptyState } from "@/components/empty-state";
 import { Icon } from "@/components/icon";
 import { GraphPreview } from "@/components/graph-preview";
-import { KindCount } from "@/components/kinds";
+import { KINDS } from "@/components/kinds";
 import { PlainShell } from "@/components/plain-shell";
-import { Avatar } from "@/components/project-switcher";
 import { ProjectsBrowser } from "@/components/projects-browser";
 import { Reveal } from "@/components/motion";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,16 @@ function ago(time: number): string {
 }
 
 function ProjectCard({ project, positions }: { project: ProjectSummary; positions: Parameters<typeof GraphPreview>[0]["positions"] }) {
+  const parts: [CanvasNodeKind, number][] = (
+    [
+      ["subagent", project.subagentCount],
+      ["tool", project.toolCount],
+      ["skill", project.skillCount],
+      ["connection", project.connectionCount],
+      ["channel", project.channelCount],
+    ] as [CanvasNodeKind, number][]
+  ).filter(([, count]) => count > 0);
+
   return (
     <Link className="project-card" href={`/projects/${project.id}`}>
       <div className="project-card-preview" aria-hidden="true">
@@ -44,29 +54,39 @@ function ProjectCard({ project, positions }: { project: ProjectSummary; position
           <rect width="100%" height="100%" fill={`url(#dots-${project.id})`} />
         </svg>
         <GraphPreview graph={project.graph} positions={positions} />
-        <span className="project-card-id">{project.id}</span>
+        <span className="project-card-open">
+          <Icon icon={IconArrowUpRight} size={14} />
+        </span>
       </div>
+
       <div className="project-card-body">
-        <div className="row min-w-0" style={{ gap: "var(--space-3)" }}>
-          <Avatar name={project.name} size="large" />
-          <div className="page-heading min-w-0">
-            <span className="card-title truncate">{project.name}</span>
-            <span className="project-card-model truncate">{project.model || "No model set"}</span>
-          </div>
+        <div className="project-card-heading">
+          <h2 className="project-card-name">{project.name}</h2>
+          <time className="project-card-time" dateTime={new Date(project.updatedAt).toISOString()}>
+            {ago(project.updatedAt)}
+          </time>
         </div>
-        <div className="project-card-counts">
-          <KindCount kind="subagent" count={project.subagentCount} />
-          <KindCount kind="tool" count={project.toolCount} />
-          <KindCount kind="skill" count={project.skillCount} />
-          <KindCount kind="connection" count={project.connectionCount} />
-          <KindCount kind="channel" count={project.channelCount} />
-        </div>
+        <p className="project-card-model">{project.model || "No model set"}</p>
+
+        {parts.length > 0 ? (
+          <ul className="project-card-parts" aria-label="What it is made of">
+            {parts.map(([kind, count]) => (
+              <li key={kind} className="project-card-part" data-kind={kind}>
+                <span className="project-card-dot" aria-hidden="true" />
+                {count} {(count === 1 ? KINDS[kind].label : KINDS[kind].plural).toLowerCase()}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="project-card-parts project-card-parts-empty">Just the root agent so far</p>
+        )}
       </div>
+
       <div className="project-card-footer">
+        <span className="project-card-id">{project.id}</span>
         <span>
           {project.fileCount} {project.fileCount === 1 ? "file" : "files"}
         </span>
-        <time dateTime={new Date(project.updatedAt).toISOString()}>{ago(project.updatedAt)}</time>
       </div>
     </Link>
   );
