@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { MotionProvider } from "@/components/motion-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { THEME_SCRIPT } from "@/lib/theme";
 import "./globals.css";
@@ -22,9 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
       <body>
-        <MotionProvider>
           <TooltipProvider delayDuration={400}>{children}</TooltipProvider>
-        </MotionProvider>
       </body>
     </html>
   );
