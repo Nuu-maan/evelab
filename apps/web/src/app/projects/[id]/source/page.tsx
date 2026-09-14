@@ -21,10 +21,7 @@ export default async function SourcePage({ params }: { params: Promise<{ id: str
     <header className="page-header">
       <div className="page-heading">
         <h1 className="page-title">Source control</h1>
-        <p className="page-description">
-          Commit this project to GitHub and pull changes made there. Nothing is committed until you
-          write a message and ask for it.
-        </p>
+        <p className="page-description">Review what changed, commit it to GitHub, and pull what changed there.</p>
       </div>
     </header>
   );
@@ -66,7 +63,13 @@ export default async function SourcePage({ params }: { params: Promise<{ id: str
   return (
     <div className="page page-wide">
       {header}
-      <SourceControl projectId={id} summary={summary} configured={Boolean(mode)} />
+      <SourceControl
+        projectId={id}
+        summary={summary}
+        configured={Boolean(mode)}
+        canPublish={mode === "token" || mode === "user"}
+        suggestedName={id}
+      />
     </div>
   );
 }
