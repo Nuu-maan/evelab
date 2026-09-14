@@ -40,15 +40,15 @@ function compact(node: FileTreeNode): FileTreeNode {
   return { ...current, children: current.children.map(compact) };
 }
 
-/** Directories first, then files, each in natural order. */
-export function buildFileTree(paths: string[]): FileTreeNode[] {
+/** Directories first, then files, each in natural order. Folders with no files in them still appear. */
+export function buildFileTree(paths: string[], folders: string[] = []): FileTreeNode[] {
   const root: FileTreeNode = { name: "", path: "", kind: "directory", children: [] };
 
-  for (const path of paths) {
+  const add = (path: string, leaf: FileTreeNode["kind"]) => {
     const parts = path.split("/").filter(Boolean);
     let parent = root;
     parts.forEach((name, index) => {
-      const kind = index === parts.length - 1 ? "file" : "directory";
+      const kind = index === parts.length - 1 ? leaf : "directory";
       let child = parent.children.find((node) => node.name === name && node.kind === kind);
       if (!child) {
         child = { name, path: parts.slice(0, index + 1).join("/"), kind, children: [] };
@@ -56,7 +56,10 @@ export function buildFileTree(paths: string[]): FileTreeNode[] {
       }
       parent = child;
     });
-  }
+  };
+
+  for (const folder of folders) add(folder, "directory");
+  for (const path of paths) add(path, "file");
 
   return sortNodes(root.children).map(compact);
 }

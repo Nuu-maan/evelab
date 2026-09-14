@@ -47,6 +47,82 @@
     font-weight: var(--weight-medium);
   }
 
+  .explorer-actions {
+    display: flex;
+    flex: none;
+    gap: 1px;
+  }
+
+  /* Rename and delete sit at the end of a row, shown for the row under the pointer or with focus. */
+  .tree-row-actions {
+    display: flex;
+    flex: none;
+    gap: 1px;
+    margin-inline-start: auto;
+    padding-inline-start: 6px;
+    opacity: 0;
+    transition: opacity var(--duration-hover) ease;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .tree-row:hover .tree-row-actions {
+      opacity: 1;
+    }
+  }
+
+  .tree-row:focus-visible .tree-row-actions,
+  .tree-row[aria-selected="true"] .tree-row-actions {
+    opacity: 1;
+  }
+
+  .tree-action {
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    color: var(--foreground-tertiary);
+    transition: background-color var(--duration-hover) ease, color var(--duration-hover) ease;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .tree-action:hover {
+      background: var(--surface-active);
+      color: var(--foreground);
+    }
+  }
+
+  .tree-input {
+    flex: 1;
+    min-width: 0;
+    height: 20px;
+    margin-inline-end: 4px;
+    padding: 0 5px;
+    border: 1px solid var(--focus);
+    border-radius: 4px;
+    background: var(--surface);
+    color: var(--foreground);
+    font: inherit;
+    outline: none;
+  }
+
+  .tree-input[aria-invalid="true"] {
+    border-color: var(--danger);
+  }
+
+  .tree-row-draft {
+    cursor: default;
+  }
+
+  .tree-draft-error {
+    margin: 6px 8px 0;
+    padding: 4px 8px;
+    border-radius: var(--radius);
+    background: color-mix(in srgb, var(--danger) 10%, transparent);
+    color: var(--danger);
+    font-size: 12px;
+  }
+
   .tree {
     flex: 1;
     min-height: 0;
