@@ -21,7 +21,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { signInAction } from "@/lib/actions";
 import { getAccount, isAuthEnabled } from "@/lib/session";
-import { OPEN_GRAPH } from "@/lib/site";
+import { OPEN_GRAPH, SITE_DESCRIPTION, SITE_NAME, siteUrl } from "@/lib/site";
 import "@/app/landing.css";
 
 export const dynamic = "force-dynamic";
@@ -32,6 +32,29 @@ export const metadata: Metadata = {
 };
 
 const REPO = "https://github.com/anishfn/evelab";
+
+/** Only facts the page itself states: what EveLab is, that it is free, and where the code lives. */
+function structuredData() {
+  const url = siteUrl().toString();
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      { "@type": "WebSite", "@id": `${url}#website`, url, name: SITE_NAME, description: SITE_DESCRIPTION },
+      {
+        "@type": "SoftwareApplication",
+        "@id": `${url}#app`,
+        name: SITE_NAME,
+        url,
+        description: SITE_DESCRIPTION,
+        applicationCategory: "DeveloperApplication",
+        operatingSystem: "Web",
+        isAccessibleForFree: true,
+        offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+        sameAs: [REPO],
+      },
+    ],
+  };
+}
 
 const KIND_ORDER = ["subagent", "tool", "skill", "connection", "channel"] as const;
 
@@ -70,6 +93,7 @@ export default async function LandingPage() {
 
   return (
     <div className="lp">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData()) }} />
       <a className="skip-link" href="#main">
         Skip to content
       </a>

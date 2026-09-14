@@ -1,11 +1,10 @@
 import Link from "next/link";
 import { ConfirmSubmit } from "@/components/confirm";
-import { VercelPlatformCard } from "@/components/vercel-platform-card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { deleteProjectAction, disconnectRepositoryAction } from "@/lib/actions";
 import { readGitState } from "@/lib/git";
-import { getProject, projectLocation } from "@/lib/workspace";
+import { getProject } from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
 
@@ -18,29 +17,9 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
       <header className="page-header">
         <div className="page-heading">
           <h1 className="page-title">Settings</h1>
-          <p className="page-description">The Vercel products this project runs on, where it lives, and how to remove it.</p>
+          <p className="page-description">The repository this project is linked to, and how to remove it.</p>
         </div>
       </header>
-
-      <VercelPlatformCard />
-
-      <Card>
-        <CardHeader>
-          <CardTitle>On disk</CardTitle>
-          <CardDescription>
-            The project is a normal directory. Open it in your editor, run Eve against it, or put it
-            under version control without EveLab.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <pre className="code mono">{projectLocation(id)}</pre>
-        </CardContent>
-        <CardFooter>
-          <p className="text-xs text-muted-foreground">
-            {project.files.length} files. Set EVELAB_WORKSPACE to store projects elsewhere.
-          </p>
-        </CardFooter>
-      </Card>
 
       <Card>
         <CardHeader>
@@ -79,9 +58,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
       <Card className="border-destructive/30">
         <CardHeader>
           <CardTitle>Delete project</CardTitle>
-          <CardDescription>
-            Deletes the directory and everything in it. There is no undo and no copy elsewhere.
-          </CardDescription>
+          <CardDescription>Deletes the project and all its files from EveLab. There is no undo.</CardDescription>
         </CardHeader>
         <CardFooter className="justify-end">
           <form action={deleteProjectAction}>
@@ -89,7 +66,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
             <ConfirmSubmit
               variant="destructive"
               title={`Delete ${project.agent.name}?`}
-              description={`This deletes ${projectLocation(id)} and all ${project.files.length} files in it. It cannot be undone.`}
+              description={`This deletes all ${project.files.length} files in ${project.agent.name}. A connected GitHub repository is not touched. It cannot be undone.`}
               confirmLabel="Delete project"
             >
               Delete {project.agent.name}
