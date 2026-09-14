@@ -4,6 +4,7 @@ import { GraphPreview } from "@/components/graph-preview";
 import { Icon } from "@/components/icon";
 import { KINDS } from "@/components/kinds";
 import { SAMPLE_GRAPH } from "@/components/landing/sample-graph";
+import { BrandLockup } from "@/components/brand-lockup";
 import { EveLogo } from "@/components/eve-logo";
 import { Mark } from "@/components/mark";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -64,10 +65,7 @@ export default async function LandingPage() {
       </a>
 
       <header className="lp-header">
-        <Link className="lp-brand" href="/" aria-label="EveLab home">
-          <Mark />
-          EveLab
-        </Link>
+        <BrandLockup />
         <nav className="lp-nav" aria-label="Sections">
           <a href="#canvas">Canvas</a>
           <a href="#code">Code</a>
@@ -78,7 +76,7 @@ export default async function LandingPage() {
         </nav>
         <div className="lp-header-actions">
           <ThemeToggle />
-          <Button asChild variant="outline" size="sm" className="lp-header-link">
+          <Button asChild variant="outline" size="sm" className="lp-header-link max-[760px]:hidden">
             <a href="https://github.com/anishfn/evelab" target="_blank" rel="noreferrer">
               <Icon icon={IconLogoGithub} size={14} />
               GitHub
@@ -108,11 +106,6 @@ export default async function LandingPage() {
       <main id="main">
         <section className="lp-hero" aria-labelledby="hero-title">
           <div className="lp-hero-copy">
-            <a className="lp-built" href="https://eve.dev" target="_blank" rel="noreferrer">
-              <span>Built for</span>
-              <EveLogo className="lp-eve" />
-              <Icon icon={IconArrowUpRight} size={13} />
-            </a>
             <h1 className="lp-display" id="hero-title">
               Visual agents,
               <br />
