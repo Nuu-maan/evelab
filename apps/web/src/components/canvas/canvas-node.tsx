@@ -62,6 +62,12 @@ const COUNT_KEY: Record<PortKind, keyof CapabilityCounts> = {
   channel: "channels",
 };
 
+/** "anthropic/claude-opus-4.8" reads as the model, with its provider as the label. */
+function splitModel(detail: string): { value: string; label?: string } {
+  const slash = detail.indexOf("/");
+  return slash > 0 ? { value: detail.slice(slash + 1), label: detail.slice(0, slash) } : { value: detail };
+}
+
 /** The id of the port on an agent that wires to things of a kind. */
 export function portHandle(kind: CanvasNodeKind): string {
   return `out-${kind}`;
@@ -90,6 +96,14 @@ function CanvasNodeCardBase({ id, data, selected }: NodeProps<CapabilityNode>) {
   const total = ports.reduce((sum, port) => sum + (data.counts?.[COUNT_KEY[port]] ?? 0), 0);
   const usedBy = data.usedBy ?? 0;
 
+  // Two readings per card, as a dashboard shows them: a value with its label, and a quieter line under it.
+  const model = splitModel(data.detail);
+  const reading = owns
+    ? { value: model.value, label: undefined, aside: model.label, sub: data.filePath, subAside: total > 0 ? `${total} linked` : undefined }
+    : resource
+      ? { value: String(usedBy), label: usedBy === 1 ? "agent" : "agents", aside: data.shared ? "shared" : "local", sub: data.detail, subAside: undefined }
+      : { value: `/${data.name}`, label: "route", aside: undefined, sub: data.detail, subAside: undefined };
+
   return (
     <div
       className="node"
@@ -101,7 +115,7 @@ function CanvasNodeCardBase({ id, data, selected }: NodeProps<CapabilityNode>) {
       data-valid={valid || undefined}
       data-invalid={(fromId !== undefined && fromId !== id && !valid) || undefined}
       data-targeted={(targeted && valid) || undefined}
-      title={data.description}
+      title={`${data.kind === "agent" ? "Root agent" : KINDS[data.kind].label}: ${data.description ?? data.filePath}`}
     >
       {data.kind !== "agent" && (
         <Handle
@@ -134,15 +148,9 @@ function CanvasNodeCardBase({ id, data, selected }: NodeProps<CapabilityNode>) {
 
       <div className="node-head">
         <span className="node-icon" aria-hidden="true">
-          <Icon icon={KINDS[data.kind].icon} size={14} />
+          <Icon icon={KINDS[data.kind].icon} size={17} />
         </span>
-        <div className="node-titles">
-          <p className="node-name">{data.name}</p>
-          <p className="node-type">
-            {data.kind === "agent" ? "Root agent" : KINDS[data.kind].label}
-            {data.shared && <span className="node-shared">Shared</span>}
-          </p>
-        </div>
+        <p className="node-name">{data.name}</p>
         {owns && total > 0 && (
           <button
             type="button"
@@ -161,24 +169,19 @@ function CanvasNodeCardBase({ id, data, selected }: NodeProps<CapabilityNode>) {
       </div>
 
       <div className="node-body">
-        {resource && (
-          <p className="node-reading">
-            <strong>{usedBy}</strong> {usedBy === 1 ? "agent" : "agents"}
-            <span className="node-reading-muted">{data.shared ? "shared definition" : "defined in place"}</span>
+        <div className="node-row">
+          <p className="node-metric" title={reading.value}>
+            <span className="node-value">{reading.value}</span>
+            {reading.label && <span className="node-label">{reading.label}</span>}
           </p>
-        )}
-        {data.kind === "channel" && (
-          <p className="node-reading">
-            <strong>/{data.name}</strong>
-            <span className="node-reading-muted">route</span>
+          {reading.aside && <span className="node-label node-aside">{reading.aside}</span>}
+        </div>
+        <div className="node-row">
+          <p className="node-sub" title={reading.sub}>
+            {reading.sub}
           </p>
-        )}
-        <p className="node-detail" title={data.detail}>
-          {data.detail}
-        </p>
-        <p className="node-path" title={data.filePath}>
-          {data.filePath}
-        </p>
+          {reading.subAside && <span className="node-sub node-sub-aside">{reading.subAside}</span>}
+        </div>
       </div>
 
       {owns && (

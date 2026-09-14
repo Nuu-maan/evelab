@@ -621,7 +621,7 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     background: none;
-    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-family: var(--font-plex-mono), ui-monospace, monospace;
     font-size: var(--text-label);
     color: var(--foreground-secondary);
     cursor: pointer;
@@ -759,7 +759,7 @@
     mask-image: none;
   }
 
-  /* Eyebrows, readings and counts set in Geist Mono, so figures and labels read as data. */
+  /* Eyebrows, readings and counts set in mono, so figures and labels read as data. */
   .page-kicker {
     color: var(--foreground-tertiary);
     font-family: var(--font-mono);

@@ -204,7 +204,7 @@
   .source-letter {
     flex: none;
     min-width: 14px;
-    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-family: var(--font-plex-mono), ui-monospace, monospace;
     font-size: var(--text-label);
     font-weight: var(--weight-semibold);
     text-align: center;

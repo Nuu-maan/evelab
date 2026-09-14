@@ -7,7 +7,7 @@
     width: 100%;
     height: 100%;
     padding: var(--space-4);
-    font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
   }
 
   .graph-preview-edge {
@@ -46,7 +46,7 @@
 
   .graph-preview-badge {
     fill: var(--kind);
-    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-family: var(--font-plex-mono), ui-monospace, monospace;
     font-size: 10px;
     letter-spacing: 0.06em;
   }
@@ -58,14 +58,14 @@
 
   .graph-preview-reading {
     fill: var(--foreground-secondary);
-    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-family: var(--font-plex-mono), ui-monospace, monospace;
     font-size: 13px;
     letter-spacing: 0.04em;
   }
 
   .graph-preview-detail {
     fill: var(--foreground-tertiary);
-    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-family: var(--font-plex-mono), ui-monospace, monospace;
     font-size: 12px;
   }
 
