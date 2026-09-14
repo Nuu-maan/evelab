@@ -3,7 +3,7 @@ import { cache } from "react";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { getAuth, isAuthEnabled } from "@evelab/auth";
-import { eq, getDb, projectMembers, projects } from "@evelab/db";
+import { account as accounts, and, eq, getDb, projectMembers, projects } from "@evelab/db";
 import { AccessError, decideAccess, type AccessDecision } from "@/lib/access";
 
 /**
@@ -103,4 +103,22 @@ export async function recordProject(slug: string, name: string): Promise<void> {
 export async function forgetProject(slug: string): Promise<void> {
   if (!isAuthEnabled()) return;
   await database().delete(projects).where(eq(projects.slug, slug));
+}
+
+export interface GitHubAccess {
+  token: string;
+  /** Whether the person granted repository access, which import, commit and push need. */
+  canUseRepositories: boolean;
+}
+
+/** The signed-in person's GitHub OAuth token, read on the server only. Undefined when they have none. */
+export async function githubAccess(userId: string): Promise<GitHubAccess | undefined> {
+  const [row] = await database()
+    .select({ token: accounts.accessToken, scope: accounts.scope })
+    .from(accounts)
+    .where(and(eq(accounts.userId, userId), eq(accounts.providerId, "github")))
+    .limit(1);
+  if (!row?.token) return undefined;
+  const scopes = (row.scope ?? "").split(/[\s,]+/);
+  return { token: row.token, canUseRepositories: scopes.includes("repo") };
 }

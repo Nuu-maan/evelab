@@ -33,7 +33,8 @@ function createAuth(db: NonNullable<ReturnType<typeof getDb>>, clientId: string,
     baseURL: process.env.BETTER_AUTH_URL,
     secret: process.env.BETTER_AUTH_SECRET,
     socialProviders: {
-      github: { clientId, clientSecret },
+      // repo lets EveLab list, import, commit and push with each person's own GitHub access.
+      github: { clientId, clientSecret, scope: ["read:user", "user:email", "repo"] },
     },
     session: { expiresIn: 60 * 60 * 24 * 30 },
     // Lets server actions set the session cookie through Next's cookie store.

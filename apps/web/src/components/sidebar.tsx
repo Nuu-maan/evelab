@@ -45,7 +45,7 @@ export function Sidebar({
   projects: SwitcherProject[];
   counts: { tools: number; skills: number; subagents: number; connections?: number; channels?: number };
   /** The signed-in user; absent in local mode. */
-  account?: { name: string };
+  account?: { name: string; image?: string | null };
 }) {
   const pathname = usePathname();
   const base = `/projects/${project.id}`;
@@ -129,7 +129,7 @@ export function Sidebar({
         <div className="sidebar-foot">
           {account ? (
             <>
-              <Avatar name={account.name} />
+              <Avatar name={account.name} image={account.image} />
               <span className="min-w-0 flex-1 truncate">{account.name}</span>
               <form action={signOutAction}>
                 <Button variant="ghost" size="sm" type="submit">

@@ -2,6 +2,7 @@ import "server-only";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { z } from "zod";
+import { getAccount, githubAccess, isAuthEnabled } from "@/lib/session";
 import { looksLikeEveProject, parseProject, validateProject, type ProjectFile } from "@evelab/eve-project";
 import {
   commitFiles,
@@ -96,18 +97,32 @@ export async function disconnectRepository(projectId: string): Promise<void> {
   await rm(statePath(projectId), { force: true });
 }
 
-/** How EveLab reaches GitHub, or undefined when it has not been configured. */
-export function sourceControlMode(): "token" | "app" | undefined {
+/**
+ * How EveLab reaches GitHub, or undefined when it has not been configured.
+ * A GitHub App wins when one is set up. With sign-in on, everyone else uses
+ * their own GitHub login, so each person sees and changes only what they can.
+ */
+export function sourceControlMode(): "app" | "user" | "token" | undefined {
   const env = process.env;
   if (env.GITHUB_APP_ID && env.GITHUB_APP_PRIVATE_KEY && env.GITHUB_APP_INSTALLATION_ID) return "app";
+  if (isAuthEnabled()) return "user";
   if (env.GITHUB_TOKEN) return "token";
   return undefined;
 }
 
-function client(): GitHubClient {
+async function client(): Promise<GitHubClient> {
   const mode = sourceControlMode();
   const env = process.env;
   if (mode === "app") return getInstallationClient(env.GITHUB_APP_INSTALLATION_ID ?? "");
+  if (mode === "user") {
+    const account = await getAccount();
+    if (!account) throw new SourceControlError("Sign in with GitHub to use your repositories.");
+    const access = await githubAccess(account.id);
+    if (!access?.canUseRepositories) {
+      throw new SourceControlError("EveLab needs access to your repositories. Sign out, then sign in with GitHub again to allow it.");
+    }
+    return createGitHubClient({ kind: "token", token: access.token }, { baseUrl: env.GITHUB_API_URL });
+  }
   if (mode === "token") {
     return createGitHubClient({ kind: "token", token: env.GITHUB_TOKEN ?? "" }, { baseUrl: env.GITHUB_API_URL });
   }
@@ -176,7 +191,7 @@ export async function getSourceSummary(
 
   if (options.fresh && sourceControlMode()) {
     try {
-      summary.remoteMoved = ((await fetchHead(client(), state)) ?? "") !== state.base.commit;
+      summary.remoteMoved = ((await fetchHead(await client(), state)) ?? "") !== state.base.commit;
     } catch (error) {
       summary.remoteError = sourceControlMessage(error) ?? "Could not reach GitHub.";
     }
@@ -191,7 +206,7 @@ export async function getSourceSummary(
 }
 
 export async function listAccessibleRepositories(): Promise<RepositoryOption[]> {
-  const repositories = await listRepositories(client());
+  const repositories = await listRepositories(await client());
   return repositories.map(({ fullName, defaultBranch, private: isPrivate }) => ({
     fullName,
     defaultBranch,
@@ -201,7 +216,7 @@ export async function listAccessibleRepositories(): Promise<RepositoryOption[]> 
 
 async function readBranch(repository: string, branch: string | undefined) {
   const ref = parseRepositoryName(repository);
-  const github = client();
+  const github = await client();
   const info = await getRepository(github, ref);
   const name = branch?.trim() || info.defaultBranch;
   if (!isValidBranchName(name)) throw new SourceControlError("That is not a valid branch name.");
@@ -267,7 +282,7 @@ export async function connectRepository(
 ): Promise<{ warnings: string[] }> {
   if (await readGitState(projectId)) throw new SourceControlError("This project already has a repository.");
   const ref = parseRepositoryName(repository);
-  const github = client();
+  const github = await client();
   const info = await getRepository(github, ref);
   if (github.auth === "token" && !info.canPush) {
     throw new SourceControlError(`These credentials cannot push to ${ref.fullName}.`);
@@ -301,7 +316,7 @@ export async function commitProject(projectId: string, message: string): Promise
   const changes = computeChanges(local, state.base);
   if (changes.length === 0) throw new SourceControlError("There are no changes to commit.");
 
-  const github = client();
+  const github = await client();
   const base = await commitFiles(github, parseRepositoryName(state.repository), {
     branch: state.branch,
     message,
@@ -321,7 +336,7 @@ export async function publishToNewRepository(
   message: string,
 ): Promise<{ commit: string; files: number; repository: string }> {
   if (await readGitState(projectId)) throw new SourceControlError("This project already has a repository.");
-  const created = await createRepository(client(), name, isPrivate);
+  const created = await createRepository(await client(), name, isPrivate);
   await writeGitState(projectId, {
     repository: created.fullName,
     branch: created.defaultBranch || "main",
@@ -338,7 +353,7 @@ export async function publishToNewRepository(
  */
 export async function pullProject(projectId: string): Promise<PullResult> {
   const state = await requireState(projectId);
-  const github = client();
+  const github = await client();
   const head = await fetchHead(github, state);
   if (!head) throw new SourceControlError(`${state.branch} no longer exists on GitHub.`);
   if (head === state.base.commit) return { status: "up-to-date" };
