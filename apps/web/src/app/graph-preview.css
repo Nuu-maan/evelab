@@ -12,9 +12,9 @@
 
   .graph-preview-edge {
     fill: none;
-    stroke: color-mix(in srgb, var(--kind) 55%, transparent);
-    stroke-width: 1.5;
-    stroke-linejoin: round;
+    stroke: color-mix(in srgb, var(--kind) 50%, transparent);
+    stroke-width: 1.25;
+    stroke-linecap: round;
     vector-effect: non-scaling-stroke;
   }
 
@@ -23,19 +23,37 @@
   }
 
   .graph-preview-card {
-    fill: color-mix(in srgb, var(--kind) 8%, var(--surface));
-    stroke: color-mix(in srgb, var(--kind) 60%, transparent);
+    fill: var(--surface);
+    stroke: color-mix(in srgb, var(--foreground) 16%, var(--background));
     stroke-width: 1.5;
     vector-effect: non-scaling-stroke;
   }
 
   .graph-preview-node[data-tier="root"] .graph-preview-card {
-    fill: var(--surface);
-    stroke: color-mix(in srgb, var(--foreground) 50%, transparent);
+    stroke: color-mix(in srgb, var(--foreground) 42%, var(--background));
   }
 
-  .graph-preview-mark {
-    fill: var(--kind);
+  .graph-preview-node[data-tier="resource"] .graph-preview-card,
+  .graph-preview-node[data-tier="channel"] .graph-preview-card {
+    fill: color-mix(in srgb, var(--kind) 10%, var(--surface));
+    stroke: color-mix(in srgb, var(--kind) 45%, var(--background));
+  }
+
+  .graph-preview-tile {
+    fill: color-mix(in srgb, var(--kind) 14%, var(--surface));
+  }
+
+  .graph-preview-node[data-tier="root"] .graph-preview-tile {
+    fill: var(--foreground);
+  }
+
+  .graph-preview-glyph {
+    color: var(--kind);
+    overflow: visible;
+  }
+
+  .graph-preview-node[data-tier="root"] .graph-preview-glyph {
+    color: var(--background);
   }
 
   .graph-preview-name {
@@ -44,29 +62,9 @@
     font-weight: var(--weight-medium);
   }
 
-  .graph-preview-badge {
-    fill: var(--kind);
-    font-family: var(--font-geist-mono), ui-monospace, monospace;
-    font-size: 10px;
-    letter-spacing: 0.06em;
-  }
-
-  .graph-preview-rule {
-    stroke: color-mix(in srgb, var(--kind) 22%, transparent);
-    vector-effect: non-scaling-stroke;
-  }
-
-  .graph-preview-reading {
+  .graph-preview-label {
     fill: var(--foreground-secondary);
-    font-family: var(--font-geist-mono), ui-monospace, monospace;
-    font-size: 13px;
-    letter-spacing: 0.04em;
-  }
-
-  .graph-preview-detail {
-    fill: var(--foreground-tertiary);
-    font-family: var(--font-geist-mono), ui-monospace, monospace;
-    font-size: 12px;
+    font-size: 15px;
   }
 
   /* Projects: a filter row, then cards with the drawing on top and details underneath. */
@@ -177,20 +175,19 @@
     height: 100%;
     overflow: hidden;
     border: 1px solid var(--border);
-    border-radius: 14px;
+    border-radius: 12px;
     transition: border-color var(--duration-hover) ease, box-shadow 200ms var(--ease-out),
       transform var(--duration-press) var(--ease-out);
   }
 
   .project-card {
     background: var(--surface);
-    box-shadow: var(--shadow-small);
   }
 
   @media (hover: hover) and (pointer: fine) {
     .project-card:hover {
       border-color: var(--border-strong);
-      box-shadow: var(--shadow);
+      box-shadow: var(--shadow-small);
     }
   }
 
@@ -207,7 +204,7 @@
 
   .project-card-preview {
     position: relative;
-    height: 188px;
+    height: 176px;
     overflow: hidden;
     border-bottom: 1px solid var(--border);
     background: var(--background);
@@ -223,65 +220,128 @@
   }
 
   .project-card-preview .graph-preview {
-    padding: 18px;
+    padding: 20px;
     transition: transform 300ms var(--ease-out);
+  }
+
+  /* Opens on hover: a small square in the corner that says the card leads somewhere. */
+  .project-card-open {
+    position: absolute;
+    top: 10px;
+    inset-inline-end: 10px;
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: var(--surface);
+    color: var(--foreground-secondary);
+    opacity: 0;
+    transform: translateY(2px);
+    transition: opacity 160ms ease, transform 200ms var(--ease-out);
   }
 
   @media (hover: hover) and (pointer: fine) {
     .project-card:hover .graph-preview {
       transform: scale(1.03);
     }
-  }
 
-  @media (prefers-reduced-motion: reduce) {
-    .project-card-preview .graph-preview {
-      transition: none;
+    .project-card:hover .project-card-open {
+      opacity: 1;
+      transform: none;
     }
   }
 
-  .project-card-id {
-    position: absolute;
-    inset-block-start: 10px;
-    inset-inline-start: 10px;
-    max-width: calc(100% - 20px);
-    overflow: hidden;
-    padding: 0 7px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    background: var(--surface);
-    color: var(--foreground-secondary);
-    font-family: var(--font-mono);
-    font-size: 11px;
-    line-height: 20px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  .project-card:focus-visible .project-card-open {
+    opacity: 1;
+    transform: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .project-card-preview .graph-preview,
+    .project-card-open {
+      transition: none;
+    }
   }
 
   .project-card-body {
     display: flex;
     flex: 1;
     flex-direction: column;
+    min-width: 0;
+    padding: 14px 16px 16px;
+  }
+
+  .project-card-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
     gap: var(--space-3);
-    padding: 14px 16px;
+    min-width: 0;
+  }
+
+  .project-card-name {
+    min-width: 0;
+    overflow: hidden;
+    font-size: 15px;
+    font-weight: var(--weight-medium);
+    letter-spacing: -0.01em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .project-card-time {
+    flex: none;
+    color: var(--foreground-tertiary);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
   }
 
   .project-card-model {
-    color: var(--foreground-tertiary);
+    margin-top: 2px;
+    overflow: hidden;
+    color: var(--foreground-secondary);
     font-family: var(--font-mono);
     font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
-  .project-card-counts {
+  .project-card-parts {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-2) var(--space-4);
+    gap: 4px 12px;
+    margin: 12px 0 0;
+    padding: 0;
+    color: var(--foreground-secondary);
+    font-size: 12.5px;
+    list-style: none;
+  }
+
+  .project-card-parts-empty {
+    color: var(--foreground-tertiary);
+  }
+
+  .project-card-part {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .project-card-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--kind);
   }
 
   .project-card-footer {
     display: flex;
     justify-content: space-between;
     gap: var(--space-3);
-    padding: 9px 16px;
+    padding: 10px 16px;
     border-top: 1px solid var(--border);
     color: var(--foreground-tertiary);
     font-family: var(--font-mono);
@@ -289,11 +349,18 @@
     font-variant-numeric: tabular-nums;
   }
 
+  .project-card-id {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .project-new {
     align-items: center;
     justify-content: center;
     gap: 6px;
-    min-height: 240px;
+    min-height: 200px;
     padding: var(--space-6);
     border-style: dashed;
     border-color: var(--border-strong);

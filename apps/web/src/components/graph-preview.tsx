@@ -1,31 +1,56 @@
+import { createElement } from "react";
 import type { CanvasGraph, CanvasNode } from "@evelab/eve-project";
 import { fallbackPositions, NODE_SIZE, type Positions } from "@/components/canvas/layout";
 import { KINDS } from "@/components/kinds";
 import "@/app/graph-preview.css";
 
-const PADDING = 48;
-const HEIGHT = 112;
-/** Distance from a card to the bus its wires share, as on the canvas. */
-const BUS = 32;
+const PADDING = 40;
+/** An agent card's height, and a resource or channel tile's size, as the canvas draws them. */
+const CARD = 64;
+const TILE = 64;
 
 function truncate(value: string, length: number): string {
   return value.length > length ? `${value.slice(0, length - 1)}…` : value;
 }
 
-function reading(node: CanvasNode): string {
-  const counts = node.counts;
-  const resources = counts ? counts.tools + counts.skills + counts.connections : 0;
-  if (node.kind === "agent") return `${counts?.subagents ?? 0} SUBAGENTS · ${resources} RESOURCES`;
-  if (node.kind === "subagent") return `${resources} ${resources === 1 ? "RESOURCE" : "RESOURCES"}`;
-  if (node.kind === "channel") return `/${node.name.toUpperCase()} ROUTE`;
-  const users = node.usedBy?.length ?? 0;
-  return `${users} ${users === 1 ? "AGENT" : "AGENTS"}${node.shared ? " · SHARED" : ""}`;
+function isAgent(node: CanvasNode): boolean {
+  return node.kind === "agent" || node.kind === "subagent";
+}
+
+/** Where a node's wires leave from and arrive at, in canvas coordinates. */
+function anchors(node: CanvasNode, x: number, y: number) {
+  const width = NODE_SIZE[node.kind].width;
+  const centre = x + width / 2;
+  const height = isAgent(node) ? CARD : TILE;
+  return { top: { x: centre, y }, bottom: { x: centre, y: y + height } };
+}
+
+function KindGlyph({ node, x, y, size }: { node: CanvasNode; x: number; y: number; size: number }) {
+  return (
+    <svg
+      className="graph-preview-glyph"
+      x={x}
+      y={y}
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {KINDS[node.kind].icon.nodes.map(([tag, attributes], index) => createElement(tag, { key: index, ...attributes }))}
+    </svg>
+  );
 }
 
 /**
- * A static drawing of the canvas, rendered on the server: the same tinted
- * cards and right-angled wires, at the positions the user arranged. Used on
- * the project overview and as the picture on each project card.
+ * A static drawing of the canvas, rendered on the server, in the canvas's own
+ * shapes: agents as cards with an icon and a name, tools, skills and
+ * connections as round tiles, channels as square ones, joined by curved wires
+ * at the positions the user arranged. Used on the project overview and as the
+ * picture on each project card.
  */
 export function GraphPreview({
   graph,
@@ -38,20 +63,11 @@ export function GraphPreview({
 }) {
   const layout = { ...fallbackPositions(graph), ...positions };
   const placed = new Map(graph.nodes.map((node) => [node.id, { node, ...(layout[node.id] ?? { x: 0, y: 0 }) }]));
-  const width = (node: CanvasNode) => NODE_SIZE[node.kind].width;
-
   const boxes = [...placed.values()];
   const minX = Math.min(...boxes.map((box) => box.x)) - PADDING;
   const minY = Math.min(...boxes.map((box) => box.y)) - PADDING;
-  const maxX = Math.max(...boxes.map((box) => box.x + width(box.node))) + PADDING;
-  const maxY = Math.max(...boxes.map((box) => box.y + HEIGHT)) + PADDING;
-
-  const incoming = new Map<string, number>();
-  const outgoing = new Map<string, number>();
-  for (const edge of graph.edges) {
-    incoming.set(edge.target, (incoming.get(edge.target) ?? 0) + 1);
-    outgoing.set(edge.source, (outgoing.get(edge.source) ?? 0) + 1);
-  }
+  const maxX = Math.max(...boxes.map((box) => box.x + NODE_SIZE[box.node.kind].width)) + PADDING;
+  const maxY = Math.max(...boxes.map((box) => box.y + (isAgent(box.node) ? CARD : TILE + 28))) + PADDING;
 
   return (
     <svg
@@ -59,22 +75,19 @@ export function GraphPreview({
       viewBox={`${minX} ${minY} ${maxX - minX} ${maxY - minY}`}
       preserveAspectRatio="xMidYMid meet"
       role="img"
-      aria-label={`Architecture with ${graph.nodes.length} ${graph.nodes.length === 1 ? "card" : "cards"}`}
+      aria-label={`Architecture with ${graph.nodes.length} ${graph.nodes.length === 1 ? "node" : "nodes"}`}
     >
       {graph.edges.map((edge) => {
         const source = placed.get(edge.source);
         const target = placed.get(edge.target);
         if (!source || !target) return null;
-        const sx = source.x + width(source.node) / 2;
-        const sy = source.y + HEIGHT;
-        const tx = target.x + width(target.node) / 2;
-        const ty = target.y;
-        const bus =
-          (incoming.get(edge.target) ?? 0) > 1
-            ? ty - BUS
-            : (outgoing.get(edge.source) ?? 0) > 1
-              ? sy + BUS
-              : (sy + ty) / 2;
+        const from = anchors(source.node, source.x, source.y);
+        const to = anchors(target.node, target.x, target.y);
+        // Channels sit above the root: their wires leave its top and arrive at their bottom.
+        const channel = target.node.kind === "channel";
+        const start = channel ? from.top : from.bottom;
+        const end = channel ? to.bottom : to.top;
+        const bend = Math.max(24, Math.abs(end.y - start.y) / 2) * (channel ? -1 : 1);
         const structure = edge.relation === "contains" || edge.relation === "routes to";
         return (
           <path
@@ -82,31 +95,41 @@ export function GraphPreview({
             className="graph-preview-edge"
             data-kind={target.node.kind}
             data-structure={structure || undefined}
-            d={ty > sy ? `M ${sx} ${sy} V ${bus} H ${tx} V ${ty}` : `M ${sx} ${sy} L ${tx} ${ty}`}
+            d={`M ${start.x} ${start.y} C ${start.x} ${start.y + bend}, ${end.x} ${end.y - bend}, ${end.x} ${end.y}`}
           />
         );
       })}
 
       {boxes.map(({ node, x, y }) => {
-        const w = width(node);
-        return (
-          <g key={node.id} className="graph-preview-node" data-kind={node.kind} data-tier={node.kind === "agent" ? "root" : undefined}>
-            <rect className="graph-preview-card" x={x} y={y} width={w} height={HEIGHT} rx={10} />
-            <rect className="graph-preview-mark" x={x + 14} y={y + 16} width={10} height={10} rx={2.5} />
-            <text className="graph-preview-name" x={x + 32} y={y + 26}>
-              {truncate(node.name, Math.floor(w / 11))}
-            </text>
-            {node.shared && (
-              <text className="graph-preview-badge" x={x + w - 14} y={y + 25} textAnchor="end">
-                SHARED
+        const width = NODE_SIZE[node.kind].width;
+        const tier = node.kind === "agent" ? "root" : isAgent(node) ? "agent" : node.kind === "channel" ? "channel" : "resource";
+        if (isAgent(node)) {
+          return (
+            <g key={node.id} className="graph-preview-node" data-kind={node.kind} data-tier={tier}>
+              <rect className="graph-preview-card" x={x} y={y} width={width} height={CARD} rx={14} />
+              <rect className="graph-preview-tile" x={x + 12} y={y + 12} width={40} height={40} rx={11} />
+              <KindGlyph node={node} x={x + 22} y={y + 22} size={20} />
+              <text className="graph-preview-name" x={x + 66} y={y + 38}>
+                {truncate(node.name, Math.floor((width - 80) / 9))}
               </text>
-            )}
-            <line className="graph-preview-rule" x1={x + 14} x2={x + w - 14} y1={y + 42} y2={y + 42} />
-            <text className="graph-preview-reading" x={x + 14} y={y + 68}>
-              {reading(node)}
-            </text>
-            <text className="graph-preview-detail" x={x + 14} y={y + 92}>
-              {truncate(node.kind === "agent" || node.kind === "subagent" ? node.detail : KINDS[node.kind].label, Math.floor(w / 8))}
+            </g>
+          );
+        }
+        const centre = x + width / 2;
+        const left = centre - TILE / 2;
+        return (
+          <g key={node.id} className="graph-preview-node" data-kind={node.kind} data-tier={tier}>
+            <rect
+              className="graph-preview-card"
+              x={left}
+              y={y}
+              width={TILE}
+              height={TILE}
+              rx={tier === "resource" ? TILE / 2 : 18}
+            />
+            <KindGlyph node={node} x={centre - 12} y={y + TILE / 2 - 12} size={24} />
+            <text className="graph-preview-label" x={centre} y={y + TILE + 22} textAnchor="middle">
+              {truncate(node.name, 14)}
             </text>
           </g>
         );
