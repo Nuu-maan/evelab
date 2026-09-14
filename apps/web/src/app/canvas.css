@@ -494,40 +494,73 @@
   }
 
   /*
-   * A phone-width canvas stacks the chrome: the title shrinks to leave the view
-   * menu room, and the toolbar drops to its own row so no piece is squeezed out.
+   * A phone-width canvas keeps only what fits: one scrolling toolbar across the
+   * top beside the view menu, resources as a sheet over the board, and the
+   * inspector as a sheet from the bottom. The title card, legend, minimap, key
+   * hints and resize handle give way; the header already names the project.
    */
   @container canvas (max-width: 560px) {
-    .canvas-layout .canvas-title {
-      width: calc(100% - 76px - var(--float-gap) * 3);
+    .canvas-layout .canvas-title,
+    .canvas-layout .canvas-toolbar-hint,
+    .canvas-layout .canvas-status,
+    .canvas-layout .tool-key,
+    .canvas-layout .react-flow__minimap,
+    .canvas-layout .canvas-inspector > .resize-handle {
+      display: none;
     }
 
-    .canvas-layout .canvas-toolbar-wrap {
-      top: calc(52px + var(--float-gap) * 2);
-      inset-inline: var(--float-gap);
+    .canvas-layout .canvas-toolbar-wrap,
+    .canvas-layout[data-panel] .canvas-toolbar-wrap {
+      top: var(--float-gap);
+      inset-inline-start: var(--float-gap);
+      inset-inline-end: calc(76px + var(--float-gap) * 2);
+      align-items: stretch;
     }
 
-    .canvas-toolbar {
+    .canvas-layout .canvas-toolbar {
+      justify-content: flex-start;
+      height: 46px;
       overflow-x: auto;
       scrollbar-width: none;
     }
 
-    .canvas-toolbar-hint {
+    .canvas-layout .canvas-toolbar::-webkit-scrollbar {
       display: none;
     }
 
+    .canvas-layout .tool-button {
+      width: 36px;
+      height: 36px;
+    }
+
     .canvas-layout .canvas-browser {
-      top: calc(52px * 2 + var(--float-gap) * 3);
-      width: calc(100% - var(--float-gap) * 2);
+      top: calc(46px + var(--float-gap) * 2);
+      bottom: calc(42px + var(--float-gap) * 2);
+      inset-inline: var(--float-gap);
+      z-index: 20;
+      width: auto;
     }
 
     .canvas-layout .canvas-inspector {
-      top: calc(52px * 2 + var(--float-gap) * 3);
-      width: calc(100% - var(--float-gap) * 2);
+      top: auto;
+      bottom: var(--float-gap);
+      inset-inline: var(--float-gap);
+      z-index: 30;
+      width: auto;
+      max-width: none;
+      height: min(72%, 560px);
+      animation-name: float-in-up;
     }
 
-    .canvas-layout[data-panel] .canvas-bottom-left {
+    .canvas-layout.canvas-layout[data-panel] .canvas-bottom-left {
       inset-inline-start: var(--float-gap);
+    }
+  }
+
+  @keyframes float-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
     }
   }
 

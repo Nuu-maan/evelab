@@ -147,7 +147,15 @@ const LAYOUTS: { mode: LayoutMode; label: string }[] = [
 ];
 
 /** Room for the floating panels, so fitting never tucks a card under them. */
-const FIT_PADDING = { top: "112px", right: "48px", bottom: "72px", left: "288px" } as const;
+const FIT_PADDING_WIDE = { top: "112px", right: "48px", bottom: "72px", left: "288px" } as const;
+/** On a phone-width canvas the panels are sheets over the board, so a fit reserves no room beside it for them. */
+const FIT_PADDING_NARROW = { top: "72px", right: "16px", bottom: "72px", left: "16px" } as const;
+
+/** Matches the canvas container width in canvas.css below which the phone layout applies. */
+function fitPadding() {
+  const width = document.querySelector<HTMLElement>(".canvas-layout")?.clientWidth ?? 1024;
+  return width <= 560 ? FIT_PADDING_NARROW : FIT_PADDING_WIDE;
+}
 
 
 /** What each wire colour means: the kind of card it leads to, and how the wire is drawn. */
@@ -342,7 +350,7 @@ function ZoomControls() {
       <ToolbarButton
         label="Fit to screen"
         tooltip="Fit everything (0)"
-        onClick={() => void fitView({ duration: 280, padding: FIT_PADDING, maxZoom: 1 })}
+        onClick={() => void fitView({ duration: 280, padding: fitPadding(), maxZoom: 1 })}
       >
         <Icon icon={IconFullscreen} />
       </ToolbarButton>
@@ -464,7 +472,9 @@ function CanvasInner(props: CanvasProps) {
       const placed = autoLayout(graph, startMode, undefined, measuredSizes());
       setNodes((current) => current.map((node) => (placed[node.id] ? { ...node, position: placed[node.id]! } : node)));
     }
-    requestAnimationFrame(() => requestAnimationFrame(() => void fitView({ padding: FIT_PADDING, maxZoom: 1 })));
+    requestAnimationFrame(() => requestAnimationFrame(() => void fitView({ padding: fitPadding(), maxZoom: 1 })));
+    // A relayout lands a frame or two later; fitting again once it has settled keeps a narrow screen from opening on an empty corner.
+    setTimeout(() => void fitView({ padding: fitPadding(), maxZoom: 1 }), 320);
     // Runs once, when the cards are first measured.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialized]);
@@ -700,7 +710,7 @@ function CanvasInner(props: CanvasProps) {
         const placed = autoLayout(graph, next, foldedNodes(graph, layoutState.current.collapsed).hidden, measuredSizes());
         record({ type: "move", before: snapshot(getNodes().filter(isCapability)), after: placed });
         applyPositions(placed);
-        requestAnimationFrame(() => void fitView({ duration: 360, padding: FIT_PADDING, maxZoom: 1 }));
+        requestAnimationFrame(() => void fitView({ duration: 360, padding: fitPadding(), maxZoom: 1 }));
       }
       persist();
     },
@@ -1015,7 +1025,7 @@ function CanvasInner(props: CanvasProps) {
           focusSelection();
           break;
         case "0":
-          void fitView({ duration: 320, padding: FIT_PADDING, maxZoom: 1 });
+          void fitView({ duration: 320, padding: fitPadding(), maxZoom: 1 });
           break;
         case "g":
         case "G":
@@ -1613,7 +1623,7 @@ function CanvasInner(props: CanvasProps) {
                   content={selected ? (contents[selected.filePath] ?? "") : ""}
                   issues={issues}
                   onSelect={select}
-                  onFocus={(id) => void fitView({ nodes: [{ id }], duration: 360, padding: FIT_PADDING, maxZoom: 1.1 })}
+                  onFocus={(id) => void fitView({ nodes: [{ id }], duration: 360, padding: fitPadding(), maxZoom: 1.1 })}
                   onClear={() => {
                     clearSelection();
                     setSummaryOpen(false);

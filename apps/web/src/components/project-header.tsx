@@ -124,12 +124,12 @@ export function ProjectHeader({
           </DropdownMenuContent>
         </DropdownMenu>
         {/* Running and deploying are not wired up yet, so the buttons say so instead of opening empty pages. */}
-        <Button variant="outline" size="sm" disabled aria-label="Run, coming soon" title="Coming soon">
+        <Button variant="outline" size="sm" disabled aria-label="Run, coming soon" title="Coming soon" className="header-soon max-sm:hidden">
           <Icon icon={IconPlay} size={14} />
           <span className="header-action-label">Run</span>
           <span className="soon-tag">Soon</span>
         </Button>
-        <Button variant="outline" size="sm" disabled aria-label="Deploy, coming soon" title="Coming soon">
+        <Button variant="outline" size="sm" disabled aria-label="Deploy, coming soon" title="Coming soon" className="header-soon max-sm:hidden">
           <Icon icon={IconCloudUpload} size={14} />
           <span className="header-action-label">Deploy</span>
           <span className="soon-tag">Soon</span>

@@ -260,7 +260,7 @@
   @media (max-width: 720px) {
     .explorer-layout {
       grid-template-columns: minmax(0, 1fr);
-      grid-template-rows: minmax(0, 38vh) minmax(0, 1fr);
+      grid-template-rows: minmax(0, 32vh) minmax(0, 1fr);
     }
 
     .explorer-pane {
