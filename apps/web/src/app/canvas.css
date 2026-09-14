@@ -1381,12 +1381,25 @@
    * Endpoints are small diamonds, as n8n marks where an agent's parts plug in:
    * hollow with a coloured rim, filling with their colour on hover or while a
    * wire is being dragged from them.
+   *
+   * The handle stays an unrotated square so React Flow's centring transform
+   * holds; the diamond is drawn inside it. Rotating the handle itself turns
+   * that transform too and pushes the diamond off the card's edge.
    */
   .react-flow__handle.node-handle {
-    width: 11px;
-    height: 11px;
+    width: 12px;
+    height: 12px;
     min-width: 0;
     min-height: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .react-flow__handle.node-handle::before {
+    content: "";
+    position: absolute;
+    inset: 1px;
     border: 2px solid var(--kind);
     border-radius: 2px;
     background: var(--surface);
@@ -1394,16 +1407,19 @@
     transition: background-color var(--duration-hover) ease, box-shadow 200ms var(--ease-out), border-color var(--duration-hover) ease;
   }
 
-  .react-flow__handle.node-port-handle[data-empty] {
+  .react-flow__handle.node-port-handle[data-empty]::before {
     border-color: color-mix(in srgb, var(--kind) 45%, var(--border-strong));
   }
 
   /* Where a wire lands: a quieter diamond on the receiving tile. */
   .react-flow__handle.node-target {
-    width: 9px;
-    height: 9px;
-    border-color: color-mix(in srgb, var(--kind) 60%, var(--border-strong));
+    width: 10px;
+    height: 10px;
     pointer-events: none;
+  }
+
+  .react-flow__handle.node-target::before {
+    border-color: color-mix(in srgb, var(--kind) 60%, var(--border-strong));
   }
 
   .react-flow__handle.node-channel-handle {
@@ -1421,24 +1437,24 @@
   }
 
   @media (hover: hover) and (pointer: fine) {
-    .react-flow__handle.node-port-handle:hover {
+    .react-flow__handle.node-port-handle:hover::before {
       border-color: var(--kind);
       background: var(--kind);
       box-shadow: 0 0 0 4px color-mix(in srgb, var(--kind) 25%, transparent);
     }
   }
 
-  .react-flow__handle.node-port-handle.connectingfrom {
+  .react-flow__handle.node-port-handle.connectingfrom::before {
     border-color: var(--kind);
     background: var(--kind);
     box-shadow: 0 0 0 4px color-mix(in srgb, var(--kind) 25%, transparent);
   }
 
-  .node[data-valid] .react-flow__handle.node-target {
+  .node[data-valid] .react-flow__handle.node-target::before {
     border-color: var(--focus);
   }
 
-  .react-flow__handle.node-target.connectingto.valid {
+  .react-flow__handle.node-target.connectingto.valid::before {
     background: var(--focus);
     border-color: var(--focus);
     box-shadow: 0 0 0 4px color-mix(in srgb, var(--focus) 25%, transparent);
