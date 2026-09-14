@@ -16,6 +16,8 @@ interface Repository {
   fullName: string;
   defaultBranch: string;
   private: boolean;
+  /** Whether the caller may push; GitHub's permissions.push. Defaults to true. */
+  canPush?: boolean;
 }
 
 export interface LoggedRequest {
@@ -40,8 +42,8 @@ export class GitHubMock {
   private readonly repositories = new Map<string, Repository>();
   private server?: Server;
 
-  addRepository(fullName: string, defaultBranch = "main"): void {
-    this.repositories.set(fullName, { fullName, defaultBranch, private: true });
+  addRepository(fullName: string, defaultBranch = "main", options: { canPush?: boolean } = {}): void {
+    this.repositories.set(fullName, { fullName, defaultBranch, private: true, canPush: options.canPush });
   }
 
   /** Commits files straight to a branch, the way a teammate pushing to GitHub would. */
@@ -122,7 +124,7 @@ export class GitHubMock {
       default_branch: repository.defaultBranch,
       private: repository.private,
       html_url: `https://github.com/${repository.fullName}`,
-      permissions: { push: true },
+      permissions: { push: repository.canPush ?? true },
     };
   }
 
@@ -135,6 +137,10 @@ export class GitHubMock {
     }
     if (method === "POST" && url.pathname === "/user/repos") {
       const fullName = `e2e-user/${String(body.name)}`;
+      // GitHub refuses a name the account already has.
+      if (this.repositories.has(fullName)) {
+        return { status: 422, json: { message: "Repository creation failed.", errors: [{ message: "name already exists on this account" }] } };
+      }
       this.addRepository(fullName);
       return { status: 201, json: this.repositoryJson(this.repositories.get(fullName)!) };
     }

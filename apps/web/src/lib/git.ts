@@ -190,7 +190,14 @@ export async function getSourceSummary(
 
   if (options.fresh && sourceControlMode()) {
     try {
-      summary.remoteMoved = ((await fetchHead(await client(), state)) ?? "") !== state.base.commit;
+      const github = await client();
+      // A GitHub App installation does not report per-repository permissions, so only a token is asked.
+      const [head, info] = await Promise.all([
+        fetchHead(github, state),
+        github.auth === "token" ? getRepository(github, parseRepositoryName(state.repository)) : Promise.resolve(undefined),
+      ]);
+      summary.remoteMoved = (head ?? "") !== state.base.commit;
+      if (info) summary.canPush = info.canPush;
     } catch (error) {
       summary.remoteError = sourceControlMessage(error) ?? "Could not reach GitHub.";
     }
@@ -344,6 +351,26 @@ export async function publishToNewRepository(
     base: { commit: "", files: {} },
   });
   return { ...(await commitProject(projectId, message)), repository: created.fullName };
+}
+
+/**
+ * Moves a project onto a new repository on the person's own account, for a project that came from
+ * a repository they cannot push to. If the new repository cannot be created, the old link comes back.
+ */
+export async function publishToOwnRepository(
+  projectId: string,
+  name: string,
+  isPrivate: boolean,
+  message: string,
+): Promise<{ commit: string; files: number; repository: string }> {
+  const previous = await requireState(projectId);
+  await disconnectRepository(projectId);
+  try {
+    return await publishToNewRepository(projectId, name, isPrivate, message);
+  } catch (error) {
+    if (!(await readGitState(projectId))) await writeGitState(projectId, previous);
+    throw error;
+  }
 }
 
 /**

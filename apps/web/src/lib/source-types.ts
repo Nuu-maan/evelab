@@ -27,6 +27,8 @@ export interface SourceSummary {
   /** Undefined when GitHub was not asked, or did not answer. */
   remoteMoved?: boolean;
   remoteError?: string;
+  /** Whether these credentials may push to the repository. Undefined when GitHub was not asked or does not say. */
+  canPush?: boolean;
 }
 
 export interface RepositoryOption {
