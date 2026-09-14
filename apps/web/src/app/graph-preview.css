@@ -221,7 +221,7 @@
 
   .project-card-preview .graph-preview {
     padding: 20px;
-    transition: transform 300ms var(--ease-out);
+    transition: transform 200ms var(--ease-out);
   }
 
   /* Opens on hover: a small square in the corner that says the card leads somewhere. */

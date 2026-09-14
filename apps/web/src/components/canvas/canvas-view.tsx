@@ -379,7 +379,7 @@ function CanvasInner(props: CanvasProps) {
   const [settling, setSettling] = useState(false);
   const [draft, setDraft] = useState<{ kind: DraftKind; owner?: string }>();
   const [importOpen, setImportOpen] = useState(false);
-  const [picker, setPicker] = useState<{ kind: CreateKind; target: string; at: Point }>();
+  const [picker, setPicker] = useState<{ kind: CreateKind; target: string; at: Point; origin: string; instant: boolean }>();
   const [confirmDelete, setConfirmDelete] = useState<CanvasNode>();
   const [notice, setNotice] = useState<{ text: string; tone?: "error"; undo?: boolean }>();
   const [pendingCount, setPendingCount] = useState(0);
@@ -790,7 +790,7 @@ function CanvasInner(props: CanvasProps) {
    * such as a new subagent or channel, it goes straight to the create form.
    */
   const openPicker = useCallback(
-    (kind: CreateKind, options: { drop?: Point; anchor?: DOMRect } = {}) => {
+    (kind: CreateKind, options: { drop?: Point; anchor?: DOMRect; keyboard?: boolean } = {}) => {
       setAttachTarget(undefined);
       const chosen = getNodes().filter((node): node is CapabilityNode => node.selected === true && isCapability(node));
       const selectedAgent = chosen.length === 1 && isAgentKind(chosen[0]!.data.kind) ? chosen[0]!.id : undefined;
@@ -807,14 +807,13 @@ function CanvasInner(props: CanvasProps) {
         : options.anchor
           ? { x: options.anchor.left + options.anchor.width / 2 - PICKER_WIDTH / 2, y: options.anchor.bottom + 36 }
           : { x: rect.left + rect.width / 2 - PICKER_WIDTH / 2, y: rect.top + 104 };
-      setPicker({
-        kind,
-        target,
-        at: {
-          x: Math.max(12, Math.min(screen.x - rect.left, rect.width - PICKER_WIDTH - 12)),
-          y: Math.max(12, Math.min(screen.y - rect.top, rect.height - 400)),
-        },
-      });
+      const at = {
+        x: Math.max(12, Math.min(screen.x - rect.left, rect.width - PICKER_WIDTH - 12)),
+        y: Math.max(12, Math.min(screen.y - rect.top, rect.height - 400)),
+      };
+      // It grows out of whatever opened it: the toolbar button above it, or the drop point at its corner.
+      const origin = options.anchor ? `${options.anchor.left + options.anchor.width / 2 - rect.left - at.x}px 0` : "0 0";
+      setPicker({ kind, target, at, origin, instant: options.keyboard === true });
     },
     [agentAt, create, getNodes, graph.nodes, uses],
   );
@@ -1033,7 +1032,7 @@ function CanvasInner(props: CanvasProps) {
         case "4":
         case "5":
           event.preventDefault();
-          openPicker(PIECE_ORDER[Number(event.key) - 1]!);
+          openPicker(PIECE_ORDER[Number(event.key) - 1]!, { keyboard: true });
           break;
         case "h":
         case "H":
@@ -1362,6 +1361,8 @@ function CanvasInner(props: CanvasProps) {
               kind={picker.kind}
               targetName={byId.get(picker.target)?.name ?? "the agent"}
               at={picker.at}
+              origin={picker.origin}
+              instant={picker.instant}
               options={graph.nodes
                 .filter((node) => node.kind === picker.kind && !uses(picker.target, node.id))
                 .sort((a, b) => a.name.localeCompare(b.name))

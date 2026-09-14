@@ -276,7 +276,7 @@
   }
 
   .tool-button:active {
-    transform: scale(0.94);
+    transform: scale(0.96);
   }
 
   .tool-button:focus-visible {
@@ -388,7 +388,11 @@
     z-index: 30;
     overflow: hidden;
     animation: picker-in 160ms var(--ease-out) both;
-    transform-origin: top left;
+  }
+
+  /* Keys 1 to 5 open it many times a day; from the keyboard it simply appears. */
+  .canvas-picker[data-instant] {
+    animation: none;
   }
 
   @keyframes picker-in {
@@ -1305,8 +1309,9 @@
     opacity: 0.35;
   }
 
+  /* Cards gliding to a new layout are moving on screen, so they ease in and out. */
   .react-flow__node.is-settling {
-    transition: transform 320ms var(--ease-out);
+    transition: transform 300ms var(--ease-in-out);
   }
 
   .node[data-valid] .node-card {
@@ -1564,7 +1569,7 @@
     font-size: 11px;
     font-weight: var(--weight-medium);
     white-space: nowrap;
-    animation: edge-label-fade 140ms ease-out both;
+    animation: edge-label-fade 140ms ease both;
     transition: border-color var(--duration-hover) ease, color var(--duration-hover) ease;
   }
 
