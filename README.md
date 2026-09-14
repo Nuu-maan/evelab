@@ -138,8 +138,6 @@ disabled until these ship.
 - **Vercel Connect connector management.** Create connectors and attach their
   trigger paths from EveLab instead of the Vercel CLI or dashboard.
 - **GitHub App installation flow** per user, alongside the existing token mode.
-- **Claiming existing folders** when sign-in is turned on after projects were
-  created locally.
 - **Launch polish.** One end-to-end browser journey from creating a project to
   deploying it, an accessibility pass in both themes, and screenshots for this
   README.
