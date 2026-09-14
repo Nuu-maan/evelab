@@ -191,15 +191,18 @@ export function CanvasInspector(props: InspectorProps) {
     <div className="inspector-content" data-kind={node.kind} key={node.id}>
       <header className="insp-header">
         <div className="insp-toprow">
-          <span className="insp-kind">
-            <Icon icon={KINDS[node.kind].icon} size={14} />
-            {node.kind === "agent" ? "Root agent" : KINDS[node.kind].label}
-          </span>
-          {node.shared && (
-            <Badge variant="outline" className="insp-shared">
-              Shared
-            </Badge>
-          )}
+          <KindTile kind={node.kind} size="large" />
+          <div className="insp-title">
+            <h2 className="insp-name">{node.name}</h2>
+            <span className="insp-kind">
+              {node.kind === "agent" ? "Root agent" : KINDS[node.kind].label}
+              {node.shared && (
+                <Badge variant="outline" className="insp-shared">
+                  Shared
+                </Badge>
+              )}
+            </span>
+          </div>
           <div className="insp-toprow-actions">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -228,7 +231,6 @@ export function CanvasInspector(props: InspectorProps) {
             </IconAction>
           </div>
         </div>
-        <h2 className="insp-name">{node.name}</h2>
         {node.description && <p className="insp-description">{node.description}</p>}
         <div className="insp-actions">
           <Button asChild size="sm" variant="outline">
@@ -246,13 +248,17 @@ export function CanvasInspector(props: InspectorProps) {
 
       <Tabs value={tab} onValueChange={setTab} className="insp-tabs">
         <div className="insp-tabbar">
-          <TabsList className="w-full">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="wiring">
+          <TabsList variant="line" className="w-full justify-start gap-4">
+            <TabsTrigger value="overview" className="flex-none px-0.5">
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="wiring" className="flex-none px-0.5">
               Wiring
               <span className="insp-tab-count">{wired}</span>
             </TabsTrigger>
-            <TabsTrigger value="source">Source</TabsTrigger>
+            <TabsTrigger value="source" className="flex-none px-0.5">
+              Source
+            </TabsTrigger>
           </TabsList>
         </div>
 
@@ -277,9 +283,11 @@ export function CanvasInspector(props: InspectorProps) {
                         setTab("wiring");
                       }}
                     >
-                      <Icon icon={KINDS[port].icon} />
-                      <strong className="tabular-nums">{count}</strong>
-                      <span>{plural(count, port)}</span>
+                      <KindTile kind={port} />
+                      <span className="insp-port-label">{KINDS[port].plural}</span>
+                      <strong className="tabular-nums" aria-label={`${count} ${plural(count, port)}`}>
+                        {count}
+                      </strong>
                     </button>
                   );
                 })}
@@ -538,17 +546,17 @@ function ArchitectureSummary({ graph, issues, onCreate, onClear }: InspectorProp
     <div className="inspector-content" data-kind="agent">
       <header className="insp-header">
         <div className="insp-toprow">
-          <span className="insp-kind">
-            <Icon icon={KINDS.agent.icon} size={14} />
-            Architecture
-          </span>
+          <KindTile kind="agent" size="large" />
+          <div className="insp-title">
+            <h2 className="insp-name">{root?.name}</h2>
+            <span className="insp-kind">Architecture</span>
+          </div>
           <div className="insp-toprow-actions">
             <IconAction label="Close" onClick={onClear}>
               <Icon icon={IconCross} />
             </IconAction>
           </div>
         </div>
-        <h2 className="insp-name">{root?.name}</h2>
         <p className="insp-description mono">{root?.detail}</p>
       </header>
 
