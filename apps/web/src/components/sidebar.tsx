@@ -3,15 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  IconChartActivity,
   IconClock,
-  IconCloudUpload,
   IconDatabase,
   IconFileText,
   IconGitBranch,
   IconGridSquare,
   IconMagnifyingGlass,
-  IconPlay,
   IconRoute,
   IconSettingsGear,
 } from "@/components/icons";
@@ -73,14 +70,6 @@ export function Sidebar({
         { label: "Connections", segment: "connections", icon: KINDS.connection.icon, count: counts.connections },
         { label: "Channels", segment: "channels", icon: KINDS.channel.icon, count: counts.channels },
         { label: "Schedules", segment: "schedules", icon: IconClock },
-      ],
-    },
-    {
-      label: "Runtime",
-      items: [
-        { label: "Runs", segment: "runs", icon: IconPlay },
-        { label: "Observability", segment: "observability", icon: IconChartActivity },
-        { label: "Deployments", segment: "deployments", icon: IconCloudUpload },
       ],
     },
     { items: [{ label: "Settings", segment: "settings", icon: IconSettingsGear }] },

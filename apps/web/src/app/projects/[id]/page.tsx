@@ -70,7 +70,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
       value: <span>{project.files.length} on disk</span>,
       href: `${base}/files`,
     },
-    { label: "Latest run", value: <span>None yet</span>, href: `${base}/runs` },
+    { label: "Latest run", value: <span className="hint">Coming soon</span> },
   ];
 
   const columns = [
@@ -158,8 +158,8 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
       state: project.connections.length > 0 ? "done" : "todo",
     },
     { label: "Connect GitHub", detail: "Source control", href: `${base}/source`, state: "todo" },
-    { label: "Run the agent", detail: "eve dev", href: `${base}/runs`, state: "todo" },
-    { label: "Deploy", detail: "Vercel", href: `${base}/deployments`, state: "todo" },
+    { label: "Run the agent", detail: "Coming soon", state: "unavailable" },
+    { label: "Deploy", detail: "Coming soon", state: "unavailable" },
   ];
   const done = steps.filter((step) => step.state === "done").length;
 

@@ -5,9 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   IconAlignmentLeft,
   IconArrowUpRight,
-  IconChartActivity,
   IconClock,
-  IconCloudUpload,
   IconFile,
   IconFileText,
   IconGitBranch,
@@ -62,8 +60,6 @@ export function CommandPalette({ projectId, root }: { projectId: string; root: s
           { label: "Open overview", hint: "Project", href: base, icon: IconGridSquare },
           { label: "Browse files", hint: "Files", href: `${base}/files`, icon: IconFileText },
           { label: "Source control", hint: "GitHub", href: `${base}/source`, icon: IconGitBranch },
-          { label: "View runs", hint: "eve dev", href: `${base}/runs`, icon: IconChartActivity },
-          { label: "View deployments", hint: "Deploy", href: `${base}/deployments`, icon: IconCloudUpload },
           { label: "Project settings", hint: "Settings", href: `${base}/settings`, icon: IconSettingsGear },
           { label: "All projects", hint: "Switch", href: "/projects", icon: IconArrowUpRight },
         ],

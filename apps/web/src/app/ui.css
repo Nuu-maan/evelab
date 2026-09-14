@@ -760,6 +760,18 @@
   }
 
   /* Eyebrows, readings and counts set in mono, so figures and labels read as data. */
+  /* A small tag on a control that is planned but not available yet. */
+  .soon-tag {
+    margin-inline-start: 2px;
+    padding: 0 5px;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: var(--weight-medium);
+    line-height: 15px;
+    opacity: 0.7;
+  }
+
   .page-kicker {
     color: var(--foreground-tertiary);
     font-family: var(--font-mono);

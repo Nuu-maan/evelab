@@ -93,17 +93,16 @@ export function ProjectHeader({
 
       <div className="header-actions">
         <ThemeToggle />
-        <Button asChild variant="outline" size="sm">
-          <Link href={`${base}/runs`} aria-label="Run">
-            <Icon icon={IconPlay} size={14} />
-            <span className="header-action-label">Run</span>
-          </Link>
+        {/* Running and deploying are not wired up yet, so the buttons say so instead of opening empty pages. */}
+        <Button variant="outline" size="sm" disabled aria-label="Run, coming soon" title="Coming soon">
+          <Icon icon={IconPlay} size={14} />
+          <span className="header-action-label">Run</span>
+          <span className="soon-tag">Soon</span>
         </Button>
-        <Button asChild size="sm">
-          <Link href={`${base}/deployments`} aria-label="Deploy">
-            <Icon icon={IconCloudUpload} size={14} />
-            <span className="header-action-label">Deploy</span>
-          </Link>
+        <Button size="sm" disabled aria-label="Deploy, coming soon" title="Coming soon">
+          <Icon icon={IconCloudUpload} size={14} />
+          <span className="header-action-label">Deploy</span>
+          <span className="soon-tag">Soon</span>
         </Button>
       </div>
     </header>
