@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { CanvasNodeKind } from "@evelab/eve-project";
-import { IconArrowUpRight, IconGridSquare, IconLogoGithub, IconPlus } from "@/components/icons";
+import { IconArrowUpRight, IconGridSquare, IconLogoGithub, IconPlus, IconTrash } from "@/components/icons";
+import { ConfirmSubmit } from "@/components/confirm";
 import { EmptyState } from "@/components/empty-state";
 import { Icon } from "@/components/icon";
 import { GraphPreview } from "@/components/graph-preview";
@@ -10,6 +11,7 @@ import { PlainShell } from "@/components/plain-shell";
 import { ProjectsBrowser } from "@/components/projects-browser";
 import { Reveal } from "@/components/motion";
 import { Button } from "@/components/ui/button";
+import { deleteProjectAction } from "@/lib/actions";
 import { requireAccount, visibleProjectIds } from "@/lib/session";
 import { readLayout } from "@/lib/layout";
 import { listProjects, type ProjectSummary } from "@/lib/workspace";
@@ -48,6 +50,8 @@ function ProjectCard({ project, positions }: { project: ProjectSummary; position
   ).filter(([, count]) => count > 0);
 
   return (
+    // The delete form sits beside the link, not in it: a button inside a link is not a button anyone can rely on.
+    <div className="project-card-wrap">
     <Link className="project-card" href={`/projects/${project.id}`}>
       <div className="project-card-preview" aria-hidden="true">
         <svg className="project-card-dots">
@@ -92,6 +96,20 @@ function ProjectCard({ project, positions }: { project: ProjectSummary; position
         </span>
       </div>
     </Link>
+    <form action={deleteProjectAction} className="project-card-delete">
+      <input type="hidden" name="id" value={project.id} />
+      <ConfirmSubmit
+        size="icon-sm"
+        className="size-[26px] rounded-[7px] border border-border bg-background"
+        title={`Delete ${project.name}?`}
+        description={`This deletes ${project.name} and its ${project.fileCount} ${project.fileCount === 1 ? "file" : "files"}. It cannot be undone.`}
+        confirmLabel="Delete project"
+      >
+        <Icon icon={IconTrash} size={14} />
+        <span className="visually-hidden">Delete {project.name}</span>
+      </ConfirmSubmit>
+    </form>
+    </div>
   );
 }
 
