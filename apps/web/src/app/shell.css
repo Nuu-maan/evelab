@@ -385,9 +385,18 @@
     }
   }
 
-  @container header (max-width: 400px) {
+  /* On a phone the page name matters most: placeholders and status pills give way, and actions keep only their icons. */
+  @container header (max-width: 560px) {
+    .header .header-soon,
+    .header > .status,
+    .header > .header-remote,
     .header-action-label {
       display: none;
+    }
+
+    .header {
+      gap: var(--space-3);
+      padding-inline-end: var(--space-3);
     }
   }
 

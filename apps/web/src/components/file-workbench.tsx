@@ -208,7 +208,7 @@ export function FileWorkbench({
           </nav>
           <div className="row">
             <SaveIndicator state={state} />
-            <Shortcut keys="S" />
+            <Shortcut keys="S" className="max-sm:hidden" />
             <Button
               variant="outline"
               size="sm"
