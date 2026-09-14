@@ -32,6 +32,8 @@ export default async function CanvasPage({ params }: { params: Promise<{ id: str
       mode={layout.mode}
       collapsed={layout.collapsed}
       annotations={layout.annotations}
+      wireStyle={layout.wireStyle}
+      arrowhead={layout.arrowhead}
       defaultModel={project.agent.model?.id || DEFAULT_MODEL_ID}
       models={models.map((model) => ({ id: model.id, label: model.label }))}
       root={project.root}

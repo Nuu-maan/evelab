@@ -2752,4 +2752,71 @@
   .insp-quick-item:active {
     transform: scale(0.98);
   }
+
+  /* ---------- Wire style ---------- */
+
+  .wire-defs {
+    position: absolute;
+    width: 0;
+    height: 0;
+  }
+
+  .wire-dot {
+    fill: var(--kind);
+    stroke: var(--background);
+    stroke-width: 2;
+  }
+
+  .wire-panel {
+    padding: 10px;
+  }
+
+  .wire-panel-label {
+    padding: 2px 2px 8px;
+    color: var(--foreground-secondary);
+    font-size: 12px;
+  }
+
+  .wire-panel-row {
+    display: grid;
+    grid-template-columns: repeat(3, 40px);
+    gap: 6px;
+  }
+
+  .wire-panel-row + .wire-panel-label {
+    margin-top: 12px;
+  }
+
+  .wire-panel-option {
+    display: grid;
+    place-items: center;
+    height: 36px;
+    border-radius: 8px;
+    background: var(--surface-hover);
+    color: var(--foreground-secondary);
+    transition: background-color var(--duration-hover) ease, color var(--duration-hover) ease,
+      box-shadow var(--duration-hover) ease, transform var(--duration-press) var(--ease-out);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .wire-panel-option:hover {
+      background: var(--surface-active);
+      color: var(--foreground);
+    }
+  }
+
+  .wire-panel-option:active {
+    transform: scale(0.95);
+  }
+
+  .wire-panel-option[aria-checked="true"] {
+    background: color-mix(in srgb, var(--focus) 18%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--focus) 55%, transparent);
+    color: var(--foreground);
+  }
+
+  .wire-panel-option:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 1px;
+  }
 }

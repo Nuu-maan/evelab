@@ -27,6 +27,12 @@ import type { CanvasEdge, CanvasGraph, CanvasNode, CanvasNodeKind } from "@evela
 import {
   IconCheckCircle,
   IconFullscreen,
+  IconHeadArrow,
+  IconHeadDot,
+  IconHeadNone,
+  IconWireCurved,
+  IconWireElbow,
+  IconWireStraight,
   IconInformation,
   IconMinus,
   IconWarning,
@@ -70,7 +76,15 @@ import {
 } from "@/components/canvas/canvas-inspector";
 import { CanvasCreatePanel, type DraftKind } from "@/components/canvas/canvas-create-panel";
 import { ResourceBrowser } from "@/components/canvas/resource-browser";
-import { autoLayout, type Annotation, type LayoutMode, type NodeSizes, type Positions } from "@/components/canvas/layout";
+import {
+  autoLayout,
+  type Annotation,
+  type Arrowhead,
+  type LayoutMode,
+  type NodeSizes,
+  type Positions,
+  type WireStyle,
+} from "@/components/canvas/layout";
 import type { ChatSdkOption } from "@/components/channel-form";
 import { ConfirmDialog } from "@/components/confirm";
 import { Icon, type IconData } from "@/components/icon";
@@ -109,6 +123,8 @@ export interface CanvasProps {
   mode: LayoutMode;
   collapsed: string[];
   annotations: Annotation[];
+  wireStyle: WireStyle;
+  arrowhead: Arrowhead;
   defaultModel: string;
   models: { id: string; label: string }[];
   /** Where the agent lives: "agent" or "" for the flat layout. */
@@ -162,6 +178,18 @@ const LEGEND: { kind: CanvasNodeKind; hint: string; dashed?: boolean }[] = [
   { kind: "skill", hint: "Solid wire: an agent has this skill" },
   { kind: "connection", hint: "Solid wire: an agent connects to this MCP or OpenAPI service" },
   { kind: "channel", hint: "Dashed wire: this channel routes messages to the root agent", dashed: true },
+];
+
+const WIRE_OPTIONS: { value: WireStyle; label: string; icon: IconData }[] = [
+  { value: "straight", label: "Straight", icon: IconWireStraight },
+  { value: "curved", label: "Curved", icon: IconWireCurved },
+  { value: "elbow", label: "Elbow", icon: IconWireElbow },
+];
+
+const ARROWHEAD_OPTIONS: { value: Arrowhead; label: string; icon: IconData }[] = [
+  { value: "none", label: "No arrowhead", icon: IconHeadNone },
+  { value: "arrow", label: "Arrow", icon: IconHeadArrow },
+  { value: "dot", label: "Dot", icon: IconHeadDot },
 ];
 
 const SHORTCUTS: [string, string][] = [
@@ -362,6 +390,8 @@ function CanvasInner(props: CanvasProps) {
   const [snap, setSnap] = useState(false);
   const [locked, setLocked] = useState(false);
   const [minimap, setMinimap] = useState(false);
+  const [wireStyle, setWireStyle] = useState<WireStyle>(props.wireStyle);
+  const [arrowhead, setArrowhead] = useState<Arrowhead>(props.arrowhead);
   const [panelOpen, setPanelOpen] = useState(true);
   useEffect(() => {
     if ((surfaceRef.current?.clientWidth ?? 1024) < 640) setPanelOpen(false);
@@ -381,7 +411,12 @@ function CanvasInner(props: CanvasProps) {
   const [editingId, setEditingId] = useState<string>();
   const [annotations, setAnnotations] = useState<AnnotationNode[]>(() => props.annotations.map(toAnnotationNode));
 
-  const layoutState = useRef<{ mode: LayoutMode; collapsed: Set<string> }>({ mode: initialMode, collapsed: new Set(props.collapsed) });
+  const layoutState = useRef<{ mode: LayoutMode; collapsed: Set<string>; wireStyle: WireStyle; arrowhead: Arrowhead }>({
+    mode: initialMode,
+    collapsed: new Set(props.collapsed),
+    wireStyle: props.wireStyle,
+    arrowhead: props.arrowhead,
+  });
   const annotationsRef = useRef(annotations);
   const savedAnnotations = useRef(JSON.stringify(props.annotations));
   const surfaceRef = useRef<HTMLDivElement>(null);
@@ -532,6 +567,8 @@ function CanvasInner(props: CanvasProps) {
         mode: layoutState.current.mode,
         collapsed: [...layoutState.current.collapsed],
         annotations: annotationsRef.current.map(fromAnnotationNode),
+        wireStyle: layoutState.current.wireStyle,
+        arrowhead: layoutState.current.arrowhead,
       });
     };
     flushRef.current = save;
@@ -1160,11 +1197,13 @@ function CanvasInner(props: CanvasProps) {
   const context = useMemo<CanvasContextValue>(
     () => ({
       mode,
+      wireStyle,
+      arrowhead,
       uses,
       toggleCollapse,
       detachEdge: (agent, resource) => void detach(resource, agent),
     }),
-    [detach, mode, toggleCollapse, uses],
+    [arrowhead, detach, mode, toggleCollapse, uses, wireStyle],
   );
 
   const errors = issues.filter((issue) => issue.level === "error");
@@ -1412,7 +1451,72 @@ function CanvasInner(props: CanvasProps) {
 
 
 
+          {/* The arrowhead marker every wire can point at; it takes the colour of the wire using it. */}
+          <svg className="wire-defs" aria-hidden="true" width="0" height="0">
+            <defs>
+              <marker id="wire-arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke" />
+              </marker>
+            </defs>
+          </svg>
+
           <div className="canvas-float canvas-view-menu">
+            <DropdownMenu>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon-sm" aria-label="Wire style">
+                      <Icon icon={WIRE_OPTIONS.find((option) => option.value === wireStyle)!.icon} />
+                    </Button>
+                  </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">Wire style</TooltipContent>
+              </Tooltip>
+              <DropdownMenuContent align="end" sideOffset={10} className="wire-panel w-60">
+                <p className="wire-panel-label">Arrow type</p>
+                <div className="wire-panel-row" role="radiogroup" aria-label="Arrow type">
+                  {WIRE_OPTIONS.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={wireStyle === option.value}
+                      aria-label={option.label}
+                      title={option.label}
+                      className="wire-panel-option"
+                      onClick={() => {
+                        setWireStyle(option.value);
+                        layoutState.current.wireStyle = option.value;
+                        persist();
+                      }}
+                    >
+                      <Icon icon={option.icon} />
+                    </button>
+                  ))}
+                </div>
+                <p className="wire-panel-label">Arrowheads</p>
+                <div className="wire-panel-row" role="radiogroup" aria-label="Arrowheads">
+                  {ARROWHEAD_OPTIONS.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={arrowhead === option.value}
+                      aria-label={option.label}
+                      title={option.label}
+                      className="wire-panel-option"
+                      onClick={() => {
+                        setArrowhead(option.value);
+                        layoutState.current.arrowhead = option.value;
+                        persist();
+                      }}
+                    >
+                      <Icon icon={option.icon} />
+                    </button>
+                  ))}
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon-sm" aria-label="Keyboard shortcuts">
