@@ -54,8 +54,8 @@ export function Sidebar({
     {
       label: "Project",
       items: [
-        { label: "Overview", segment: "", icon: IconGridSquare },
         { label: "Canvas", segment: "canvas", icon: IconRoute },
+        { label: "Overview", segment: "", icon: IconGridSquare },
         { label: "Agent", segment: "agent", icon: KINDS.agent.icon },
         { label: "Files", segment: "files", icon: IconFileText },
         { label: "Source control", segment: "source", icon: IconGitBranch },
