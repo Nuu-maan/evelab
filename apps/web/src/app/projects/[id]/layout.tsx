@@ -32,7 +32,7 @@ export default async function ProjectLayout({
 
   const [project, all, visible, account, style, source, jar] = await Promise.all([
     getProject(id),
-    listProjectNames(),
+    visibleProjectIds().then((visible) => listProjectNames(visible)),
     visibleProjectIds(),
     getAccount(),
     paneStyle(),

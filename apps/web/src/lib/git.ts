@@ -1,8 +1,7 @@
 import "server-only";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
 import { z } from "zod";
 import { getAccount, githubAccess, isAuthEnabled } from "@/lib/session";
+import { stateStore } from "@/lib/state-store";
 import { looksLikeEveProject, parseProject, validateProject, type ProjectFile } from "@evelab/eve-project";
 import {
   commitFiles,
@@ -36,7 +35,6 @@ import {
   deleteProjectFile,
   isIgnoredPath,
   readProjectFiles,
-  workspaceRoot,
   writeProjectFile,
 } from "@/lib/workspace";
 
@@ -66,14 +64,17 @@ const gitStateSchema = z.object({
 
 type GitState = z.infer<typeof gitStateSchema>;
 
-function statePath(projectId: string): string {
+/** The sync record's key in EveLab's state store: beside the workspace on disk, or in the database on Vercel. */
+function stateKey(projectId: string): string {
   if (!ID_PATTERN.test(projectId)) throw new Error(`Invalid project id: ${projectId}`);
-  return resolve(join(workspaceRoot(), "..", "git", `${projectId}.json`));
+  return `git/${projectId}.json`;
 }
 
 export async function readGitState(projectId: string): Promise<GitState | undefined> {
   try {
-    const parsed = gitStateSchema.safeParse(JSON.parse(await readFile(statePath(projectId), "utf8")));
+    const content = await stateStore().read(stateKey(projectId));
+    if (!content) return undefined;
+    const parsed = gitStateSchema.safeParse(JSON.parse(content));
     return parsed.success ? parsed.data : undefined;
   } catch {
     return undefined;
@@ -81,9 +82,7 @@ export async function readGitState(projectId: string): Promise<GitState | undefi
 }
 
 async function writeGitState(projectId: string, state: GitState): Promise<void> {
-  const path = statePath(projectId);
-  await mkdir(dirname(path), { recursive: true });
-  await writeFile(path, `${JSON.stringify(gitStateSchema.parse(state))}\n`, "utf8");
+  await stateStore().write(stateKey(projectId), `${JSON.stringify(gitStateSchema.parse(state))}\n`);
 }
 
 async function requireState(projectId: string): Promise<GitState> {
@@ -94,7 +93,7 @@ async function requireState(projectId: string): Promise<GitState> {
 
 /** Forgets the repository. Nothing changes on GitHub or in the project files. */
 export async function disconnectRepository(projectId: string): Promise<void> {
-  await rm(statePath(projectId), { force: true });
+  await stateStore().remove(stateKey(projectId));
 }
 
 /**
