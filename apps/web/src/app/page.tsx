@@ -1,13 +1,7 @@
 import Link from "next/link";
-import {
-  IconArrowUpRight,
-  IconCodeBracket,
-  IconLogoGithub,
-  IconRoute,
-  IconSparkles,
-} from "@/components/icons";
+import { IconArrowUpRight, IconChevronRight, IconLogoGithub } from "@/components/icons";
 import { GraphPreview } from "@/components/graph-preview";
-import { Icon, type IconData } from "@/components/icon";
+import { Icon } from "@/components/icon";
 import { KINDS } from "@/components/kinds";
 import { SAMPLE_GRAPH } from "@/components/landing/sample-graph";
 import { Mark } from "@/components/mark";
@@ -19,31 +13,13 @@ import "@/app/landing.css";
 
 export const dynamic = "force-dynamic";
 
-const FEATURES: { icon: IconData; title: string; body: string }[] = [
-  {
-    icon: IconRoute,
-    title: "The canvas is the architecture",
-    body: "Your agent, its subagents, tools, skills, connections and channels, drawn as one graph. Drag a tool onto an agent to give it one. Wire a shared connection to three agents and it is still written once.",
-  },
-  {
-    icon: IconCodeBracket,
-    title: "Real code you own",
-    body: "Every node is a file in a normal Eve project, the same one eve init creates. Edit it in the canvas or in the code editor, then download it as a zip or push it to GitHub.",
-  },
-  {
-    icon: IconSparkles,
-    title: "Set up in a minute",
-    body: "Name the agent, pick a model and start building. Add an MCP server and pick its tools from a list, import a skill from GitHub, and let the assistant write instructions for you.",
-  },
-];
+const KIND_ORDER = ["subagent", "tool", "skill", "connection", "channel"] as const;
 
 const STEPS = [
-  { title: "Create a project", body: "Give it a name and a model. EveLab writes the project Eve would." },
-  { title: "Build on the canvas", body: "Add subagents, tools, skills and connections, and wire them together." },
+  { title: "Create a project", body: "Name the agent and pick a model. EveLab writes the same project eve init would." },
+  { title: "Build on the canvas", body: "Drag subagents, tools, skills and connections onto agents and wire them together." },
   { title: "Take the code", body: "Download a zip or push to GitHub, then run it anywhere with eve dev." },
 ];
-
-const KIND_ORDER = ["subagent", "tool", "skill", "connection", "channel"] as const;
 
 const TREE = [
   { depth: 0, name: "support-desk/", folder: true },
@@ -56,196 +32,241 @@ const TREE = [
   { depth: 1, name: "package.json" },
 ];
 
+/** EveLab's two diamonds, drawn large for the hero. */
+function HeroMark() {
+  return (
+    <svg className="lp-mark" viewBox="0 0 160 160" aria-hidden="true" focusable="false">
+      <rect x="22" y="22" width="116" height="116" rx="10" transform="rotate(45 80 80)" fill="none" stroke="currentColor" strokeWidth="9" />
+      <rect x="57" y="57" width="46" height="46" rx="4" transform="rotate(45 80 80)" fill="currentColor" />
+    </svg>
+  );
+}
+
 /**
- * The public front door. Everyone can read it; building needs an account once
- * sign-in is configured, and in local mode it opens straight into the app.
+ * The public front door, in the spirit of vercel.com: big type, lots of room,
+ * and the product itself doing the explaining. Everyone can read it; building
+ * needs an account once sign-in is configured, and in local mode it opens
+ * straight into the app.
  */
 export default async function LandingPage() {
   const authEnabled = isAuthEnabled();
   const account = authEnabled ? await getAccount() : undefined;
   const canOpen = !authEnabled || Boolean(account);
 
-  const primary = canOpen ? (
-    <Button asChild size="lg">
-      <Link href="/projects">
-        {account ? "Open your projects" : "Open EveLab"}
-        <Icon icon={IconArrowUpRight} />
-      </Link>
-    </Button>
-  ) : (
-    <form action={signInAction}>
-      <Button type="submit" size="lg">
-        <Icon icon={IconLogoGithub} />
-        Continue with GitHub
+  const start = (label: string) =>
+    canOpen ? (
+      <Button asChild size="lg" className="h-11 rounded-full px-6 text-[15px]">
+        <Link href="/projects">{account ? "Open your projects" : label}</Link>
       </Button>
-    </form>
-  );
+    ) : (
+      <form action={signInAction}>
+        <Button type="submit" size="lg" className="h-11 rounded-full px-6 text-[15px]">
+          {label}
+        </Button>
+      </form>
+    );
 
   return (
-    <div className="landing">
+    <div className="lp">
       <a className="skip-link" href="#main">
         Skip to content
       </a>
-      <header className="landing-bar">
-        <Link className="topbar-brand" href="/">
+
+      <header className="lp-header">
+        <Link className="lp-brand" href="/" aria-label="EveLab home">
           <Mark />
           EveLab
         </Link>
-        <nav className="landing-nav" aria-label="Sections">
-          <a href="#features">Features</a>
-          <a href="#how-it-works">How it works</a>
+        <nav className="lp-nav" aria-label="Sections">
+          <a href="#canvas">Canvas</a>
+          <a href="#code">Code</a>
+          <a href="#setup">Setup</a>
           <a href="https://eve.dev/docs" target="_blank" rel="noreferrer">
-            Eve docs
+            Docs
           </a>
         </nav>
-        <div className="topbar-actions">
+        <div className="lp-header-actions">
           <ThemeToggle />
+          <Button asChild variant="outline" size="sm" className="lp-header-link">
+            <a href="https://github.com/anishfn/evelab" target="_blank" rel="noreferrer">
+              <Icon icon={IconLogoGithub} size={14} />
+              GitHub
+            </a>
+          </Button>
           {canOpen ? (
-            <Button asChild variant="outline" size="sm">
+            <Button asChild size="sm">
               <Link href="/projects">{account ? "Projects" : "Open app"}</Link>
             </Button>
           ) : (
-            <form action={signInAction}>
-              <Button type="submit" variant="outline" size="sm">
-                Sign in
-              </Button>
-            </form>
+            <>
+              <form action={signInAction}>
+                <Button type="submit" variant="outline" size="sm">
+                  Log in
+                </Button>
+              </form>
+              <form action={signInAction}>
+                <Button type="submit" size="sm">
+                  Get started
+                </Button>
+              </form>
+            </>
           )}
         </div>
       </header>
 
       <main id="main">
-        <section className="landing-hero" aria-labelledby="hero-title">
-          <p className="landing-kicker">Open source · Built for Eve</p>
-          <h1 className="landing-title" id="hero-title">
-            Design AI agents on a canvas.
+        <section className="lp-hero" aria-labelledby="hero-title">
+          <div className="lp-hero-copy">
+            <h1 className="lp-display" id="hero-title">
+              Visual agents,
+              <br />
+              real code
+            </h1>
+            <div className="lp-actions">
+              {start("Start building")}
+              <Button asChild variant="outline" size="lg" className="h-11 rounded-full px-6 text-[15px]">
+                <a href="#canvas">See the canvas</a>
+              </Button>
+            </div>
+          </div>
+          <div className="lp-hero-mark">
+            <HeroMark />
+          </div>
+          <ul className="lp-hero-lines">
+            <li>For Eve agents</li>
+            <li>Drawn on a canvas</li>
+            <li>Shipped as code you own</li>
+          </ul>
+        </section>
+
+        <section className="lp-strip" aria-label="What an agent is made of">
+          {KIND_ORDER.map((kind) => (
+            <span key={kind} className="lp-strip-item" data-kind={kind}>
+              <Icon icon={KINDS[kind].icon} size={22} />
+              {KINDS[kind].plural}
+            </span>
+          ))}
+        </section>
+
+        <section className="lp-section" id="canvas" aria-labelledby="canvas-title">
+          <h2 className="lp-heading" id="canvas-title">
+            Build agents the way
             <br />
-            Get the code.
-          </h1>
-          <p className="landing-lede">
-            EveLab turns an agent into a graph you can see and change: subagents, tools, skills, connections and
-            channels. Everything you draw is written as a real Eve project that you own and can run anywhere.
-          </p>
-          <div className="landing-actions">
-            {primary}
-            <Button asChild variant="ghost" size="lg">
-              <a href="#how-it-works">See how it works</a>
-            </Button>
-          </div>
-          {authEnabled && !account && (
-            <p className="landing-note">Free to use. Sign in with GitHub and your projects stay private to you.</p>
-          )}
-
-          <figure className="landing-canvas" aria-label="An example agent on the EveLab canvas">
-            <div className="landing-window-bar" aria-hidden="true">
-              <span className="landing-window-dots">
-                <i />
-                <i />
-                <i />
-              </span>
-              <span className="landing-window-title">support-desk · Canvas</span>
-            </div>
-            <div className="landing-canvas-board">
-              <svg className="landing-dots" aria-hidden="true">
-                <pattern id="landing-dots" width="20" height="20" patternUnits="userSpaceOnUse">
-                  <circle cx="10" cy="10" r="1" fill="currentColor" />
-                </pattern>
-                <rect width="100%" height="100%" fill="url(#landing-dots)" />
-              </svg>
-              <GraphPreview graph={SAMPLE_GRAPH} positions={{}} className="landing-graph" />
-            </div>
-            <figcaption className="landing-legend">
-              {KIND_ORDER.map((kind) => (
-                <span key={kind} className="landing-legend-item" data-kind={kind}>
-                  <Icon icon={KINDS[kind].icon} size={14} />
-                  {KINDS[kind].plural}
-                </span>
-              ))}
-            </figcaption>
-          </figure>
-        </section>
-
-        <section className="landing-section" id="features" aria-labelledby="features-title">
-          <h2 className="landing-section-title" id="features-title">
-            Everything an agent is made of, in one place
+            you picture them
           </h2>
-          <div className="landing-features">
-            {FEATURES.map((feature) => (
-              <article key={feature.title} className="landing-feature">
-                <span className="landing-feature-icon" aria-hidden="true">
-                  <Icon icon={feature.icon} size={18} />
+          <div className="lp-feature lp-feature-window-first">
+            <figure className="lp-window lp-window-canvas" aria-label="An example agent on the EveLab canvas">
+              <div className="lp-window-bar" aria-hidden="true">
+                <span className="lp-window-dots">
+                  <i />
+                  <i />
+                  <i />
                 </span>
-                <h3 className="landing-feature-title">{feature.title}</h3>
-                <p className="landing-feature-body">{feature.body}</p>
-              </article>
-            ))}
+                <span className="lp-window-title">support-desk · Canvas</span>
+              </div>
+              <div className="lp-board">
+                <svg className="lp-board-dots" aria-hidden="true">
+                  <pattern id="lp-dots" width="20" height="20" patternUnits="userSpaceOnUse">
+                    <circle cx="10" cy="10" r="1" fill="currentColor" />
+                  </pattern>
+                  <rect width="100%" height="100%" fill="url(#lp-dots)" />
+                </svg>
+                <GraphPreview graph={SAMPLE_GRAPH} positions={{}} className="lp-graph" />
+              </div>
+            </figure>
+            <div className="lp-feature-text">
+              <p className="lp-statement">
+                <strong>The canvas is the architecture.</strong> <span>Every card, port and wire is a real file in your project.</span>
+              </p>
+              <p className="lp-label">Features</p>
+              <ul className="lp-list">
+                <li>Drag pieces onto agents</li>
+                <li>Shared tools, skills and connections</li>
+                <li>Hierarchical, horizontal or freeform layouts</li>
+                <li>Notes and sections to sketch around it</li>
+              </ul>
+            </div>
           </div>
         </section>
 
-        <section className="landing-section landing-split" aria-labelledby="code-title">
-          <div className="landing-split-text">
-            <h2 className="landing-section-title" id="code-title">
-              Every node is a file
-            </h2>
-            <p className="landing-lede">
-              Click the github connection on the canvas and you are looking at the file behind it. There is no
-              hidden format: close EveLab and the project still runs with eve dev, commits to Git and deploys like
-              any other Eve agent.
-            </p>
-            <ul className="landing-checks">
-              <li>Download the whole project as a zip</li>
-              <li>Push it to a new or existing GitHub repository</li>
-              <li>Edit files directly, and the canvas follows</li>
-            </ul>
-          </div>
-          <div className="landing-code" aria-label="The generated project">
-            <ul className="landing-tree" aria-label="Project files">
-              {TREE.map((entry) => (
-                <li
-                  key={entry.name + entry.depth}
-                  style={{ paddingInlineStart: `${entry.depth * 16}px` }}
-                  data-folder={entry.folder || undefined}
-                  data-active={entry.active || undefined}
-                >
-                  {entry.name}
-                </li>
-              ))}
-            </ul>
-            <pre className="landing-snippet">
-              <code>{`import { defineMcpClientConnection } from "eve/connections";
+        <section className="lp-section" id="code" aria-labelledby="code-title">
+          <h2 className="lp-heading lp-heading-end" id="code-title">
+            From canvas to code,
+            <br />
+            nothing hidden
+          </h2>
+          <div className="lp-feature">
+            <div className="lp-feature-text">
+              <p className="lp-statement">
+                <strong>Every node is a file.</strong>{" "}
+                <span>Close EveLab and the project still runs with eve dev, commits to Git and deploys like any Eve agent.</span>
+              </p>
+              <p className="lp-label">Features</p>
+              <ul className="lp-list">
+                <li>The same files eve init creates</li>
+                <li>A code editor that updates the canvas</li>
+                <li>Download the project as a zip</li>
+                <li>Push to a new or existing GitHub repository</li>
+              </ul>
+            </div>
+            <figure className="lp-window lp-code" aria-label="The generated project">
+              <div className="lp-window-bar" aria-hidden="true">
+                <span className="lp-window-dots">
+                  <i />
+                  <i />
+                  <i />
+                </span>
+                <span className="lp-window-title">lib/connections/github.ts</span>
+              </div>
+              <div className="lp-code-body">
+                <ul className="lp-tree" aria-label="Project files">
+                  {TREE.map((entry) => (
+                    <li
+                      key={entry.name + entry.depth}
+                      style={{ paddingInlineStart: `${8 + entry.depth * 14}px` }}
+                      data-folder={entry.folder || undefined}
+                      data-active={entry.active || undefined}
+                    >
+                      {entry.name}
+                    </li>
+                  ))}
+                </ul>
+                <pre className="lp-snippet">
+                  <code>{`import { defineMcpClientConnection } from "eve/connections";
 
 export default defineMcpClientConnection({
   url: "https://api.githubcopilot.com/mcp/",
   description: "Repositories, issues and pull requests.",
   tools: { allow: ["search_issues", "get_issue"] },
 });`}</code>
-            </pre>
+                </pre>
+              </div>
+            </figure>
           </div>
         </section>
 
-        <section className="landing-section" id="how-it-works" aria-labelledby="steps-title">
-          <h2 className="landing-section-title" id="steps-title">
-            From idea to code in three steps
+        <section className="lp-section" id="setup" aria-labelledby="setup-title">
+          <h2 className="lp-heading" id="setup-title">
+            Set up in a minute
           </h2>
-          <ol className="landing-steps">
+          <ol className="lp-steps">
             {STEPS.map((step, index) => (
-              <li key={step.title} className="landing-step">
-                <span className="landing-step-number">{index + 1}</span>
-                <h3 className="landing-feature-title">{step.title}</h3>
-                <p className="landing-feature-body">{step.body}</p>
+              <li key={step.title} className="lp-step">
+                <span className="lp-step-number">0{index + 1}</span>
+                <h3 className="lp-step-title">{step.title}</h3>
+                <p className="lp-step-body">{step.body}</p>
               </li>
             ))}
           </ol>
         </section>
 
-        <section className="landing-cta" aria-labelledby="cta-title">
-          <h2 className="landing-section-title" id="cta-title">
+        <section className="lp-cta" aria-labelledby="cta-title">
+          <h2 className="lp-display lp-display-small" id="cta-title">
             Draw your first agent
           </h2>
-          <p className="landing-lede">It takes a minute, and the code is yours from the first node.</p>
-          <div className="landing-actions">
-            {primary}
-            <Button asChild variant="outline" size="lg">
+          <div className="lp-actions">
+            {start("Get started")}
+            <Button asChild variant="outline" size="lg" className="h-11 rounded-full px-6 text-[15px]">
               <a href="https://eve.dev/docs" target="_blank" rel="noreferrer">
                 Read the Eve docs
                 <Icon icon={IconArrowUpRight} />
@@ -255,16 +276,31 @@ export default defineMcpClientConnection({
         </section>
       </main>
 
-      <footer className="landing-footer">
-        <span className="topbar-brand">
-          <Mark />
-          EveLab
-        </span>
-        <span>The open-source visual IDE for Eve agents.</span>
-        <a href="https://github.com/anishfn/evelab" target="_blank" rel="noreferrer">
-          <Icon icon={IconLogoGithub} size={14} />
-          GitHub
-        </a>
+      <footer className="lp-footer">
+        <div className="lp-footer-brand">
+          <span className="lp-brand">
+            <Mark />
+            EveLab
+          </span>
+          <p>The open-source visual IDE for Eve agents.</p>
+        </div>
+        <nav className="lp-footer-links" aria-label="Product">
+          <p className="lp-label">Product</p>
+          <a href="#canvas">Canvas</a>
+          <a href="#code">Code</a>
+          <a href="#setup">Setup</a>
+        </nav>
+        <nav className="lp-footer-links" aria-label="Resources">
+          <p className="lp-label">Resources</p>
+          <a href="https://eve.dev/docs" target="_blank" rel="noreferrer">
+            Eve docs
+            <Icon icon={IconChevronRight} size={12} />
+          </a>
+          <a href="https://github.com/anishfn/evelab" target="_blank" rel="noreferrer">
+            GitHub
+            <Icon icon={IconChevronRight} size={12} />
+          </a>
+        </nav>
       </footer>
     </div>
   );
