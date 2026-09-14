@@ -1,4 +1,4 @@
-import { parseFrontmatter } from "./frontmatter.js";
+import { parseFrontmatter } from "./frontmatter";
 import {
   readAgentSource,
   readConnectorValue,
@@ -7,8 +7,8 @@ import {
   readImports,
   readStringProperty,
   readStringValue,
-} from "./agent-source.js";
-import { detectAgentRoot, hashImportBase, resolveRelative } from "./layout.js";
+} from "./agent-source";
+import { detectAgentRoot, hashImportBase, resolveRelative } from "./layout";
 import {
   eveProjectSchema,
   reasoningSchema,
@@ -28,7 +28,7 @@ import {
   type Subagent,
   type Tool,
   type ToolKind,
-} from "./types.js";
+} from "./types";
 
 export interface ParseWarning {
   path: string;

@@ -1,6 +1,6 @@
 import type { ProjectFile } from "@evelab/eve-project";
-import { gitBlobSha } from "./blob.js";
-import type { SyncBase } from "./status.js";
+import { gitBlobSha } from "./blob";
+import type { SyncBase } from "./status";
 
 export interface PullPlan {
   /** Files to write locally with GitHub's content. */

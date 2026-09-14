@@ -11,8 +11,8 @@ import {
   renderProjectScaffold,
   setFrontmatterValue,
   type ProjectFile,
-} from "../src/index.js";
-import { loadFixture } from "./fixtures.js";
+} from "../src/index";
+import { loadFixture } from "./fixtures";
 
 function contentOf(files: ProjectFile[], path: string): string | undefined {
   return files.find((file) => file.path === path)?.content;
@@ -188,7 +188,7 @@ describe("setFrontmatterValue", () => {
 
 describe("renderAgentConfigFor", () => {
   it("writes each provider the way eve init does", async () => {
-    const { renderAgentConfigFor, renderProjectScaffold, parseProject } = await import("../src/index.js");
+    const { renderAgentConfigFor, renderProjectScaffold, parseProject } = await import("../src/index");
     expect(renderAgentConfigFor("ai-gateway-key", "anthropic/claude-opus-4.8", "high")).toBe(
       'import { defineAgent } from "eve";\n\nexport default defineAgent({\n  model: "anthropic/claude-opus-4.8",\n  reasoning: "high",\n});\n',
     );

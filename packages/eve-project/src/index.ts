@@ -1,12 +1,12 @@
-export * from "./types.js";
-export * from "./layout.js";
-export * from "./parse.js";
-export * from "./generate.js";
-export * from "./validate.js";
-export * from "./graph.js";
-export * from "./ownership.js";
-export * from "./agent-template.js";
-export { parseFrontmatter, setFrontmatterValue, stringifyFrontmatter, type Frontmatter } from "./frontmatter.js";
+export * from "./types";
+export * from "./layout";
+export * from "./parse";
+export * from "./generate";
+export * from "./validate";
+export * from "./graph";
+export * from "./ownership";
+export * from "./agent-template";
+export { parseFrontmatter, setFrontmatterValue, stringifyFrontmatter, type Frontmatter } from "./frontmatter";
 export {
   hasRelativeImports,
   patchAgentSource,
@@ -15,4 +15,4 @@ export {
   readImports,
   readStringProperty,
   readStringValue,
-} from "./agent-source.js";
+} from "./agent-source";

@@ -8,7 +8,7 @@ import {
   planPull,
   trackedFiles,
   type SyncBase,
-} from "../src/index.js";
+} from "../src/index";
 
 function synced(files: Record<string, string>, commit = "c1"): SyncBase {
   return {

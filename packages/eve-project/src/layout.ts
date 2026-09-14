@@ -1,4 +1,4 @@
-import type { AgentRoot } from "./types.js";
+import type { AgentRoot } from "./types";
 
 /**
  * Eve discovers an agent by walking fixed slots. The recommended layout keeps

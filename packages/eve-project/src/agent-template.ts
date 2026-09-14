@@ -1,4 +1,4 @@
-import type { ConnectionAuth, ProjectFile, Reasoning } from "./types.js";
+import type { ConnectionAuth, ProjectFile, Reasoning } from "./types";
 
 /**
  * Source for files EveLab creates. Each shape is taken from Eve's own

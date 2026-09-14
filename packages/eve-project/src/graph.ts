@@ -1,5 +1,5 @@
-import { skillFilePath } from "./generate.js";
-import type { Channel, ChannelKind, Connection, EveProject, Skill, Subagent, Tool, ToolKind } from "./types.js";
+import { skillFilePath } from "./generate";
+import type { Channel, ChannelKind, Connection, EveProject, Skill, Subagent, Tool, ToolKind } from "./types";
 
 export type CanvasNodeKind = "agent" | "subagent" | "tool" | "skill" | "connection" | "channel";
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { generateProject, parseProject, validateProject } from "../src/index.js";
-import { loadFixture } from "./fixtures.js";
+import { generateProject, parseProject, validateProject } from "../src/index";
+import { loadFixture } from "./fixtures";
 
 const FIXTURES = ["basic-agent", "full-agent", "flat-agent"];
 

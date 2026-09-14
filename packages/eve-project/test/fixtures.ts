@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join, posix, relative } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { ProjectFile } from "../src/types.js";
+import type { ProjectFile } from "../src/types";
 
 const root = join(fileURLToPath(new URL(".", import.meta.url)), "fixtures");
 

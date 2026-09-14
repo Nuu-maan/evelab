@@ -6,8 +6,8 @@ import {
   parseProject,
   removeEntity,
   type ProjectFile,
-} from "../src/index.js";
-import { loadFixture } from "./fixtures.js";
+} from "../src/index";
+import { loadFixture } from "./fixtures";
 
 function load() {
   const files = loadFixture("full-agent");
