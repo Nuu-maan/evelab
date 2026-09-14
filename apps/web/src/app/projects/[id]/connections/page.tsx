@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { deleteEntityAction } from "@/lib/actions";
-import { readProject } from "@/lib/workspace";
+import { getProject } from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +26,7 @@ function endpoint(connection: Connection): string | undefined {
 
 export default async function ConnectionsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const project = await readProject(id);
+  const project = await getProject(id);
   const directory = agentPath(project.root, "connections/");
   // Every agent's own connections, nested subagents included, keyed by the folder they live in.
   const walk = (subagents: typeof project.subagents, prefix: string): { connection: Connection; owner: string }[] =>

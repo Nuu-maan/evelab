@@ -5,13 +5,13 @@ import { EmptyState } from "@/components/empty-state";
 import { Icon } from "@/components/icon";
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { readProject } from "@/lib/workspace";
+import { getProject } from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
 
 export default async function RuntimePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const project = await readProject(id);
+  const project = await getProject(id);
   const entries = Object.entries(project.agent.raw);
   const configPath = agentPath(project.root, "agent.ts");
   const href = `/projects/${id}/files?path=${encodeURIComponent(configPath)}`;

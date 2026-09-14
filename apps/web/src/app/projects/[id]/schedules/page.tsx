@@ -21,13 +21,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { createScheduleAction, deleteScheduleAction } from "@/lib/actions";
 import { CRON_PRESETS, describeCron } from "@/lib/cron";
-import { readProject } from "@/lib/workspace";
+import { getProject } from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
 
 export default async function SchedulesPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const project = await readProject(id);
+  const project = await getProject(id);
   const directory = agentPath(project.root, "schedules/");
 
   return (

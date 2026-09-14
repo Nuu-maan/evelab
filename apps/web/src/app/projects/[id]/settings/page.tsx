@@ -5,13 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { deleteProjectAction, disconnectRepositoryAction } from "@/lib/actions";
 import { readGitState } from "@/lib/git";
-import { readProject, workspaceRoot } from "@/lib/workspace";
+import { getProject, workspaceRoot } from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [project, git] = await Promise.all([readProject(id), readGitState(id)]);
+  const [project, git] = await Promise.all([getProject(id), readGitState(id)]);
 
   return (
     <div className="page">

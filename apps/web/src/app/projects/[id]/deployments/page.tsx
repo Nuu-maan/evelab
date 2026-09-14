@@ -8,13 +8,13 @@ import { Input } from "@/components/ui/input";
 import { saveDeploySettingsAction } from "@/lib/actions";
 import { deployAvailability, readDeployState } from "@/lib/deploy";
 import { scanRequiredEnv } from "@/lib/env-scan";
-import { readProject } from "@/lib/workspace";
+import { getProject } from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
 
 export default async function DeploymentsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [project, state] = await Promise.all([readProject(id), readDeployState(id)]);
+  const [project, state] = await Promise.all([getProject(id), readDeployState(id)]);
   const availability = deployAvailability();
   const env = scanRequiredEnv(project.files);
   const hasPlaceholderAuth = project.channels.some((channel) => channel.source.includes("placeholderAuth()"));

@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { readLayout } from "@/lib/layout";
-import { modelLabel, readProject, validateProject } from "@/lib/workspace";
+import { modelLabel, getProject, validateProject } from "@/lib/workspace";
 import "@/app/overview.css";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +25,7 @@ const PREVIEW_LIMIT = 5;
 
 export default async function OverviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [project, layout] = await Promise.all([readProject(id), readLayout(id)]);
+  const [project, layout] = await Promise.all([getProject(id), readLayout(id)]);
   const issues = validateProject(project);
   const errors = issues.filter((issue) => issue.level === "error");
   const graph = getCanvasGraph(project);

@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { deleteChannelAction } from "@/lib/actions";
-import { readProject } from "@/lib/workspace";
+import { getProject } from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +30,7 @@ const LABELS: Partial<Record<ChannelKind, string>> = {
 
 export default async function ChannelsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const project = await readProject(id);
+  const project = await getProject(id);
   const directory = agentPath(project.root, "channels/");
   const hasEve = project.channels.some((channel) => channel.id === "eve");
 

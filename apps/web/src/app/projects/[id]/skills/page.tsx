@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { deleteEntityAction } from "@/lib/actions";
-import { readProject } from "@/lib/workspace";
+import { getProject } from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +25,7 @@ function plural(count: number, word: string): string {
 
 export default async function SkillsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const project = await readProject(id);
+  const project = await getProject(id);
   const base = project.root ? `${project.root}/` : "";
 
   return (
