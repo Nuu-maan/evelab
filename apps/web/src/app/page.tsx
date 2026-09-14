@@ -4,8 +4,6 @@ import { GraphPreview } from "@/components/graph-preview";
 import { Icon } from "@/components/icon";
 import { KINDS } from "@/components/kinds";
 import { SAMPLE_GRAPH } from "@/components/landing/sample-graph";
-import { BrandLockup } from "@/components/brand-lockup";
-import { EveLogo } from "@/components/eve-logo";
 import { Mark } from "@/components/mark";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -65,7 +63,10 @@ export default async function LandingPage() {
       </a>
 
       <header className="lp-header">
-        <BrandLockup />
+        <Link className="lp-brand" href="/" aria-label="EveLab home">
+          <Mark />
+          EveLab
+        </Link>
         <nav className="lp-nav" aria-label="Sections">
           <a href="#canvas">Canvas</a>
           <a href="#code">Code</a>
@@ -272,9 +273,8 @@ export default defineMcpClientConnection({
             EveLab
           </span>
           <p>The open-source visual IDE for Eve agents.</p>
-          <a className="lp-built lp-built-quiet" href="https://eve.dev" target="_blank" rel="noreferrer">
-            <span>Built for</span>
-            <EveLogo className="lp-eve" />
+          <a className="lp-credit" href="https://eve.dev" target="_blank" rel="noreferrer">
+            Built for eve
           </a>
         </div>
         <nav className="lp-footer-links" aria-label="Product">

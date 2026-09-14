@@ -671,72 +671,9 @@
     letter-spacing: -0.02em;
   }
 
-  /* The mark is wider than tall, like eve's wordmark; height sets its size. */
   .topbar-mark {
-    width: auto;
-    height: 14px;
-  }
-
-  /* Vercel, eve and EveLab, set as eve.dev sets its header. */
-  .brand-lockup {
-    display: inline-flex;
-    align-items: center;
-    flex: none;
-    gap: 8px;
-  }
-
-  .brand-lockup svg {
-    flex: none;
-  }
-
-  .brand-link {
-    display: inline-flex;
-    align-items: center;
-    color: var(--foreground);
-  }
-
-  .brand-vercel-oss {
-    width: 71.6px;
-    height: 18px;
-  }
-
-  .brand-vercel {
-    display: none;
-    width: 21px;
-    height: 18px;
-  }
-
-  @media (max-width: 639px) {
-    .brand-vercel-oss {
-      display: none;
-    }
-
-    .brand-vercel {
-      display: block;
-    }
-
-    .brand-name {
-      display: none;
-    }
-  }
-
-  .brand-eve {
-    width: 57.4px;
-    height: 18px;
-  }
-
-  .brand-divider {
-    flex: none;
-    color: var(--border-strong);
-  }
-
-  .brand-home {
-    flex: none;
-    gap: 8px;
-    font-size: 15px;
-    font-weight: var(--weight-semibold);
-    letter-spacing: -0.02em;
-    white-space: nowrap;
+    width: 16px;
+    height: 16px;
   }
 
   .topbar-actions {

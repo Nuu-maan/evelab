@@ -37,43 +37,21 @@
   }
 
   .lp-brand .topbar-mark {
-    height: 15px;
+    width: 17px;
+    height: 17px;
   }
 
-  /* Credit to eve, drawn with eve's own wordmark. */
-  .lp-built {
-    display: inline-flex;
-    align-items: center;
+  .lp-credit {
     align-self: flex-start;
-    gap: 8px;
-    height: 30px;
-    padding-inline: 12px 10px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-pill);
-    background: var(--surface);
     color: var(--foreground-secondary);
     font-size: 13px;
-    transition: border-color var(--duration-hover) ease, color var(--duration-hover) ease;
+    transition: color var(--duration-hover) ease;
   }
 
   @media (hover: hover) and (pointer: fine) {
-    .lp-built:hover {
-      border-color: var(--border-strong);
+    .lp-credit:hover {
       color: var(--foreground);
     }
-  }
-
-  .lp-eve {
-    height: 11px;
-    width: auto;
-    color: var(--foreground);
-  }
-
-  .lp-built-quiet {
-    height: auto;
-    padding: 0;
-    border: none;
-    background: none;
   }
 
   .lp-nav {
