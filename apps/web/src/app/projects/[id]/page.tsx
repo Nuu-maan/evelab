@@ -33,7 +33,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
   const fileHref = (path: string) => `${base}/files?path=${encodeURIComponent(path)}`;
   const instructionLines = project.agent.instructions.split("\n").filter((line) => line.trim()).length;
   const root = project.root ? `${project.root}/` : "";
-  const instructionsPath = agentPath(project.root, "instructions.md");
+  const instructionsPath = project.agent.instructionsPath || agentPath(project.root, "instructions.md");
   const configPath = agentPath(project.root, "agent.ts");
 
   const details = [
@@ -65,6 +65,24 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
       ),
       href: issues.length > 0 ? "#issues" : undefined,
     },
+    ...(project.extensions.length > 0
+      ? [
+          {
+            label: "Extensions",
+            value: <span className="mono">{project.extensions.map((extension) => extension.package ?? extension.id).join(", ")}</span>,
+            href: fileHref(project.extensions[0]!.file),
+          },
+        ]
+      : []),
+    ...(project.memory.length > 0
+      ? [
+          {
+            label: "Memory",
+            value: <span className="mono">{project.memory.map((slot) => slot.id).join(", ")}</span>,
+            href: fileHref(project.memory[0]!.file),
+          },
+        ]
+      : []),
     {
       label: "Files",
       value: <span>{project.files.length} on disk</span>,
