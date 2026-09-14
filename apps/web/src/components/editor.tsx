@@ -14,14 +14,16 @@ export function languageFor(path: string): string {
   return "plaintext";
 }
 
-function usePrefersDark(): boolean {
+/** Follows the theme attribute the toggle sets, so the editor switches with the rest of the app. */
+function useDarkTheme(): boolean {
   const [dark, setDark] = useState(false);
   useEffect(() => {
-    const query = window.matchMedia("(prefers-color-scheme: dark)");
-    setDark(query.matches);
-    const onChange = (event: MediaQueryListEvent) => setDark(event.matches);
-    query.addEventListener("change", onChange);
-    return () => query.removeEventListener("change", onChange);
+    const root = document.documentElement;
+    const read = () => setDark(root.dataset.theme === "dark");
+    read();
+    const observer = new MutationObserver(read);
+    observer.observe(root, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => observer.disconnect();
   }, []);
   return dark;
 }
@@ -159,7 +161,7 @@ export function CodeDiffEditor({
   modified: string;
   language: string;
 }) {
-  const dark = usePrefersDark();
+  const dark = useDarkTheme();
 
   return (
     <DiffEditor
@@ -201,7 +203,7 @@ export function CodeEditor({
   onChange?: (value: string) => void;
   onSave?: () => void;
 }) {
-  const dark = usePrefersDark();
+  const dark = useDarkTheme();
 
   const onMount: OnMount = (editor, monaco) => {
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => onSave?.());

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { IconArrowDown, IconCloudUpload, IconPlay } from "@/components/icons";
 import { Icon } from "@/components/icon";
 import { SidebarToggle } from "@/components/sidebar-toggle";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import type { SidebarState } from "@/lib/sidebar-state";
 
@@ -91,6 +92,7 @@ export function ProjectHeader({
       )}
 
       <div className="header-actions">
+        <ThemeToggle />
         <Button asChild variant="outline" size="sm">
           <Link href={`${base}/runs`} aria-label="Run">
             <Icon icon={IconPlay} size={14} />
