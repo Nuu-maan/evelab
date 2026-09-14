@@ -155,13 +155,13 @@ const ADD_ITEMS: { kind: CreateKind; hint: string }[] = [
 const FIT_PADDING = { top: "112px", right: "48px", bottom: "72px", left: "288px" } as const;
 
 
-/** What each wire colour and stroke means, shown in the status bar. */
-const LEGEND: { kind: CanvasNodeKind; label: string; dashed?: boolean }[] = [
-  { kind: "subagent", label: "contains", dashed: true },
-  { kind: "tool", label: "tool" },
-  { kind: "skill", label: "skill" },
-  { kind: "connection", label: "connects" },
-  { kind: "channel", label: "routes", dashed: true },
+/** What each wire colour means: the kind of card it leads to, and how the wire is drawn. */
+const LEGEND: { kind: CanvasNodeKind; hint: string; dashed?: boolean }[] = [
+  { kind: "subagent", hint: "Dashed wire: an agent contains this subagent", dashed: true },
+  { kind: "tool", hint: "Solid wire: an agent has this tool" },
+  { kind: "skill", hint: "Solid wire: an agent has this skill" },
+  { kind: "connection", hint: "Solid wire: an agent connects to this MCP or OpenAPI service" },
+  { kind: "channel", hint: "Dashed wire: this channel routes messages to the root agent", dashed: true },
 ];
 
 const SHORTCUTS: [string, string][] = [
@@ -1517,12 +1517,29 @@ function CanvasInner(props: CanvasProps) {
                 <Icon icon={IconSidebarLeft} />
               </ToolbarButton>
             </div>
-            <div className="canvas-float canvas-status" aria-label="Wire legend">
+            <div className="canvas-float canvas-status" role="list" aria-label="Wire colours">
+              <span className="legend-title" aria-hidden="true">
+                Wires to
+              </span>
               {LEGEND.map((item) => (
-                <span key={item.label} className="legend-item" data-kind={item.kind}>
-                  <i data-dashed={item.dashed || undefined} aria-hidden="true" />
-                  {item.label}
-                </span>
+                <Tooltip key={item.kind}>
+                  <TooltipTrigger asChild>
+                    <span
+                      role="listitem"
+                      tabIndex={0}
+                      className="legend-item"
+                      data-kind={item.kind}
+                      aria-label={`${KINDS[item.kind].label}: ${item.hint}`}
+                    >
+                      <i data-dashed={item.dashed || undefined} aria-hidden="true" />
+                      <Icon icon={KINDS[item.kind].icon} size={14} />
+                      <span className="legend-text">{KINDS[item.kind].plural}</span>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" sideOffset={8}>
+                    {item.hint}
+                  </TooltipContent>
+                </Tooltip>
               ))}
               <span className="canvas-status-mode">{LAYOUTS.find((layout) => layout.mode === mode)?.label}</span>
             </div>

@@ -91,6 +91,7 @@ function CanvasNodeCardBase({ id, data, selected }: NodeProps<CapabilityNode>) {
   return (
     <div
       className="node"
+      data-horizontal={horizontal || undefined}
       data-kind={data.kind}
       data-tier={tier}
       data-selected={selected || undefined}
@@ -179,7 +180,15 @@ function CanvasNodeCardBase({ id, data, selected }: NodeProps<CapabilityNode>) {
       </div>
 
       {owns && (
-        <div className="node-ports" style={{ gridTemplateColumns: `repeat(${ports.length}, minmax(0, 1fr))` }}>
+        <div
+          className="node-ports"
+          // Ports sit on the same edge as their rings: along the bottom, or down the right side when horizontal.
+          style={
+            horizontal
+              ? { gridTemplateRows: `repeat(${ports.length}, minmax(0, 1fr))` }
+              : { gridTemplateColumns: `repeat(${ports.length}, minmax(0, 1fr))` }
+          }
+        >
           {ports.map((port) => {
             const count = data.counts?.[COUNT_KEY[port]] ?? 0;
             return (
