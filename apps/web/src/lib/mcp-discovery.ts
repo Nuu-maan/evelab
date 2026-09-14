@@ -68,10 +68,14 @@ async function checkUrl(value: string): Promise<URL> {
   return url;
 }
 
-/** Every request times out, and redirects are refused so a server cannot bounce discovery elsewhere. */
+/**
+ * Every request times out, redirects are refused so a server cannot bounce
+ * discovery elsewhere, and nothing is cached: Next's data cache would otherwise
+ * try to store the stream and log an error when the client closes it.
+ */
 function guardedFetch(input: string | URL, init?: RequestInit): Promise<Response> {
   const signals = [AbortSignal.timeout(TIMEOUT_MS), ...(init?.signal ? [init.signal] : [])];
-  return fetch(input, { ...init, redirect: "error", signal: AbortSignal.any(signals) });
+  return fetch(input, { ...init, cache: "no-store", redirect: "error", signal: AbortSignal.any(signals) });
 }
 
 function withTimeout<T>(promise: Promise<T>): Promise<T> {
@@ -83,8 +87,6 @@ function withTimeout<T>(promise: Promise<T>): Promise<T> {
 
 async function listWith(transport: Transport): Promise<DiscoveredTool[]> {
   const client = new Client({ name: "evelab", version: "1.0.0" });
-  // Closing the client aborts its background stream; that is expected, not an error worth logging.
-  client.onerror = () => {};
   try {
     await client.connect(transport);
     const tools: DiscoveredTool[] = [];
