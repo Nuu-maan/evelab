@@ -121,8 +121,8 @@ function CanvasNodeCardBase({ id, data, selected }: NodeProps<CapabilityNode>) {
         <>
           <div
             className="node-card"
-            // Ports run down the right edge when horizontal, so the card grows to give each one room.
-            style={horizontal && ports.length > 0 ? { minHeight: 24 + ports.length * 22 } : undefined}
+            // Ports run down the right edge when horizontal, so the card is just tall enough to space them.
+            style={horizontal && ports.length > 0 ? { minHeight: Math.max(68, ports.length * 18 + 12) } : undefined}
           >
             {target}
             {data.kind === "agent" && (
@@ -157,6 +157,16 @@ function CanvasNodeCardBase({ id, data, selected }: NodeProps<CapabilityNode>) {
                 {data.collapsed && data.hiddenCount ? <span className="tabular-nums">+{data.hiddenCount}</span> : null}
                 <Icon icon={data.collapsed ? IconChevronRight : IconChevronDown} size={14} />
               </button>
+            )}
+            {horizontal && (
+              // Each port's name sits inside the card beside its diamond, in rows that share the diamonds' spacing.
+              <span className="node-side-labels" aria-hidden="true" style={{ gridTemplateRows: `repeat(${ports.length}, minmax(0, 1fr))` }}>
+                {ports.map((port) => (
+                  <span key={port} className="node-port-label" data-kind={port} data-empty={(data.counts?.[COUNT_KEY[port]] ?? 0) === 0 || undefined}>
+                    {KINDS[port].plural}
+                  </span>
+                ))}
+              </span>
             )}
             {ports.map((port) => {
               const count = data.counts?.[COUNT_KEY[port]] ?? 0;
