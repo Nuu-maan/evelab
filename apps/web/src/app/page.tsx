@@ -32,16 +32,6 @@ const TREE = [
   { depth: 1, name: "package.json" },
 ];
 
-/** EveLab's two diamonds, drawn large for the hero. */
-function HeroMark() {
-  return (
-    <svg className="lp-mark" viewBox="0 0 160 160" aria-hidden="true" focusable="false">
-      <rect x="22" y="22" width="116" height="116" rx="10" transform="rotate(45 80 80)" fill="none" stroke="currentColor" strokeWidth="9" />
-      <rect x="57" y="57" width="46" height="46" rx="4" transform="rotate(45 80 80)" fill="currentColor" />
-    </svg>
-  );
-}
-
 /**
  * The public front door, in the spirit of vercel.com: big type, lots of room,
  * and the product itself doing the explaining. Everyone can read it; building
@@ -130,7 +120,7 @@ export default async function LandingPage() {
             </div>
           </div>
           <div className="lp-hero-mark">
-            <HeroMark />
+            <Mark className="lp-mark" />
           </div>
           <ul className="lp-hero-lines">
             <li>For Eve agents</li>
