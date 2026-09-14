@@ -20,4 +20,4 @@ export function getDb() {
 }
 
 // Query helpers for callers that should not depend on Drizzle directly.
-export { and, eq, inArray } from "drizzle-orm";
+export { and, eq, inArray, isNotNull, sql } from "drizzle-orm";

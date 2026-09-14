@@ -1,4 +1,4 @@
-import { boolean, index, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { boolean, index, pgTable, primaryKey, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
 /**
  * Metadata only.
@@ -163,3 +163,28 @@ export const runs = pgTable(
   },
   (table) => [index("runs_project_idx").on(table.projectId, table.startedAt)],
 );
+
+/**
+ * Project files, for deployments where the disk cannot keep them, such as
+ * Vercel Functions. One row per file, or per empty folder with no content, so
+ * the explorer can show a folder before it holds a file. Locally EveLab keeps
+ * projects as plain directories and never writes here.
+ */
+export const projectEntries = pgTable(
+  "project_entries",
+  {
+    /** The project slug, which is also its directory name and URL segment. */
+    projectId: text("project_id").notNull(),
+    path: text("path").notNull(),
+    content: text("content"),
+    updatedAt: updatedAt(),
+  },
+  (table) => [primaryKey({ columns: [table.projectId, table.path] })],
+);
+
+/** EveLab's own state, such as canvas layouts and repository links, when the disk cannot keep it. */
+export const appState = pgTable("app_state", {
+  key: text("key").primaryKey(),
+  content: text("content").notNull(),
+  updatedAt: updatedAt(),
+});
