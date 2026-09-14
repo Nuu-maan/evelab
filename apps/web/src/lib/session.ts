@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { getAuth, isAuthEnabled } from "@evelab/auth";
@@ -23,14 +24,15 @@ export interface Account {
 
 export { isAuthEnabled };
 
-export async function getAccount(): Promise<Account | undefined> {
+/** The signed-in account, looked up once per request however many checks ask. */
+export const getAccount = cache(async (): Promise<Account | undefined> => {
   const auth = getAuth();
   if (!auth) return undefined;
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) return undefined;
   const { id, name, email, image } = session.user;
   return { id, name, email, image };
-}
+});
 
 /** For pages outside a project. Sends a signed-out visitor to sign in; undefined in local mode. */
 export async function requireAccount(): Promise<Account | undefined> {
@@ -51,14 +53,15 @@ function database() {
   return db;
 }
 
-async function memberSlugs(userId: string): Promise<Set<string>> {
+/** Project slugs an account belongs to, queried once per request per account. */
+const memberSlugs = cache(async (userId: string): Promise<Set<string>> => {
   const rows = await database()
     .select({ slug: projects.slug })
     .from(projects)
     .innerJoin(projectMembers, eq(projectMembers.projectId, projects.id))
     .where(eq(projectMembers.userId, userId));
   return new Set(rows.map((row) => row.slug));
-}
+});
 
 export async function checkProjectAccess(projectId: string): Promise<AccessDecision> {
   if (!isAuthEnabled()) return decideAccess({ authEnabled: false });

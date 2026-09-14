@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import { AssistantPanel } from "@/components/assistant/assistant-panel";
+import { after } from "next/server";
+import { AssistantLauncher } from "@/components/assistant/assistant-launcher";
 import { CommandPalette } from "@/components/command-palette";
 import { ASSISTANT_MODEL, assistantAvailable } from "@/lib/assistant";
 import { ProjectHeader } from "@/components/project-header";
@@ -10,7 +11,7 @@ import { getSourceSummary } from "@/lib/git";
 import { paneStyle } from "@/lib/panes";
 import { getAccount, requireProjectPage, visibleProjectIds } from "@/lib/session";
 import { SIDEBAR_COOKIE, parseSidebarState } from "@/lib/sidebar-state";
-import { listProjects, projectExists, readProject, syncProjectDocs, validateProject } from "@/lib/workspace";
+import { getProject, listProjectNames, projectExists, syncProjectDocs, validateProject } from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
 
@@ -22,15 +23,16 @@ export default async function ProjectLayout({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  if (!(await projectExists(id))) notFound();
-  // With sign-in on, a project someone else owns is indistinguishable from one that does not exist.
-  await requireProjectPage(id);
-  // Projects made before EveLab wrote docs get a README and .env.example the first time they are opened.
-  await syncProjectDocs(id, { onlyMissing: true });
+  // Both are read-only checks, so they run together. With sign-in on, a project
+  // someone else owns is indistinguishable from one that does not exist.
+  const [exists] = await Promise.all([projectExists(id), requireProjectPage(id)]);
+  if (!exists) notFound();
+  // Projects made before EveLab wrote docs get a README and .env.example, after the page is on its way.
+  after(() => syncProjectDocs(id, { onlyMissing: true }));
 
   const [project, all, visible, account, style, source, jar] = await Promise.all([
-    readProject(id),
-    listProjects(),
+    getProject(id),
+    listProjectNames(),
     visibleProjectIds(),
     getAccount(),
     paneStyle(),
@@ -76,7 +78,7 @@ export default async function ProjectLayout({
 
       <CommandPalette projectId={id} root={project.root} />
       <QuickOpen projectId={id} paths={project.files.map((file) => file.path)} />
-      <AssistantPanel projectId={id} available={assistantAvailable()} model={ASSISTANT_MODEL} />
+      <AssistantLauncher projectId={id} available={assistantAvailable()} model={ASSISTANT_MODEL} />
     </div>
   );
 }

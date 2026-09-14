@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
@@ -157,6 +158,27 @@ export async function readProjectFiles(id: string): Promise<ProjectFile[]> {
 export async function readProject(id: string): Promise<EveProject> {
   return parseProject(await readProjectFiles(id), { fallbackName: id }).project;
 }
+
+/**
+ * The project and its files for rendering, read from disk once per request
+ * however many layouts and pages ask. Server actions keep using readProject and
+ * readProjectFiles, so a read after a write inside an action is never served
+ * from this cache.
+ */
+export const getProjectFiles = cache(readProjectFiles);
+export const getProject = cache(async (id: string): Promise<EveProject> => {
+  return parseProject(await getProjectFiles(id), { fallbackName: id }).project;
+});
+
+/** Just ids and names, for the project switcher, sharing each read with the page being rendered. */
+export const listProjectNames = cache(async (): Promise<{ id: string; name: string }[]> => {
+  const root = workspaceRoot();
+  if (!existsSync(root)) return [];
+  const entries = await readdir(root, { withFileTypes: true });
+  const ids = entries.filter((entry) => entry.isDirectory() && ID_PATTERN.test(entry.name)).map((entry) => entry.name);
+  const projects = await Promise.all(ids.map(async (id) => ({ id, name: (await getProject(id)).agent.name })));
+  return projects.sort((a, b) => a.name.localeCompare(b.name));
+});
 
 /** Writes the model back out, deleting files the model no longer contains. */
 export async function writeProject(id: string, project: EveProject): Promise<void> {
