@@ -178,10 +178,16 @@
     transition: opacity var(--duration-hover) ease, transform 200ms var(--ease-out);
   }
 
-  .overview-item:hover::after,
   .overview-item:focus-visible::after {
     opacity: 1;
     transform: translate(0, -50%) rotate(45deg);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .overview-item:hover::after {
+      opacity: 1;
+      transform: translate(0, -50%) rotate(45deg);
+    }
   }
 
   .overview-item:focus-visible {
