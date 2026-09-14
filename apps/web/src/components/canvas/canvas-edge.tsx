@@ -14,6 +14,8 @@ import {
 } from "@xyflow/react";
 import type { CanvasNodeKind, CanvasRelation } from "@evelab/eve-project";
 import { CanvasContext } from "@/components/canvas/canvas-node";
+import { Icon } from "@/components/icon";
+import { IconCross } from "@/components/icons";
 import { PORT_ORDER, type PortKind } from "@/components/canvas/layout";
 
 /** Wires into a resource several agents share merge just above it; everything else turns near its port. */
@@ -111,20 +113,25 @@ function RelationEdgeBase({
       <BaseEdge id={id} path={path} interactionWidth={18} />
       {data?.relation && data.labelOwner !== false && (active || readable) && (
         <EdgeLabelRenderer>
-          <div className="edge-label-anchor nodrag nopan" style={{ transform: labelTransform }}>
-            <div
-              className="edge-label"
-              data-kind={data.kind}
-              data-active={active || undefined}
-              data-actionable={(selected && data.detachable) || undefined}
-            >
+          <div
+            className="edge-label-anchor nodrag nopan"
+            style={{ transform: labelTransform }}
+            data-actionable={(selected && data.detachable) || undefined}
+          >
+            <div className="edge-label" data-kind={data.kind} data-active={active || undefined}>
               <span className="edge-label-text">{data.relation}</span>
-              {selected && data.detachable && (
-                <button type="button" className="edge-label-action" onClick={() => detachEdge(source, target)}>
-                  Detach
-                </button>
-              )}
             </div>
+            {selected && data.detachable && (
+              <button
+                type="button"
+                className="edge-label-action"
+                aria-label={`Detach ${target}`}
+                onClick={() => detachEdge(source, target)}
+              >
+                <Icon icon={IconCross} size={12} />
+                Detach
+              </button>
+            )}
           </div>
         </EdgeLabelRenderer>
       )}
