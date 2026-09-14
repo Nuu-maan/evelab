@@ -99,17 +99,18 @@ test("the owner sees their project; another account does not", async ({ browser 
   const owner = await browser.newContext();
   await signIn(owner, OWNER);
   const ownerPage = await owner.newPage();
+  // Cards and headings show the project's package name, not the database label.
   await ownerPage.goto("/projects");
-  await expect(ownerPage.getByText("Owned Agent")).toBeVisible();
+  await expect(ownerPage.getByRole("heading", { name: PROJECT })).toBeVisible();
   await ownerPage.goto(`/projects/${PROJECT}`);
-  await expect(ownerPage.getByRole("heading", { name: "Owned Agent" })).toBeVisible();
+  await expect(ownerPage.getByRole("heading", { name: PROJECT, level: 1 })).toBeVisible();
 
   const stranger = await browser.newContext();
   await signIn(stranger, STRANGER);
   const strangerPage = await stranger.newPage();
   await strangerPage.goto("/projects");
   await expect(strangerPage.getByRole("heading", { name: "Projects" })).toBeVisible();
-  await expect(strangerPage.getByText("Owned Agent")).toBeHidden();
+  await expect(strangerPage.getByRole("heading", { name: PROJECT })).toBeHidden();
   const response = await strangerPage.goto(`/projects/${PROJECT}`);
   expect(response?.status()).toBe(404);
 
