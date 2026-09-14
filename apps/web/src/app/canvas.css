@@ -1083,46 +1083,44 @@
   /* ---------- Nodes ---------- */
 
   /*
-   * A card: a quiet surface with a hairline in its kind's colour, the name and
-   * type on top, what it runs on in mono, and for agents a row of ports along
-   * the bottom edge where their wires start.
+   * A card, read like a service on a system diagram: a bright rim in its kind's
+   * colour over a tinted surface, the icon and name above a hairline, then two
+   * readings in mono with their labels in small caps. Agents end in a strip of
+   * ports where their wires start.
    */
   .node {
+    --node-rim: color-mix(in srgb, var(--kind) 82%, var(--background));
+    --node-line: color-mix(in srgb, var(--kind) 22%, transparent);
+    --node-label: color-mix(in srgb, var(--kind) 55%, var(--foreground));
     position: relative;
-    width: 232px;
-    border: 2px solid color-mix(in srgb, var(--kind) 55%, var(--border));
-    border-radius: 12px;
-    background: color-mix(in srgb, var(--kind) 7%, var(--surface));
-    box-shadow: var(--shadow-small);
+    width: 240px;
+    border: 2px solid var(--node-rim);
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--kind) 11%, var(--surface));
     transition: border-color var(--duration-hover) ease, box-shadow 200ms var(--ease-out), opacity 200ms ease;
   }
 
   .node[data-tier="agent"] {
-    width: 288px;
+    width: 280px;
   }
 
   .node[data-tier="root"] {
-    width: 320px;
-    border-color: color-mix(in srgb, var(--foreground) 35%, var(--border));
+    --node-rim: color-mix(in srgb, var(--foreground) 55%, var(--background));
+    --node-line: var(--border);
+    --node-label: var(--foreground-secondary);
+    width: 300px;
     background: var(--surface);
-    box-shadow: var(--shadow);
   }
 
   @media (hover: hover) and (pointer: fine) {
     .node:hover {
-      border-color: color-mix(in srgb, var(--kind) 75%, var(--border));
-      box-shadow: var(--shadow);
+      --node-rim: var(--kind);
     }
   }
 
   .node[data-selected] {
-    border-color: var(--kind);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--kind) 22%, transparent), var(--shadow);
-  }
-
-  .node[data-tier="root"][data-selected] {
-    border-color: var(--foreground-secondary);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--foreground) 12%, transparent), var(--shadow);
+    --node-rim: var(--kind);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--kind) 20%, transparent);
   }
 
   .react-flow__node.is-dim .node {
@@ -1134,8 +1132,8 @@
   }
 
   .node[data-valid] {
+    --node-rim: var(--focus);
     border-style: dashed;
-    border-color: var(--focus);
   }
 
   .node[data-invalid] {
@@ -1143,14 +1141,14 @@
   }
 
   .node[data-targeted] {
+    --node-rim: var(--focus);
     border-style: solid;
-    border-color: var(--focus);
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--focus) 22%, transparent), var(--shadow);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--focus) 22%, transparent);
   }
 
   .react-flow__node.is-attach-target .node {
-    border-color: var(--focus);
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--focus) 22%, transparent), var(--shadow-large);
+    --node-rim: var(--focus);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--focus) 22%, transparent);
   }
 
   .react-flow__node.is-attach-target .node::after {
@@ -1202,142 +1200,126 @@
   .node-head {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 12px 10px 0 12px;
+    gap: 9px;
+    min-width: 0;
+    margin-inline: 12px;
+    padding: 9px 0 8px;
+    border-bottom: 1px solid var(--node-line);
   }
 
   .node-icon {
     display: grid;
-    place-items: center;
     flex: none;
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
-    background: color-mix(in srgb, var(--kind) 12%, transparent);
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--kind) 30%, transparent);
-    color: var(--kind);
-  }
-
-  .node[data-tier="root"] .node-icon {
-    background: var(--foreground);
-    box-shadow: none;
-    color: var(--background);
-  }
-
-  .node-titles {
-    flex: 1;
-    min-width: 0;
+    place-items: center;
+    color: var(--node-label);
   }
 
   .node-name {
+    flex: 1;
+    min-width: 0;
     overflow: hidden;
     color: var(--foreground);
-    font-size: 14px;
+    font-size: 15px;
     font-weight: var(--weight-medium);
-    letter-spacing: -0.01em;
-    line-height: 18px;
+    line-height: 22px;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  .node[data-tier="root"] .node-name {
-    font-size: 15px;
-  }
-
-  .node-type {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    color: var(--foreground-tertiary);
-    font-size: 11.5px;
-    line-height: 16px;
-  }
-
-  .node-shared {
-    display: inline-flex;
-    align-items: center;
-    height: 16px;
-    padding: 0 5px;
-    border: 1px solid color-mix(in srgb, var(--kind) 40%, transparent);
-    border-radius: 4px;
-    color: var(--kind);
-    font-size: 10px;
-    font-weight: var(--weight-medium);
-  }
-
   .node-collapse {
     display: inline-flex;
+    flex: none;
     align-items: center;
     gap: 2px;
-    flex: none;
-    align-self: flex-start;
-    height: 24px;
-    padding: 0 5px;
-    border-radius: 6px;
+    height: 22px;
+    margin-inline-end: -4px;
+    padding: 0 4px;
+    border-radius: 5px;
     color: var(--foreground-tertiary);
+    font-family: var(--font-mono);
     font-size: 11px;
     transition: background-color var(--duration-hover) ease, color var(--duration-hover) ease;
   }
 
   @media (hover: hover) and (pointer: fine) {
     .node-collapse:hover {
-      background: var(--surface-hover);
+      background: color-mix(in srgb, var(--kind) 14%, transparent);
       color: var(--foreground);
     }
   }
 
   .node-body {
     display: grid;
-    gap: 2px;
-    padding: 10px 12px 12px;
+    gap: 3px;
+    padding: 9px 12px 11px;
   }
 
-  .node-reading {
+  .node-row {
     display: flex;
     align-items: baseline;
-    gap: 5px;
-    margin-bottom: 4px;
-    color: var(--foreground-secondary);
-    font-size: 12px;
+    justify-content: space-between;
+    gap: 10px;
+    min-width: 0;
   }
 
-  .node-reading strong {
+  .node-metric {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .node-value {
+    overflow: hidden;
     color: var(--foreground);
     font-family: var(--font-mono);
-    font-size: 13px;
-    font-weight: var(--weight-semibold);
+    font-size: 15px;
+    font-weight: var(--weight-medium);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+    line-height: 20px;
+    text-overflow: ellipsis;
   }
 
-  .node-reading-muted {
-    margin-inline-start: auto;
-    color: var(--foreground-tertiary);
+  .node-label {
+    flex: none;
+    color: var(--node-label);
     font-size: 11px;
+    font-weight: var(--weight-semibold);
+    letter-spacing: 0.05em;
+    line-height: 16px;
+    text-transform: uppercase;
   }
 
-  .node-detail,
-  .node-path {
+  .node-aside {
+    max-width: 45%;
     overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .node-sub {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--foreground-tertiary);
     font-family: var(--font-mono);
+    font-size: 11.5px;
+    line-height: 16px;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  .node-detail {
-    color: var(--foreground-secondary);
-    font-size: 11.5px;
+  .node-sub-aside {
+    flex: none;
   }
 
-  .node-path {
-    color: var(--foreground-tertiary);
-    font-size: 10.5px;
-  }
-
-  /* Ports: equal cells along the bottom edge, each over its own endpoint. */
+  /* Ports: a quiet strip of equal cells along the bottom edge, each over its own endpoint. */
   .node-ports {
     display: grid;
-    border-top: 1px solid color-mix(in srgb, var(--kind) 25%, var(--border));
-    border-radius: 0 0 10px 10px;
-    background: color-mix(in srgb, var(--kind) 4%, var(--background));
+    border-top: 1px solid var(--node-line);
+    border-radius: 0 0 8px 8px;
+    background: color-mix(in srgb, var(--background) 35%, transparent);
   }
 
   .node-port {
@@ -1345,21 +1327,21 @@
     align-items: center;
     justify-content: center;
     gap: 5px;
-    height: 30px;
+    height: 28px;
     color: var(--kind);
     font-family: var(--font-mono);
     font-size: 12px;
   }
 
   .node-port + .node-port {
-    border-inline-start: 1px solid color-mix(in srgb, var(--kind) 18%, var(--border));
+    border-inline-start: 1px solid var(--node-line);
   }
 
   /* Horizontal: the card splits into its content and a port column on the right edge. */
   .node[data-horizontal][data-tier="root"],
   .node[data-horizontal][data-tier="agent"] {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 56px;
+    grid-template-columns: minmax(0, 1fr) 52px;
     grid-template-rows: auto 1fr;
   }
 
@@ -1377,31 +1359,31 @@
     grid-column: 2;
     grid-row: 1 / span 2;
     border-top: none;
-    border-inline-start: 1px solid color-mix(in srgb, var(--kind) 25%, var(--border));
-    border-radius: 0 10px 10px 0;
+    border-inline-start: 1px solid var(--node-line);
+    border-radius: 0 8px 8px 0;
   }
 
   .node[data-horizontal] .node-port {
     height: auto;
-    min-height: 28px;
+    min-height: 26px;
   }
 
   .node[data-horizontal] .node-port + .node-port {
     border-inline-start: none;
-    border-top: 1px solid color-mix(in srgb, var(--kind) 18%, var(--border));
+    border-top: 1px solid var(--node-line);
   }
 
   .node-port span {
     color: var(--foreground);
-    font-weight: var(--weight-medium);
   }
 
-  .node-port[data-empty] {
-    color: var(--foreground-tertiary);
-  }
-
+  .node-port[data-empty],
   .node-port[data-empty] span {
     color: var(--foreground-tertiary);
+  }
+
+  .node-port[data-empty] svg {
+    opacity: 0.6;
   }
 
   /* The root's channel port: a tab on its top edge, over the wire that feeds the channels above. */
@@ -1412,20 +1394,19 @@
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    height: 24px;
+    height: 22px;
     padding: 0 8px;
     transform: translateX(-50%);
-    border: 1px solid color-mix(in srgb, var(--kind) 45%, var(--border));
+    border: 1.5px solid color-mix(in srgb, var(--kind) 70%, var(--background));
     border-radius: 999px;
     background: var(--surface);
     color: var(--kind);
     font-family: var(--font-mono);
-    font-size: 12px;
+    font-size: 11.5px;
   }
 
   .node-top-port span {
     color: var(--foreground);
-    font-weight: var(--weight-medium);
   }
 
   .node-top-port[data-horizontal] {
