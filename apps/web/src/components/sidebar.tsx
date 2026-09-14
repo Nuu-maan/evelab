@@ -126,7 +126,7 @@ export function Sidebar({
                     <Icon icon={icon} />
                     <span className="sidebar-link-label">{label}</span>
                     {count !== undefined && count > 0 && (
-                      <Badge variant="secondary" className="tabular-nums">
+                      <Badge variant="secondary" className="font-mono tabular-nums">
                         {count}
                       </Badge>
                     )}
