@@ -1,9 +1,9 @@
-import { hasRelativeImports } from "./agent-source.js";
-import { renderSharedReexport, renderSkillModule } from "./agent-template.js";
-import { parseFrontmatter } from "./frontmatter.js";
-import { hashImportBase, relativeSpecifier } from "./layout.js";
-import { markdownSkillDescription } from "./parse.js";
-import type { Connection, EveProject, Skill, Subagent, Tool } from "./types.js";
+import { hasRelativeImports } from "./agent-source";
+import { renderSharedReexport, renderSkillModule } from "./agent-template";
+import { parseFrontmatter } from "./frontmatter";
+import { hashImportBase, relativeSpecifier } from "./layout";
+import { markdownSkillDescription } from "./parse";
+import type { Connection, EveProject, Skill, Subagent, Tool } from "./types";
 
 /**
  * Who can use a tool, skill or connection, as the canvas draws it.

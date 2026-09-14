@@ -1,4 +1,4 @@
-import { eveProjectSchema, filePathSchema, type Connection, type EveProject, type Skill, type Subagent, type Tool } from "./types.js";
+import { eveProjectSchema, filePathSchema, type Connection, type EveProject, type Skill, type Subagent, type Tool } from "./types";
 
 export interface ValidationIssue {
   level: "error" | "warning";

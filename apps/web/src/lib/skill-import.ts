@@ -1,6 +1,6 @@
 import "server-only";
 import { z } from "zod";
-import type { SkillCandidate, SkillCandidateFile } from "./skill-types.js";
+import type { SkillCandidate, SkillCandidateFile } from "./skill-types";
 
 /**
  * Skill import from GitHub and skills.sh.
@@ -10,7 +10,7 @@ import type { SkillCandidate, SkillCandidateFile } from "./skill-types.js";
  * Nothing is written to a project until the user confirms what they have read.
  */
 
-export type { SkillCandidate, SkillCandidateFile } from "./skill-types.js";
+export type { SkillCandidate, SkillCandidateFile } from "./skill-types";
 
 const MAX_FILES = 120;
 const MAX_DEPTH = 3;

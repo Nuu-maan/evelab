@@ -10,8 +10,8 @@ import {
   readRepositoryTree,
   RemoteMovedError,
   type SyncBase,
-} from "../src/index.js";
-import { base64, fakeClient, sha } from "./fake-client.js";
+} from "../src/index";
+import { base64, fakeClient, sha } from "./fake-client";
 
 const repo = parseRepositoryName("acme/agent");
 const HEAD = sha("a");

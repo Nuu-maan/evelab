@@ -1,5 +1,5 @@
 import type { z } from "zod";
-import { GitHubError, type GitHubClient } from "../src/index.js";
+import { GitHubError, type GitHubClient } from "../src/index";
 
 export interface Call {
   route: string;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { getCanvasGraph, parseProject, validateProject } from "../src/index.js";
-import { loadFixture } from "./fixtures.js";
+import { getCanvasGraph, parseProject, validateProject } from "../src/index";
+import { loadFixture } from "./fixtures";
 
 describe("parseProject", () => {
   it("reads the nested layout and the name from package.json", () => {

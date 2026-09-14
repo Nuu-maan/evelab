@@ -9,8 +9,8 @@ import {
   removeEntity,
   validateProject,
   type ProjectFile,
-} from "../src/index.js";
-import { loadFixture } from "./fixtures.js";
+} from "../src/index";
+import { loadFixture } from "./fixtures";
 
 function contentOf(files: ProjectFile[], path: string): string | undefined {
   return files.find((file) => file.path === path)?.content;

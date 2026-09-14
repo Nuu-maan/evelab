@@ -1,6 +1,6 @@
 import type { ProjectFile } from "@evelab/eve-project";
-import { gitBlobSha } from "./blob.js";
-import { trackedFiles } from "./tracked.js";
+import { gitBlobSha } from "./blob";
+import { trackedFiles } from "./tracked";
 
 export interface SyncedFile {
   /** Git blob id of the content. */

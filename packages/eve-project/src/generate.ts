@@ -1,6 +1,6 @@
-import { patchAgentSource, readAgentSource, readStringValue } from "./agent-source.js";
-import { DEFAULT_AGENT_MODEL_ID, renderAgentConfig, renderSubagentConfig } from "./agent-template.js";
-import type { Connection, EveProject, ModelConfig, ProjectFile, Reasoning, Skill, Subagent, Tool } from "./types.js";
+import { patchAgentSource, readAgentSource, readStringValue } from "./agent-source";
+import { DEFAULT_AGENT_MODEL_ID, renderAgentConfig, renderSubagentConfig } from "./agent-template";
+import type { Connection, EveProject, ModelConfig, ProjectFile, Reasoning, Skill, Subagent, Tool } from "./types";
 
 /**
  * Writes the project model back to real Eve files.

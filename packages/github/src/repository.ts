@@ -1,8 +1,8 @@
 import { z } from "zod";
 import type { ProjectFile } from "@evelab/eve-project";
-import { GitHubError, RemoteMovedError, type GitHubClient } from "./client.js";
-import { encodePath, isSafeRepoPath, type RepositoryRef } from "./names.js";
-import { advanceBase, type FileChange, type SyncBase, type SyncedFile } from "./status.js";
+import { GitHubError, RemoteMovedError, type GitHubClient } from "./client";
+import { encodePath, isSafeRepoPath, type RepositoryRef } from "./names";
+import { advanceBase, type FileChange, type SyncBase, type SyncedFile } from "./status";
 
 const sha = z.string().regex(/^[0-9a-f]{40}$/);
 

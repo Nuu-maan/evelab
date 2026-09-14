@@ -5,7 +5,7 @@ import {
   isValidBranchName,
   isValidRepositoryName,
   parseRepositoryName,
-} from "../src/index.js";
+} from "../src/index";
 
 describe("repository names", () => {
   it("accepts owner/name", () => {
