@@ -1309,7 +1309,6 @@ function CanvasInner(props: CanvasProps) {
               nodesDraggable={!locked && tool === "select"}
               nodesConnectable={!locked && tool === "select"}
               elementsSelectable={tool === "select"}
-              elevateEdgesOnSelect
               onlyRenderVisibleElements={graph.nodes.length > 120}
               // React Flow asks open projects without a Pro plan to keep its attribution.
               attributionPosition="top-right"
