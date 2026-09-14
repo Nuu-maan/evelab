@@ -129,7 +129,7 @@ export function ProjectHeader({
           <span className="header-action-label">Run</span>
           <span className="soon-tag">Soon</span>
         </Button>
-        <Button size="sm" disabled aria-label="Deploy, coming soon" title="Coming soon">
+        <Button variant="outline" size="sm" disabled aria-label="Deploy, coming soon" title="Coming soon">
           <Icon icon={IconCloudUpload} size={14} />
           <span className="header-action-label">Deploy</span>
           <span className="soon-tag">Soon</span>
