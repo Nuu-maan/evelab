@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { IconWarning } from "@/components/icons";
 import type { SkillCandidate } from "@/lib/skill-types";
 import { installSkillAction, previewSkillAction } from "@/lib/actions";
@@ -151,6 +151,7 @@ export function SkillImportDialog({
                         {openFile === file.path ? "hide" : "read"}
                       </span>
                     </button>
+                    <MotionConfig reducedMotion="user">
                     <AnimatePresence>
                       {openFile === file.path && (
                         <motion.pre
@@ -165,6 +166,7 @@ export function SkillImportDialog({
                         </motion.pre>
                       )}
                     </AnimatePresence>
+                    </MotionConfig>
                   </div>
                 ))}
               </div>

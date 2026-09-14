@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion } from "motion/react";
+import { MotionConfig, motion } from "motion/react";
 import { SPRING } from "@/components/interaction";
 
 const TABS = [
@@ -16,7 +16,9 @@ export function AgentTabs({ projectId }: { projectId: string }) {
   const pathname = usePathname();
   const base = `/projects/${projectId}/agent`;
 
+  // The underline follows the operating system's reduced-motion setting, now that no root provider sets it.
   return (
+    <MotionConfig reducedMotion="user">
     <nav className="tabs" aria-label="Agent">
       {TABS.map((tab) => {
         const href = tab.segment ? `${base}/${tab.segment}` : base;
@@ -40,5 +42,6 @@ export function AgentTabs({ projectId }: { projectId: string }) {
         );
       })}
     </nav>
+    </MotionConfig>
   );
 }
