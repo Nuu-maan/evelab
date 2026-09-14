@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Mark } from "@/components/mark";
+import { BrandLockup } from "@/components/brand-lockup";
 import { Avatar } from "@/components/project-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -19,10 +19,7 @@ export async function PlainShell({ children }: { children: React.ReactNode }) {
         Skip to content
       </a>
       <header className="topbar">
-        <Link className="topbar-brand" href="/projects">
-          <Mark />
-          EveLab
-        </Link>
+        <BrandLockup />
         <div className="topbar-actions">
           <ThemeToggle />
           <Button asChild variant="ghost" size="sm">
