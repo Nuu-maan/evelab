@@ -25,12 +25,15 @@ function size(bytes: number): string {
 export function ImportRepository({
   repositories,
   listError,
+  initialRepository,
 }: {
   repositories: RepositoryOption[];
   listError?: string;
+  /** Prefilled from a link, such as a template's Import button. */
+  initialRepository?: string;
 }) {
   const router = useRouter();
-  const [repository, setRepository] = useState("");
+  const [repository, setRepository] = useState(initialRepository ?? "");
   const [branch, setBranch] = useState("");
   const [preview, setPreview] = useState<ImportPreview | undefined>();
   const [busy, setBusy] = useState<"read" | "import" | undefined>();

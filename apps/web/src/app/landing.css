@@ -168,6 +168,29 @@
     line-height: 28px;
   }
 
+  /* The pitch as three short lines instead of a paragraph. */
+  .lp-points {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    color: var(--foreground-secondary);
+    font-size: 18px;
+    line-height: 26px;
+  }
+
+  .lp-points li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .lp-points .icon {
+    flex: none;
+    color: var(--teal);
+  }
+
   @media (max-width: 960px) {
     .lp-hero {
       grid-template-columns: minmax(0, 1fr);

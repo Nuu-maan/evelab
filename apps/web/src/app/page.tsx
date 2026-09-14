@@ -59,9 +59,9 @@ function structuredData() {
 const KIND_ORDER = ["subagent", "tool", "skill", "connection", "channel"] as const;
 
 const PRINCIPLES = [
-  { icon: IconFileText, title: "Real files, not a runtime", body: "EveLab writes a plain Eve project. There is no EveLab SDK in your code and nothing extra to host." },
-  { icon: IconCodeBracket, title: "Code and canvas stay in step", body: "Change a file in the editor and the canvas redraws. Attach a piece on the canvas and the code is written." },
-  { icon: IconLogoGithub, title: "Open source", body: "Read how it works, run it on your own machine and shape it with the community on GitHub." },
+  { icon: IconFileText, title: "Real files", body: "A plain Eve project. No EveLab SDK inside." },
+  { icon: IconCodeBracket, title: "Always in sync", body: "Edit the code, the canvas redraws. Edit the canvas, the code updates." },
+  { icon: IconLogoGithub, title: "Open source", body: "Free to use, and built in the open on GitHub." },
 ];
 
 /**
@@ -107,7 +107,7 @@ export default async function LandingPage() {
           <a href="#demo">Tour</a>
           <a href="#how">How it works</a>
           <a href="#features">Features</a>
-          <a href="#export">Export</a>
+          <Link href="/templates">Templates</Link>
           <a href="https://eve.dev/docs" target="_blank" rel="noreferrer">
             Docs
           </a>
@@ -156,10 +156,20 @@ export default async function LandingPage() {
             </h1>
           </div>
           <div className="lp-hero-side">
-            <p className="lp-lede">
-              Wire subagents, tools, skills, connections and channels on a canvas. EveLab writes the TypeScript project file for
-              file, the way eve init would, so it runs with eve dev and ships like any Eve agent.
-            </p>
+            <ul className="lp-points">
+              <li>
+                <Icon icon={IconCheck} size={16} />
+                Draw your agent on a canvas
+              </li>
+              <li>
+                <Icon icon={IconCheck} size={16} />
+                Get a real Eve project, file for file
+              </li>
+              <li>
+                <Icon icon={IconCheck} size={16} />
+                Import any Eve repo and see its graph
+              </li>
+            </ul>
             <div className="lp-actions">
               {start(account ? "Open your projects" : "Start building", account ? "/projects" : "/projects/new")}
               <Button asChild variant="outline" size="lg" className="h-11 rounded-full px-6 text-[15px]">
@@ -200,8 +210,8 @@ export default async function LandingPage() {
               </div>
               <div className="lp-step-text">
                 <span className="lp-step-number">01</span>
-                <h3 className="lp-card-title">Name your agent</h3>
-                <p className="lp-card-body">Pick a name, a provider and a model. EveLab asks what eve init asks and writes the same files.</p>
+                <h3 className="lp-card-title">Start or import</h3>
+                <p className="lp-card-body">Create a new agent, or import an Eve repo from GitHub.</p>
               </div>
             </li>
             <li className="lp-step">
@@ -218,7 +228,7 @@ export default async function LandingPage() {
               <div className="lp-step-text">
                 <span className="lp-step-number">02</span>
                 <h3 className="lp-card-title">Draw the architecture</h3>
-                <p className="lp-card-body">Drag pieces onto agents and wire them together. Every card is a file and every wire is a real reference.</p>
+                <p className="lp-card-body">Drag pieces onto agents. Every card is a file.</p>
               </div>
             </li>
             <li className="lp-step">
@@ -235,7 +245,7 @@ export default async function LandingPage() {
               <div className="lp-step-text">
                 <span className="lp-step-number">03</span>
                 <h3 className="lp-card-title">Take the code</h3>
-                <p className="lp-card-body">Download a zip or push to GitHub, then run it anywhere with eve dev. Nothing ties it to EveLab.</p>
+                <p className="lp-card-body">Download a zip or push to GitHub. Run it with eve dev.</p>
               </div>
             </li>
           </ol>
@@ -249,7 +259,7 @@ export default async function LandingPage() {
                 Build agents the way you picture them
               </h2>
             </div>
-            <p className="lp-section-lede">Everything an Eve agent is made of, on one canvas, with the code one click away.</p>
+            <p className="lp-section-lede">Everything an Eve agent needs, on one canvas.</p>
           </div>
 
           <ul className="lp-bento">
@@ -271,7 +281,7 @@ export default async function LandingPage() {
               </div>
               <div className="lp-feature-text">
                 <h3 className="lp-card-title">Drag pieces onto agents</h3>
-                <p className="lp-card-body">Drop a subagent, tool, skill or connection on an agent and EveLab writes its file.</p>
+                <p className="lp-card-body">Drop a piece on an agent. Its file is written for you.</p>
               </div>
             </li>
 
@@ -300,7 +310,7 @@ export default async function LandingPage() {
               </div>
               <div className="lp-feature-text">
                 <h3 className="lp-card-title">Share what agents need</h3>
-                <p className="lp-card-body">One tool, skill or connection can serve every agent that uses it, from a single file.</p>
+                <p className="lp-card-body">One tool or skill can serve many agents.</p>
               </div>
             </li>
 
@@ -334,7 +344,7 @@ export default async function LandingPage() {
               </div>
               <div className="lp-feature-text">
                 <h3 className="lp-card-title">Discover MCP tools</h3>
-                <p className="lp-card-body">Point a connection at an MCP server, see its tools and tick the ones your agent may call.</p>
+                <p className="lp-card-body">Paste an MCP URL and pick the tools to allow.</p>
               </div>
             </li>
 
@@ -375,7 +385,7 @@ export default async function LandingPage() {
               </div>
               <div className="lp-feature-text">
                 <h3 className="lp-card-title">Lay it out your way</h3>
-                <p className="lp-card-body">Hierarchical, horizontal or freeform, with notes and sections to sketch around the agent.</p>
+                <p className="lp-card-body">Hierarchy, horizontal or freeform, with notes.</p>
               </div>
             </li>
           </ul>
@@ -399,9 +409,7 @@ export default async function LandingPage() {
                 Your code, ready to ship
               </h2>
             </div>
-            <p className="lp-section-lede">
-              Nothing is locked in. Take the whole project whenever you like, as files or as a repository.
-            </p>
+            <p className="lp-section-lede">No lock-in. Take your project anytime.</p>
           </div>
 
           <ul className="lp-bento lp-bento-3">
@@ -424,7 +432,7 @@ export default async function LandingPage() {
               </div>
               <div className="lp-feature-text">
                 <h3 className="lp-card-title">Download a zip</h3>
-                <p className="lp-card-body">Every project file in one archive, laid out the way eve init creates it, ready for npm install and eve dev.</p>
+                <p className="lp-card-body">All files, ready for npm install and eve dev.</p>
               </div>
             </li>
 
@@ -451,7 +459,7 @@ export default async function LandingPage() {
               </div>
               <div className="lp-feature-text">
                 <h3 className="lp-card-title">Push to GitHub</h3>
-                <p className="lp-card-body">Create a new repository or connect one you have, review what changed and commit it with your own GitHub account.</p>
+                <p className="lp-card-body">Commit to a new or existing repo.</p>
               </div>
             </li>
 
@@ -474,7 +482,7 @@ export default async function LandingPage() {
               </div>
               <div className="lp-feature-text">
                 <h3 className="lp-card-title">Pull changes back</h3>
-                <p className="lp-card-body">Keep editing in your own editor or on GitHub. Pull into EveLab and the canvas redraws from the files.</p>
+                <p className="lp-card-body">Edited elsewhere? Pull, and the canvas redraws.</p>
               </div>
             </li>
           </ul>
@@ -484,7 +492,7 @@ export default async function LandingPage() {
           <h2 className="lp-display lp-display-small" id="cta-title">
             Draw your first agent
           </h2>
-          <p className="lp-lede">Free and open source. Your project stays a plain Eve app you can take anywhere.</p>
+          <p className="lp-lede">Free and open source. Your code stays yours.</p>
           <div className="lp-actions">
             {start(account ? "Open your projects" : "Get started", account ? "/projects" : "/projects/new")}
             <Button asChild variant="outline" size="lg" className="h-11 rounded-full px-6 text-[15px]">
@@ -514,6 +522,7 @@ export default async function LandingPage() {
           <a href="#how">How it works</a>
           <a href="#features">Features</a>
           <a href="#export">Export</a>
+          <Link href="/templates">Templates</Link>
         </nav>
         <nav className="lp-footer-links" aria-label="Resources">
           <p className="lp-label">Resources</p>

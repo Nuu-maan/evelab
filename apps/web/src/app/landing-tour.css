@@ -194,7 +194,14 @@
     box-shadow: var(--shadow);
     transition:
       border-color 200ms ease,
-      box-shadow 200ms ease;
+      box-shadow 200ms ease,
+      opacity 250ms ease,
+      transform 400ms cubic-bezier(0.2, 0.9, 0.25, 1.2);
+  }
+
+  .tour-agent[data-hidden] {
+    opacity: 0;
+    transform: scale(0.9);
   }
 
   .tour-agent[data-over] {
@@ -456,6 +463,83 @@
     background: var(--surface-active);
   }
 
+  /* ---------- Import dialog ---------- */
+
+  .tour-import {
+    position: absolute;
+    top: 300px;
+    left: 340px;
+    display: grid;
+    gap: 12px;
+    width: 360px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+    transition:
+      opacity 200ms ease,
+      transform 260ms ease;
+  }
+
+  .tour-import[data-open] {
+    opacity: 1;
+    transform: none;
+  }
+
+  .tour-import-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+  }
+
+  .tour-import-input {
+    display: flex;
+    align-items: center;
+    height: 36px;
+    padding-inline: 12px;
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    background: var(--background);
+    font-family: var(--font-mono);
+    font-size: 13px;
+  }
+
+  .tour-caret {
+    width: 1px;
+    height: 16px;
+    margin-inline-start: 1px;
+    background: var(--foreground);
+    animation: tour-caret 1s steps(1) infinite;
+  }
+
+  @keyframes tour-caret {
+    50% {
+      opacity: 0;
+    }
+  }
+
+  .tour-import-button {
+    display: inline-flex;
+    align-items: center;
+    justify-self: end;
+    height: 32px;
+    padding-inline: 14px;
+    border-radius: 8px;
+    background: var(--foreground);
+    color: var(--background);
+    font-size: 13px;
+    font-weight: 500;
+    transition: opacity 140ms ease;
+  }
+
+  .tour-import-button[data-hover] {
+    opacity: 0.85;
+  }
+
   /* ---------- Cursor ---------- */
 
   .tour-cursor {
@@ -638,6 +722,9 @@
     .tour-wire,
     .tour-toast,
     .tour-menu,
+    .tour-import,
+    .tour-agent,
+    .tour-caret,
     .tour-caption {
       animation: none;
       transition: none;

@@ -99,9 +99,15 @@ interface Scene {
   menu?: boolean;
   hover?: "zip" | "github";
   toast?: Toast;
+  /** The canvas before a repository is imported: no agent yet. */
+  empty?: boolean;
+  importOpen?: boolean;
+  importText?: string;
+  importHover?: boolean;
 }
 
-const CHAPTERS = ["Drag and drop", "Real code", "Export"] as const;
+const CHAPTERS = ["Drag and drop", "Real code", "Export", "Import"] as const;
+const REPO_NAME = "you/support-desk";
 
 const FULL: Camera = { x: W / 2, y: H / 2, s: 1 };
 const ZOOM_CANVAS: Camera = { x: 480, y: 400, s: 1.3 };
@@ -110,6 +116,9 @@ const ZOOM_MENU: Camera = { x: 847, y: 212, s: 1.7 };
 const EXPORT: Point = { x: 1122, y: 24 };
 const ZIP: Point = { x: 1040, y: 72 };
 const GITHUB: Point = { x: 1040, y: 116 };
+const ZOOM_IMPORT: Camera = { x: 520, y: 370, s: 1.35 };
+const IMPORT_INPUT: Point = { x: 560, y: 366 };
+const IMPORT_BUTTON: Point = { x: 644, y: 410 };
 
 /** The script: each scene is where everything should be when it ends; CSS moves between them. */
 function buildScenes(): Scene[] {
@@ -125,6 +134,10 @@ function buildScenes(): Scene[] {
       menu: undefined,
       hover: undefined,
       toast: undefined,
+      empty: undefined,
+      importOpen: undefined,
+      importText: undefined,
+      importHover: undefined,
       ...patch,
       cursor: patch.cursor ?? { x: last.cursor.x, y: last.cursor.y },
     };
@@ -160,6 +173,22 @@ function buildScenes(): Scene[] {
   exportTo("Download your project", ZIP, "zip", { icon: "zip", text: "support-desk.zip downloaded, 12 files" });
   exportTo("Or push it to GitHub", GITHUB, "github", { icon: "github", text: "Pushed 12 files to you/support-desk" });
   push({ ms: 2000, chapter: 2, caption: "Run it anywhere with eve dev", toast: { icon: "check", text: "npm run dev" } });
+
+  // Import: an empty canvas, a repository name typed in, and the graph drawn from its files.
+  const importing = { chapter: 3, caption: "Import any Eve repo", nodes: [], file: "agent/agent.ts", camera: ZOOM_IMPORT, empty: true, importOpen: true };
+  push({ ms: 1000, ...importing, importText: "", cursor: IMPORT_INPUT });
+  for (const length of [4, 11, REPO_NAME.length]) push({ ms: 360, ...importing, importText: REPO_NAME.slice(0, length) });
+  push({ ms: 800, ...importing, importText: REPO_NAME, cursor: IMPORT_BUTTON, importHover: true });
+  push({ ms: 240, ...importing, importText: REPO_NAME, cursor: { ...IMPORT_BUTTON, down: true }, importHover: true });
+  push({
+    ms: 2800,
+    chapter: 3,
+    caption: "See its graph and code",
+    camera: FULL,
+    nodes: PIECES.map((piece) => piece.id),
+    file: PIECES[1].path,
+    cursor: { x: 760, y: 640 },
+  });
   return scenes;
 }
 
@@ -290,7 +319,7 @@ export function LandingTour() {
 
   return (
     <div className="tour" ref={root}>
-      <div className="tour-viewport" ref={viewport} role="img" aria-label="A looping tour of EveLab: pieces dragged onto an agent, the code they write, and the project exported to a zip and to GitHub">
+      <div className="tour-viewport" ref={viewport} role="img" aria-label="A looping tour of EveLab: pieces dragged onto an agent, the code they write, the project exported to a zip and to GitHub, and a GitHub repository imported as a graph">
         <div className="tour-fit" style={{ transform: `scale(${fit})`, visibility: fit ? "visible" : "hidden" }} aria-hidden="true">
           <div
             className="tour-camera"
@@ -343,6 +372,7 @@ export function LandingTour() {
               <div
                 className="tour-agent"
                 data-over={scene.over || undefined}
+                data-hidden={scene.empty || undefined}
                 style={{ left: AGENT.x - AGENT.w / 2, top: AGENT.y - AGENT.h / 2, width: AGENT.w, height: AGENT.h }}
               >
                 <span className="tour-agent-icon">
@@ -420,6 +450,21 @@ export function LandingTour() {
                     Push to GitHub
                     <small>Commit to a new or existing repository</small>
                   </span>
+                </span>
+              </div>
+
+              <div className="tour-import" data-open={scene.importOpen || undefined}>
+                <span className="tour-import-title">
+                  <Icon icon={IconLogoGithub} size={15} />
+                  Import from GitHub
+                </span>
+                <span className="tour-import-input">
+                  {/* Keeps the typed name while the dialog fades out, instead of flashing the placeholder. */}
+                  {scene.importOpen ? scene.importText || <span className="tour-muted">owner/name</span> : REPO_NAME}
+                  <i className="tour-caret" />
+                </span>
+                <span className="tour-import-button" data-hover={scene.importHover || undefined}>
+                  Import
                 </span>
               </div>
             </div>
