@@ -39,7 +39,7 @@ import {
   sourceControlMessage,
 } from "@/lib/git";
 import { deploySettingsSchema, saveDeploySettings, startDeployment } from "@/lib/deploy";
-import { annotationSchema, ARROWHEADS, LAYOUT_MODES, WIRE_STYLES } from "@/components/canvas/layout";
+import { annotationSchema, LAYOUT_MODES, WIRE_STYLES } from "@/components/canvas/layout";
 import { writeLayout } from "@/lib/layout";
 import { createConnection, createSchedule, createSubagent, createTool, ProjectOpError } from "@/lib/project-ops";
 import { forgetProject, recordProject, requireProjectAccess, requireSignedIn } from "@/lib/session";
@@ -238,7 +238,7 @@ export async function deleteEntityAction(formData: FormData) {
 export async function saveLayoutAction(
   projectId: string,
   positions: Record<string, { x: number; y: number }>,
-  options: { mode?: string; collapsed?: string[]; annotations?: unknown[]; wireStyle?: string; arrowhead?: string } = {},
+  options: { mode?: string; collapsed?: string[]; annotations?: unknown[]; wireStyle?: string } = {},
 ) {
   const id = await projectFrom(projectId);
   const parsed = z
@@ -250,7 +250,6 @@ export async function saveLayoutAction(
       collapsed: z.array(z.string().max(200)).max(500).optional(),
       annotations: z.array(annotationSchema).max(500).optional(),
       wireStyle: z.enum(WIRE_STYLES).optional(),
-      arrowhead: z.enum(ARROWHEADS).optional(),
     })
     .parse(options);
   await writeLayout(id, { positions: parsed, ...settings });
