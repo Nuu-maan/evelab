@@ -111,14 +111,45 @@ export interface GitHubAccess {
   canUseRepositories: boolean;
 }
 
+function hasRepoScope(scope: string | null | undefined): boolean {
+  return (scope ?? "").split(/[\s,]+/).includes("repo");
+}
+
+/** The scopes GitHub says a token carries, or undefined when GitHub cannot be asked. */
+async function grantedScopes(token: string): Promise<string | undefined> {
+  try {
+    const response = await fetch(`${process.env.GITHUB_API_URL ?? "https://api.github.com"}/user`, {
+      headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" },
+      cache: "no-store",
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) return undefined;
+    return (response.headers.get("x-oauth-scopes") ?? "")
+      .split(",")
+      .map((scope) => scope.trim())
+      .filter(Boolean)
+      .join(",");
+  } catch {
+    return undefined;
+  }
+}
+
 /** The signed-in person's GitHub OAuth token, read on the server only. Undefined when they have none. */
 export async function githubAccess(userId: string): Promise<GitHubAccess | undefined> {
   const [row] = await database()
-    .select({ token: accounts.accessToken, scope: accounts.scope })
+    .select({ id: accounts.id, token: accounts.accessToken, scope: accounts.scope })
     .from(accounts)
     .where(and(eq(accounts.userId, userId), eq(accounts.providerId, "github")))
     .limit(1);
   if (!row?.token) return undefined;
-  const scopes = (row.scope ?? "").split(/[\s,]+/);
-  return { token: row.token, canUseRepositories: scopes.includes("repo") };
+  if (hasRepoScope(row.scope)) return { token: row.token, canUseRepositories: true };
+
+  // Better Auth refreshes the token on every sign-in but keeps the scope saved at the first one,
+  // so a column without repo is checked against GitHub and corrected when the token has it.
+  const granted = await grantedScopes(row.token);
+  const canUseRepositories = hasRepoScope(granted);
+  if (canUseRepositories) {
+    await database().update(accounts).set({ scope: granted, updatedAt: new Date() }).where(eq(accounts.id, row.id));
+  }
+  return { token: row.token, canUseRepositories };
 }

@@ -57,7 +57,7 @@ export default async function SourcePage({ params }: { params: Promise<{ id: str
           suggestedName={id}
           repositories={repositories}
           listError={listError}
-          canCreate={mode === "token"}
+          canCreate={mode === "token" || mode === "user"}
         />
       </div>
     );

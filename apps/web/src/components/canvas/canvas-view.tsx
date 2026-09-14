@@ -1566,22 +1566,7 @@ function CanvasInner(props: CanvasProps) {
           )}
 
           {empty && !draft && annotations.length === 0 && (
-            <div className="canvas-empty">
-              <p className="canvas-empty-title">Build your agent architecture</p>
-              <p className="canvas-empty-text">
-                Drag a subagent, tool, skill or connection from the toolbar onto an agent, then sketch around them with
-                notes and sections. A resource can be shared by any number of agents and is still defined once.
-              </p>
-              <div className="row justify-center">
-                <Button size="sm" onClick={() => openPicker("tool")}>
-                  <Icon icon={IconPlus} />
-                  Add a tool
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => addAnnotation("note")}>
-                  Write a note
-                </Button>
-              </div>
-            </div>
+            <p className="canvas-empty">Drag a piece from the toolbar onto the agent</p>
           )}
 
           {notice && (
