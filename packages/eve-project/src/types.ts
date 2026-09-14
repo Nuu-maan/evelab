@@ -191,6 +191,26 @@ export const subagentSchema: z.ZodType<Subagent, z.ZodTypeDef, unknown> = z.lazy
   }),
 );
 
+/** A mounted extension: `agent/extensions/<id>.ts`, usually wrapping an npm package. */
+export const extensionSchema = z.object({
+  id: slugSchema,
+  /** Repository path of the mount file. */
+  file: z.string(),
+  /** The package the mount imports, when it names one. */
+  package: z.string().optional(),
+  source: z.string(),
+});
+export type Extension = z.infer<typeof extensionSchema>;
+
+/** A memory slot: `agent/memory/<id>.ts` declared with defineMemory. */
+export const memorySlotSchema = z.object({
+  id: slugSchema,
+  file: z.string(),
+  description: z.string().default(""),
+  source: z.string(),
+});
+export type MemorySlot = z.infer<typeof memorySlotSchema>;
+
 export const agentConfigSchema = z.object({
   /** The root agent's name: package.json `name`, or the directory name. Eve derives it; EveLab only shows it. */
   name: z.string().min(1),
@@ -203,9 +223,14 @@ export const agentConfigSchema = z.object({
   raw: z.record(z.string()).default({}),
   /** Verbatim agent.ts, kept so edits patch it rather than regenerate it. */
   source: z.string().default(""),
-  /** Contents of instructions.md. */
+  /** Contents of the markdown instructions EveLab edits, at `instructionsPath`. */
   instructions: z.string().default(""),
-  /** Instruction sources EveLab shows but does not edit: instructions.ts and instructions/ entries. */
+  /**
+   * Repository path of the markdown instructions EveLab edits: the root instructions.md when there
+   * is one, otherwise the first markdown entry of instructions/. Empty means the root instructions.md.
+   */
+  instructionsPath: z.string().default(""),
+  /** Other instruction sources EveLab shows but does not edit: instructions.ts and the other instructions/ entries. */
   instructionSources: z.array(z.string()).default([]),
 });
 export type AgentConfig = z.infer<typeof agentConfigSchema>;
@@ -232,6 +257,12 @@ export const eveProjectSchema = z.object({
   connections: z.array(connectionSchema).default([]),
   channels: z.array(channelSchema).default([]),
   schedules: z.array(scheduleSchema).default([]),
+  /** Mounted extensions. Read only: their files pass through untouched. */
+  extensions: z.array(extensionSchema).default([]),
+  /** Memory slots. Read only. */
+  memory: z.array(memorySlotSchema).default([]),
+  /** Repository path of the sandbox definition, when the agent replaces the default sandbox. */
+  sandbox: z.string().optional(),
   library: librarySchema.default({ tools: [], skills: [], connections: [] }),
   /**
    * Every file of the source project, including ones EveLab does not interpret
