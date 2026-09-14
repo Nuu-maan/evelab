@@ -70,7 +70,7 @@ export function portHandle(kind: CanvasNodeKind): string {
 /**
  * One node per agent or resource, drawn the way n8n draws them: an icon and a
  * name, and nothing else to read. Agents are a card with diamond ports on the
- * bottom edge, labelled underneath; tools, skills and connections are round
+ * bottom edge, each naming itself on hover; tools, skills and connections are round
  * tiles; channels are square ones. Everything else about a node lives in the
  * inspector, which opens when it is selected.
  */
@@ -158,16 +158,6 @@ function CanvasNodeCardBase({ id, data, selected }: NodeProps<CapabilityNode>) {
                 <Icon icon={data.collapsed ? IconChevronRight : IconChevronDown} size={14} />
               </button>
             )}
-            {horizontal && (
-              // Each port's name sits inside the card beside its diamond, in rows that share the diamonds' spacing.
-              <span className="node-side-labels" aria-hidden="true" style={{ gridTemplateRows: `repeat(${ports.length}, minmax(0, 1fr))` }}>
-                {ports.map((port) => (
-                  <span key={port} className="node-port-label" data-kind={port} data-empty={(data.counts?.[COUNT_KEY[port]] ?? 0) === 0 || undefined}>
-                    {KINDS[port].plural}
-                  </span>
-                ))}
-              </span>
-            )}
             {ports.map((port) => {
               const count = data.counts?.[COUNT_KEY[port]] ?? 0;
               return (
@@ -190,18 +180,6 @@ function CanvasNodeCardBase({ id, data, selected }: NodeProps<CapabilityNode>) {
             })}
           </div>
 
-          {!horizontal && (
-            <div className="node-port-labels" style={{ gridTemplateColumns: `repeat(${ports.length}, minmax(0, 1fr))` }}>
-              {ports.map((port) => {
-                const count = data.counts?.[COUNT_KEY[port]] ?? 0;
-                return (
-                  <span key={port} className="node-port-label" data-kind={port} data-empty={count === 0 || undefined}>
-                    {KINDS[port].plural}
-                  </span>
-                );
-              })}
-            </div>
-          )}
         </>
       ) : (
         <>

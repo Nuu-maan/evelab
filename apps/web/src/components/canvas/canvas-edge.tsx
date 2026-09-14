@@ -27,6 +27,8 @@ export type RelationEdgeData = {
   /** An agent using a resource, which can be undone from the edge. */
   detachable: boolean;
   showLabel?: boolean;
+  /** The one wire into its target allowed to draw a label there; the rest would stack on top of it. */
+  labelOwner?: boolean;
 };
 
 export type RelationEdge = Edge<RelationEdgeData, "relation">;
@@ -107,7 +109,7 @@ function RelationEdgeBase({
   return (
     <>
       <BaseEdge id={id} path={path} interactionWidth={18} />
-      {data?.relation && (active || readable) && (
+      {data?.relation && data.labelOwner !== false && (active || readable) && (
         <EdgeLabelRenderer>
           <div className="edge-label-anchor nodrag nopan" style={{ transform: labelTransform }}>
             <div

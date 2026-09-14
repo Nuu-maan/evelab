@@ -1283,66 +1283,11 @@
     }
   }
 
-  /* The labels under an agent's ports, each centred under its diamond. */
-  .node-port-labels {
-    display: grid;
-    width: 100%;
-    padding-top: 11px;
-  }
-
-  .node-port-label {
-    min-width: 0;
-    text-align: center;
-    overflow: hidden;
-    color: var(--foreground-secondary);
-    font-size: 10.5px;
-    line-height: 14px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .node-port-label[data-empty] {
-    color: var(--foreground-tertiary);
-  }
-
-  /*
-   * Horizontal: port names line the card's right edge, one beside each diamond.
-   * The card grows a little wider for them, and the fold button floats in the
-   * top corner so the name keeps its room.
-   */
-  .node[data-horizontal][data-tier="root"] {
-    width: 300px;
-  }
-
-  .node[data-horizontal][data-tier="agent"] {
-    width: 280px;
-  }
-
-  .node[data-horizontal][data-tier="root"] .node-card,
-  .node[data-horizontal][data-tier="agent"] .node-card {
-    padding-inline-end: 88px;
-  }
-
+  /* Horizontal: the fold button floats in the top corner so the name keeps its room. */
   .node[data-horizontal] .node-collapse {
     position: absolute;
     top: 4px;
-    inset-inline-end: 82px;
-  }
-
-  .node-side-labels {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    inset-inline-end: 14px;
-    display: grid;
-    align-items: center;
-    justify-items: end;
-    pointer-events: none;
-  }
-
-  .node-side-labels .node-port-label {
-    font-size: 10.5px;
-    line-height: 1;
+    inset-inline-end: 8px;
   }
 
   .react-flow__node.is-dim .node {

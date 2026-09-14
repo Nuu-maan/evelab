@@ -1134,16 +1134,23 @@ function CanvasInner(props: CanvasProps) {
   );
 
   const displayEdges = useMemo(() => {
+    // Wires into a shared resource all end at the same point, so only one of them may carry a label there:
+    // the one being looked at if there is one, otherwise the first.
+    const lookedAt = new Set(
+      edges.filter((edge) => edge.selected || (hovered?.type === "edge" && hovered.id === edge.id)).map((edge) => edge.target),
+    );
+    const labelled = new Set<string>();
     const list = edges.map((edge) => {
       const hoveredEdge = hovered?.type === "edge" && hovered.id === edge.id;
       const touches = hoveredEdge || (hovered?.type === "node" && (edge.source === hovered.id || edge.target === hovered.id));
       const kind = kinds.get(edge.target) ?? "tool";
       const className = edgeClass(kind, edge.data?.relation, related ? (touches ? "is-related" : "is-dim") : undefined);
-      // A label only where someone is looking, so wires never sit under a wall of words.
-      // A label only for the wire being pointed at or selected; ports already say what the others are.
+      // A label shows strongly only for the wire being pointed at or selected.
       const showLabel = Boolean(edge.selected || hoveredEdge);
-      if (edge.className === className && edge.data?.showLabel === showLabel) return edge;
-      return { ...edge, className, data: { ...edge.data!, showLabel } };
+      const labelOwner = lookedAt.has(edge.target) ? showLabel : !labelled.has(edge.target);
+      if (labelOwner) labelled.add(edge.target);
+      if (edge.className === className && edge.data?.showLabel === showLabel && edge.data?.labelOwner === labelOwner) return edge;
+      return { ...edge, className, data: { ...edge.data!, showLabel, labelOwner } };
     });
     if (dragging && attachTarget) {
       const kind = kinds.get(dragging) ?? "tool";

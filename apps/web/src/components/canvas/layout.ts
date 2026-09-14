@@ -50,8 +50,8 @@ export type LayoutMode = (typeof LAYOUT_MODES)[number];
 
 /** Card sizes by tier, so the root reads largest and resources smallest. Heights are what layout reserves. */
 export const NODE_SIZE: Record<CanvasNodeKind, { width: number; height: number }> = {
-  agent: { width: 260, height: 104 },
-  subagent: { width: 240, height: 98 },
+  agent: { width: 260, height: 72 },
+  subagent: { width: 240, height: 68 },
   tool: { width: 128, height: 106 },
   skill: { width: 128, height: 106 },
   connection: { width: 128, height: 106 },
