@@ -115,7 +115,8 @@ export async function signInAction() {
 export async function signOutAction() {
   const auth = getAuth();
   if (auth) await auth.api.signOut({ headers: await headers() });
-  redirect(auth ? "/sign-in" : "/projects");
+  // Signing out lands on the public front page rather than a bare sign-in form.
+  redirect(auth ? "/" : "/projects");
 }
 
 const createSchema = z.object({
