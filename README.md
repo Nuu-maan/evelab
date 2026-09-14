@@ -7,8 +7,8 @@ Build visually. Own the code. Run it with Eve.
 EveLab edits a real Eve project, the one `eve init` creates: `agent/agent.ts`,
 `agent/instructions.md`, and `tools/`, `skills/`, `subagents/`, `connections/`,
 `channels/` and `schedules/` under `agent/`. There is no proprietary workflow
-format, and no state that exists only inside the GUI. Every project in `.evelab/workspace/` is a
-normal directory you can open in an editor, commit, and run without EveLab.
+format and no state that only lives inside the GUI. Every project is a normal
+folder you can open in an editor, commit, and run without EveLab.
 
 ## Run it
 
@@ -17,158 +17,180 @@ pnpm install
 pnpm start   # production build, then serve on http://localhost:3000
 ```
 
-For hot reload while working on EveLab itself, run `pnpm --filter @evelab/web dev`
-instead.
+For hot reload while working on EveLab itself:
+
+```bash
+pnpm --filter @evelab/web dev
+```
+
+The dev server listens on your network too, so you can open the printed
+`Network` address on a phone on the same Wi-Fi. If the page cannot be reached,
+allow the port through your firewall, for example
+`sudo ufw allow from 192.168.0.0/24 to any port 3000 proto tcp`.
 
 Projects are stored in `.evelab/workspace/<slug>/`. Set `EVELAB_WORKSPACE` to
-put them somewhere else.
+keep them somewhere else. Canvas layouts live beside the workspace in
+`.evelab/layouts/`, so the project folders stay pure Eve.
 
-Optional environment:
+## What EveLab can do today
+
+### Projects
+
+- A projects page with a live preview of each architecture, the model, what
+  each project is made of, file count and when it last changed.
+- Filter by name, id or model, and sort by recent or name.
+- Create a project from a guided form, or import an existing Eve project from
+  GitHub.
+
+### The canvas
+
+The canvas is the architecture of your agent, drawn from its files.
+
+- **Nodes, in the style of n8n.** Agents are cards with an icon and a name.
+  Tools, skills and connections are round tiles, channels are square ones. Click
+  any node to see everything about it in the inspector on the right, including
+  its source, which you can edit in place.
+- **Ports and wires.** Each agent has a diamond port per kind of thing it can
+  have. Drag from a port onto a resource to attach it, or select a wire and
+  press Detach. Resources shared by several agents live once in `lib/` and are
+  re-exported where they are used.
+- **An Excalidraw-style toolbar.** Drag a subagent, tool, skill, connection or
+  channel onto an agent and EveLab asks which existing one to add, or creates a
+  new one. Keys 1 to 5 do the same, 6 and 7 add notes and sections, V selects
+  and H pans.
+- **Layouts and wires.** Hierarchical, horizontal or freeform layouts; curved,
+  elbow or straight wires; folding an agent to hide what it owns; notes and
+  coloured sections for sketching around the architecture.
+- Undo and redo, copy and paste to attach resources, zoom and fit, a minimap,
+  snap to grid, and a canvas lock.
+
+### Building the agent
+
+- **Agent page.** Name, description, model and reasoning are written into the
+  existing `agent.ts` by changing only the values that moved. Instructions are
+  edited in Monaco with autosave.
+- **Tools, skills, subagents, connections, channels and schedules** each have a
+  page to list, create and remove them. Connections cover hosted MCP servers and
+  OpenAPI services with Vercel Connect or token auth. Channels cover Slack,
+  Discord, Linear, GitHub, Teams, Telegram, MCP clients and Chat SDK adapters.
+  Every one is a single file, written the way Eve's docs and `eve add` write it.
+- **Skill import.** Import a GitHub directory with a `SKILL.md`, a skills.sh
+  link or `@skills/owner/repo/skill`. EveLab lists every file, flags the ones
+  that can run code, and installs nothing until you confirm.
+- **Assistant** (`Ctrl+I`). An AI SDK assistant through AI Gateway that reads
+  the project and writes instructions, tools, subagents, connections and
+  schedules through the same file operations as the rest of the app.
+- **README and `.env.example`.** Each project gets a generated README and an
+  `.env.example` listing the variables its agent needs, kept in step as the
+  project changes.
+
+### Files
+
+- An editor-style explorer next to Monaco: file-type icons, compacted folders
+  and full keyboard support.
+- Create files and folders, rename (`F2`) and delete (`Delete`, with a
+  confirmation). Empty folders stay visible. Paths are validated on the server,
+  and every change reaches the canvas.
+
+### Taking the code with you
+
+- **Download ZIP** from the Export menu: every project file in a folder named
+  after the project, without `node_modules`, `.git` or build output.
+- **Push to GitHub**: connect a repository or create one, review changes with a
+  side-by-side diff, and commit with a message. Pull brings in commits made
+  elsewhere and refuses to overwrite a file that changed on both sides. `.env`
+  files never leave the machine.
+
+### Everywhere
+
+- Sidebar with a project switcher, `Ctrl+K` command palette, `Ctrl+P` quick
+  open and `Ctrl+S` save.
+- Light and dark themes with a toggle; the choice is remembered per browser.
+- Resizable panes that keep their width, and pages that stay readable without
+  JavaScript.
+- Optional GitHub sign-in with private projects, for running EveLab as a shared
+  service.
+
+## Coming soon
+
+These are built in part but switched off in the app, which says "Coming soon"
+rather than showing half-working screens. Their code is kept in place.
+
+- **Runs.** Start `eve dev`, talk to the agent, and follow a live timeline of
+  messages, tool calls, approvals, subagent delegation, errors and token usage.
+- **Observability.** Usage, cost, latency, tool failures and errors from
+  recorded runs, with links to Vercel Observability for deployed agents.
+- **Deployments.** `eve deploy` to a Vercel project, with the environment
+  variables your source reads and a history of each deploy.
+
+The Run and Deploy buttons in the header, and "Run now" on schedules, are
+disabled until these ship.
+
+## Left to do
+
+- **Turn runs, observability and deployments back on**, including running each
+  agent's dev server in Vercel Sandbox and deploying as a Vercel Workflow run.
+- **Faster development builds.** Move the shared packages from `./file.js`
+  imports to extensionless imports so the dev server can use Turbopack instead
+  of webpack.
+- **MCP tool discovery.** List a server's tools before writing a connection's
+  allow list.
+- **Vercel Connect connector management.** Create connectors and attach their
+  trigger paths from EveLab instead of the Vercel CLI or dashboard.
+- **GitHub App installation flow** per user, alongside the existing token mode.
+- **Claiming existing folders** when sign-in is turned on after projects were
+  created locally.
+- **Launch polish.** One end-to-end browser journey from creating a project to
+  deploying it, an accessibility pass in both themes, and screenshots for this
+  README.
+
+[plan.md](plan.md) has the detailed plan, the architecture and the rules to work
+within. [docs/decisions.md](docs/decisions.md) records what is settled and what
+is blocked.
+
+## Environment
+
+Everything is optional. With nothing set, EveLab runs as a local single-user
+tool against the filesystem. [.env.example](.env.example) lists every variable
+with notes.
 
 | Variable | Effect when set |
 | --- | --- |
-| `DATABASE_URL`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `BETTER_AUTH_SECRET` | Together, enable GitHub sign-in and private projects. Run `pnpm --filter @evelab/db db:migrate` first |
-| `BETTER_AUTH_URL` | Where EveLab is served; the GitHub OAuth app's callback is `<url>/api/auth/callback/github` |
-| `GITHUB_TOKEN` | Enables source control: import, commit and pull, with a token that can read and write repository contents |
+| `EVELAB_WORKSPACE` | Where projects are stored |
+| `AI_GATEWAY_API_KEY` | Live model list and the assistant through AI Gateway |
+| `EVELAB_ASSISTANT_MODEL` | Model id for the assistant, `anthropic/claude-sonnet-5` by default |
+| `GITHUB_TOKEN` | Source control: import, commit, pull and push, with a token that can read and write repository contents |
 | `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_INSTALLATION_ID` | Source control through a GitHub App instead of a token |
-| `VERCEL_TOKEN` | Enables deploying from the Deployments page with `eve deploy` |
-| `VERCEL_OIDC_TOKEN`, or `VERCEL_TOKEN` with `VERCEL_TEAM_ID` and `VERCEL_PROJECT_ID` | Runs agents in Vercel Sandbox instead of on this machine |
-| `BLOB_READ_WRITE_TOKEN` | Stores run recordings, deployment history and layouts in Vercel Blob |
-| `EVELAB_ASSISTANT_MODEL` | AI Gateway model id for the assistant, `anthropic/claude-sonnet-5` by default |
-| `AI_GATEWAY_API_KEY` | Passed to `eve dev` for runs when the project has no `.env.local` from `eve link` |
-| `EVELAB_ALLOW_LOCAL_RUNTIME` | `1` lets a signed-in EveLab run `eve dev` on its own server |
-
-With none of them set, EveLab runs as a local single-user tool.
-
-**Connections, channels and schedules.** Add a hosted MCP server or an OpenAPI
-service with Vercel Connect or token auth, reach the agent from Slack, Discord,
-Linear, GitHub, Teams, Telegram or MCP clients, and give it cron schedules. Each
-is one file under `agent/`, written the way Eve's docs and `eve add` write it;
-credentials stay with Vercel Connect or the deployment environment.
-
-**Runs.** Start `eve dev` from the Runs page and talk to the agent. The timeline
-streams from Eve's own session API: messages, tool calls with input, output and
-duration, approvals you can answer, subagent delegation, errors, and token usage
-and cost per turn. Runs are recorded, so they stay readable after the dev server
-stops, and a schedule can be fired once from the Schedules page.
-
-**Deploy.** The Deployments page runs `eve deploy` for a Vercel project of your
-choice, lists the environment variables your source reads so the deployment has
-them, and records each deploy with its URL, commit and log. On Vercel the agent
-runs on Workflow, Sandbox, Cron and AI Gateway without a provider key.
-
-**Skills from skills.sh.** Import `@skills/owner/repo/skill` or a skills.sh link
-as well as a GitHub directory, with the same review of every file first.
-
-**Built on Vercel.** EveLab uses Vercel's own products wherever it can, and
-every one has a local fallback so nothing is required on day one:
-
-- **Vercel Sandbox** runs each agent's dev server in an isolated microVM, with a
-  boot view that shows every step. Saves sync into the running sandbox.
-- **AI SDK and AI Gateway** power the assistant (`Cmd+I`), which reads the
-  project and writes instructions, tools, subagents, connections and schedules.
-- **Vercel Blob** keeps run recordings, deployment history and canvas layouts
-  when `BLOB_READ_WRITE_TOKEN` is set.
-- **Vercel Connect** holds credentials for connections and channels, and
-  **Chat SDK** adapters add WhatsApp, Google Chat and Telegram.
-- **Observability** shows usage, cost, latency, tool failures and errors from
-  recorded runs, and links to Vercel Observability for deployed agents.
-
-Project Settings lists which of these are connected and what to set for the rest.
+| `DATABASE_URL`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` | Together, GitHub sign-in and private projects. Run `pnpm --filter @evelab/db db:migrate` first |
+| `BLOB_READ_WRITE_TOKEN` | Stores layouts, and later run and deployment history, in Vercel Blob |
+| `VERCEL_TOKEN`, `VERCEL_OIDC_TOKEN`, `VERCEL_TEAM_ID`, `VERCEL_PROJECT_ID` | Used by runs in Vercel Sandbox and by deployments once they are switched back on |
 
 ## Layout
 
 ```text
-apps/web              Next.js app: shell, canvas, agent editor, tools, skills, files
-packages/eve-project  Project model, parser, generator, validator, graph (Vitest)
+apps/web              Next.js app: projects, canvas, agent editor, resources, files, source control
+packages/eve-project  Project model, parser, generator, validator and graph (Vitest)
 packages/github       GitHub client: tree reading, status, pull planning, commits (Vitest)
-packages/db           Drizzle schema for metadata only: users, projects, repos, deployments, runs
+packages/db           Drizzle schema for metadata only: users, projects, repositories
 packages/auth         Better Auth GitHub configuration
 ```
-
-## What works today
-
-**The canvas.** Every capability is a node, coloured by what it is: the agent,
-its subagents, its tools, its skills, its connections. Drag a chip from the left
-onto the canvas to create a tool, a subagent or an MCP connection, or to import a
-skill. Click any node and the file
-behind it opens in the right-hand inspector, in Monaco, with `⌘S` to save.
-Editing a skill on the canvas is editing its `SKILL.md`, not a GUI stand-in for
-it.
-
-Edges are ownership. In Eve a subagent inherits nothing, so dragging the end of
-an edge onto a subagent moves that file into the subagent's own directory, and
-dropping it on empty canvas moves it back to the agent. Node positions
-are remembered outside the project, so the project directory stays pure Eve.
-
-**The overview.** A drawing of the canvas as you arranged it, the model and
-instructions at a glance, every tool, skill and subagent, and a launch checklist
-that says plainly which steps are not built yet.
-
-**Skill import from GitHub.** Paste a link to a directory containing `SKILL.md`.
-EveLab reads it, including subdirectories like `scripts/`, lists every file,
-flags the ones that can run code, and installs nothing until you confirm.
-
-**The agent.** Name, description, model, temperature and max output tokens are
-written into the existing `agent.ts` by patching only the values that changed.
-`instructions.md` is edited in Monaco with autosave.
-
-**The files.** Every project file, including ones added by hand outside EveLab,
-is readable and editable in the Files workbench: a tree with file-type icons,
-compacted folders and full keyboard support, next to Monaco.
-
-**Source control.** Import an existing Eve project from GitHub: EveLab reads the
-branch, shows every file it found and everything it skipped (symlinks,
-submodules, binaries, `.env` files), and writes exactly the commit you reviewed.
-Any project can connect to a repository or create one. Edits show up as changes
-with a side-by-side diff; committing is explicit, needs a message, and creates the
-commit on GitHub directly. Pull brings in commits made elsewhere, file by file,
-and refuses to write anything if a file changed on both sides. The project's
-`.gitignore` is honoured, and `.env` files never leave the machine.
-
-**Everything else.** A sidebar with a project switcher, `⌘K` command palette,
-`⌘S` save, panes you can resize by dragging (and that keep their width), live
-config validation in the header, light and dark, and no page that depends on
-JavaScript to become readable.
-
-## What is not built yet
-
-MCP import, skills.sh import, connections, channels, runs, deployment, and the
-GitHub App installation flow. The pages exist and say so rather than showing
-placeholder data.
-
-[plan.md](plan.md) is the detailed plan for the remaining phases, including the
-current architecture and the invariants to work within.
-[docs/decisions.md](docs/decisions.md) records what is settled and what is
-blocked.
 
 ## Tests
 
 ```bash
 pnpm test                                  # unit tests across the workspace
+pnpm typecheck                             # TypeScript across the workspace
 
 cd apps/web
-CHROMIUM_PATH=/usr/bin/chromium pnpm e2e   # canvas flows in a real browser
+CHROMIUM_PATH=/usr/bin/chromium pnpm e2e   # browser suite
 ```
 
 The parser and generator carry most of the coverage, because a lossy round trip
 is the one bug that would make EveLab untrustworthy. The browser suite covers
-the canvas and the shell: selecting a node opens the right file, saving writes it
-to disk without disturbing the rest, dragging an edge rewrites exactly one
-subagent's frontmatter, creating a tool produces real source, node positions and
-pane widths survive a reload, and the explorer works from the keyboard. The source
-control journey (import, commit, pull, conflicts, publishing a new repository)
-runs against an in-memory GitHub the web server reaches through `GITHUB_API_URL`.
+the canvas, the shell, the explorer and source control, which runs against an
+in-memory GitHub reached through `GITHUB_API_URL`. Set `E2E_DATABASE_URL` to an
+empty Postgres database to add the sign-in suite.
 
-Set `E2E_DATABASE_URL` to an empty Postgres database to add the sign-in suite. It
-starts a second server with auth on, applies the migrations, and checks that
-signed-out visitors are sent to GitHub, that a project is a 404 to anyone but its
-owner, and that another account firing a server action directly is refused.
-
-`pnpm e2e` reuses a server you already have running. Point `CHROMIUM_PATH` at a
-local Chromium, or run `pnpm exec playwright install chromium` instead.
-
-One operational note: stop `pnpm start` or `pnpm dev` before running
-`pnpm build`. A running server holds `.next` open, and the build then fails with
-a confusing `PageNotFoundError` or a missing `.next/types/app/layout.ts`. If you
-hit either, `rm -rf apps/web/.next apps/web/*.tsbuildinfo` and build again.
+Stop `pnpm start` or `pnpm dev` before running `pnpm build`. A running server
+holds `.next` open and the build fails with a confusing `PageNotFoundError`. If
+that happens, `rm -rf apps/web/.next apps/web/*.tsbuildinfo` and build again.
