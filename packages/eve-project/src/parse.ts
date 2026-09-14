@@ -20,6 +20,8 @@ import {
   type ConnectionAuth,
   type ConnectionKind,
   type EveProject,
+  type Extension,
+  type MemorySlot,
   type ModelConfig,
   type ProjectFile,
   type Reasoning,
@@ -86,7 +88,16 @@ export function parseProject(files: ProjectFile[], options: ParseOptions = {}): 
   if (configSource !== undefined) context.claimed.add(configPath);
   const settings = readSettings(configSource, configPath, context.warnings);
 
-  const instructionsPath = `${base}instructions.md`;
+  // Eve reads instructions.md (or .ts) at the agent root, then the entries of instructions/ in filename order.
+  // EveLab edits one markdown file: the root one, or the first markdown entry when only the directory exists.
+  const instructionsDir = `${base}instructions/`;
+  const instructionEntries = paths
+    .filter((path) => path.startsWith(instructionsDir) && !path.slice(instructionsDir.length).includes("/"))
+    .sort((a, b) => a.localeCompare(b));
+  const rootInstructions = `${base}instructions.md`;
+  const instructionsPath = contents.has(rootInstructions)
+    ? rootInstructions
+    : (instructionEntries.find((path) => path.endsWith(".md")) ?? rootInstructions);
   const instructions = contents.get(instructionsPath);
   if (instructions !== undefined) context.claimed.add(instructionsPath);
 
@@ -98,8 +109,9 @@ export function parseProject(files: ProjectFile[], options: ParseOptions = {}): 
       ...settings,
       source: configSource ?? "",
       instructions: instructions ?? "",
+      instructionsPath,
       instructionSources: paths
-        .filter((path) => path === `${base}instructions.ts` || path.startsWith(`${base}instructions/`))
+        .filter((path) => (path === `${base}instructions.ts` || path.startsWith(instructionsDir)) && path !== instructionsPath)
         .sort(),
     },
     tools: readTools(context, base),
@@ -108,6 +120,9 @@ export function parseProject(files: ProjectFile[], options: ParseOptions = {}): 
     connections: readConnections(context, base),
     channels: readChannels(context, base),
     schedules: readSchedules(context, base),
+    extensions: readExtensions(context, base),
+    memory: readMemory(context, base),
+    sandbox: [`${base}sandbox.ts`, `${base}sandbox/sandbox.ts`].find((path) => contents.has(path)),
     library: readLibrary(context, base),
     files: [...files].sort((a, b) => a.path.localeCompare(b.path)),
     generatedPaths: [...context.claimed].sort(),
@@ -581,4 +596,31 @@ function readSchedules(context: Context, base: string): Schedule[] {
     }
   }
   return schedules.sort((a, b) => a.id.localeCompare(b.id));
+}
+
+/** Mounted extensions. Their files are not claimed, so generation passes them through untouched. */
+function readExtensions(context: Context, base: string): Extension[] {
+  const extensions: Extension[] = [];
+  for (const path of listDirectory(context.paths, `${base}extensions/`).files) {
+    if (!isDefinitionModule(path)) continue;
+    const id = stem(path);
+    if (!isSlug(id)) continue;
+    const source = context.contents.get(path) ?? "";
+    const packageName = readImports(source).find((specifier) => !/^[.#/]/.test(specifier) && !/^eve(\/|$)/.test(specifier));
+    extensions.push({ id, file: path, package: packageName, source });
+  }
+  return extensions;
+}
+
+/** Memory slots, read only like extensions. */
+function readMemory(context: Context, base: string): MemorySlot[] {
+  const slots: MemorySlot[] = [];
+  for (const path of listDirectory(context.paths, `${base}memory/`).files) {
+    if (!isDefinitionModule(path)) continue;
+    const id = stem(path);
+    if (!isSlug(id)) continue;
+    const source = context.contents.get(path) ?? "";
+    slots.push({ id, file: path, description: readStringProperty(source, "description") ?? "", source });
+  }
+  return slots;
 }

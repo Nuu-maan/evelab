@@ -7,13 +7,16 @@ import { SaveIndicator, type SaveState } from "@/components/save-state";
 import { Shortcut } from "@/components/shortcut";
 import { Button } from "@/components/ui/button";
 
-/** instructions.md editing: Monaco, ⌘S, and a debounced autosave. */
+/** Editing the agent's markdown instructions: Monaco, ⌘S, and a debounced autosave. */
 export function InstructionsEditor({
   projectId,
   initialContent,
+  path,
 }: {
   projectId: string;
   initialContent: string;
+  /** The file being edited, which may live inside an instructions/ directory. */
+  path: string;
 }) {
   const [content, setContent] = useState(initialContent);
   const [state, setState] = useState<SaveState>("saved");
@@ -53,7 +56,7 @@ export function InstructionsEditor({
   return (
     <div className="editor-pane editor-frame" style={{ height: "62vh" }}>
       <div className="editor-bar">
-        <code className="mono">instructions.md</code>
+        <code className="mono">{path}</code>
         <div className="row">
           <SaveIndicator state={state} />
           <Shortcut keys="S" />

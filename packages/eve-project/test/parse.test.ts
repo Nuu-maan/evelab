@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getCanvasGraph, parseProject, validateProject } from "../src/index";
+import { generateProject, getCanvasGraph, parseProject, validateProject } from "../src/index";
 import { loadFixture } from "./fixtures";
 
 describe("parseProject", () => {
@@ -143,5 +143,62 @@ describe("getCanvasGraph", () => {
     const { project } = parseProject(loadFixture("full-agent"));
     const paths = new Set(project.files.map((file) => file.path));
     for (const node of getCanvasGraph(project).nodes) expect(paths.has(node.filePath)).toBe(true);
+  });
+});
+
+/** The layout of vercel-labs/eve-sre-agent-template: instructions in a directory, an extension, memory and a sandbox. */
+describe("eve template layouts", () => {
+  const sre = [
+    { path: "package.json", content: JSON.stringify({ name: "sre" }) },
+    { path: "agent/agent.ts", content: 'import { defineAgent } from "eve";\n\nexport default defineAgent({\n  model: "openai/gpt-5.6-terra",\n});\n' },
+    { path: "agent/instructions/date-and-time.ts", content: 'import { defineDynamic } from "eve/instructions";\n\nexport default defineDynamic({ events: {} });\n' },
+    { path: "agent/instructions/instructions.md", content: "# Identity\n\nYou are sre.\n" },
+    {
+      path: "agent/extensions/github.ts",
+      content: 'import githubExtension from "@github-tools/eve-extension";\nimport { GITHUB_CONNECTOR } from "#lib/constants.ts";\n\nexport default githubExtension({ connector: GITHUB_CONNECTOR });\n',
+    },
+    { path: "agent/memory/profile.ts", content: 'import { defineMemory } from "eve/memory";\n\nexport default defineMemory({\n  description: "Remember stable facts about the caller.",\n});\n' },
+    { path: "agent/sandbox.ts", content: 'import { defineSandbox } from "eve/sandbox";\n\nexport default defineSandbox({});\n' },
+  ];
+
+  it("edits the markdown inside an instructions directory when there is no root file", () => {
+    const { project } = parseProject(sre);
+    expect(project.root).toBe("agent");
+    expect(project.agent.instructionsPath).toBe("agent/instructions/instructions.md");
+    expect(project.agent.instructions).toContain("You are sre.");
+    expect(project.agent.instructionSources).toEqual(["agent/instructions/date-and-time.ts"]);
+  });
+
+  it("writes edited instructions back to the same file, never a new root file", () => {
+    const { project } = parseProject(sre);
+    project.agent.instructions = "# Identity\n\nYou are sre, on call.\n";
+    const files = generateProject(project);
+    const paths = files.map((file) => file.path);
+    expect(paths).not.toContain("agent/instructions.md");
+    expect(files.find((file) => file.path === "agent/instructions/instructions.md")?.content).toContain("on call");
+    expect(paths).toContain("agent/instructions/date-and-time.ts");
+  });
+
+  it("never adds instructions.md beside instructions.ts, which Eve rejects", () => {
+    const files = [
+      { path: "package.json", content: JSON.stringify({ name: "factory" }) },
+      { path: "agent/agent.ts", content: 'import { defineAgent } from "eve";\n\nexport default defineAgent({\n  model: "openai/gpt-5.6-terra",\n});\n' },
+      { path: "agent/instructions.ts", content: 'import { defineInstructions } from "eve/instructions";\n\nexport default defineInstructions({ content: "x" });\n' },
+    ];
+    const { project } = parseProject(files);
+    expect(project.agent.instructionSources).toEqual(["agent/instructions.ts"]);
+    project.agent.instructions = "typed by mistake";
+    expect(generateProject(project).map((file) => file.path)).not.toContain("agent/instructions.md");
+  });
+
+  it("reads extensions, memory and the sandbox, and passes their files through", () => {
+    const { project } = parseProject(sre);
+    expect(project.extensions).toEqual([
+      expect.objectContaining({ id: "github", file: "agent/extensions/github.ts", package: "@github-tools/eve-extension" }),
+    ]);
+    expect(project.memory).toEqual([expect.objectContaining({ id: "profile", description: "Remember stable facts about the caller." })]);
+    expect(project.sandbox).toBe("agent/sandbox.ts");
+    const out = new Map(generateProject(project).map((file) => [file.path, file.content]));
+    for (const file of sre) expect(out.get(file.path)).toBe(file.content);
   });
 });

@@ -27,9 +27,11 @@ export function generateProject(project: EveProject): ProjectFile[] {
     output.set(`${base}agent.ts`, renderAgentConfig(agent.model.id, agent.reasoning));
   }
 
-  const instructionsPath = `${base}instructions.md`;
+  const instructionsPath = agent.instructionsPath || `${base}instructions.md`;
   const hadInstructions = project.files.some((file) => file.path === instructionsPath);
-  if (hadInstructions || agent.instructions.length > 0 || agent.instructionSources.length === 0) {
+  // Eve refuses instructions.md beside instructions.ts at the agent root, so code-authored instructions never get a markdown twin.
+  const codeAuthored = !hadInstructions && project.files.some((file) => file.path === `${base}instructions.ts`) && instructionsPath === `${base}instructions.md`;
+  if (!codeAuthored && (hadInstructions || agent.instructions.length > 0 || agent.instructionSources.length === 0)) {
     output.set(instructionsPath, agent.instructions);
   }
 
