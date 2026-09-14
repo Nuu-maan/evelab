@@ -70,8 +70,10 @@ async function checkUrl(value: string): Promise<URL> {
 
 /**
  * Every request times out, redirects are refused so a server cannot bounce
- * discovery elsewhere, and nothing is cached: Next's data cache would otherwise
- * try to store the stream and log an error when the client closes it.
+ * discovery elsewhere, and nothing is cached, so a server's tool list is always
+ * fresh. In development Next still buffers fetches for its hot-reload cache and
+ * warns "Failed to set fetch cache" when the client closes the stream; that
+ * warning is harmless and does not happen in production.
  */
 function guardedFetch(input: string | URL, init?: RequestInit): Promise<Response> {
   const signals = [AbortSignal.timeout(TIMEOUT_MS), ...(init?.signal ? [init.signal] : [])];
