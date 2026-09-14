@@ -139,7 +139,7 @@ export async function createProjectAction(formData: FormData) {
   const id = await createProject(input);
   await claimOrRemove(id, input.name);
   revalidatePath("/projects");
-  redirect(`/projects/${id}`);
+  redirect(`/projects/${id}/canvas`);
 }
 
 /** A directory nobody owns would be invisible to everyone, so an ownership failure removes it. */
