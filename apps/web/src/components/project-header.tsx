@@ -23,7 +23,6 @@ const PAGES: Record<string, string> = {
   subagents: "Subagents",
   connections: "Connections",
   channels: "Channels",
-  integrations: "Integrations",
   runs: "Runs",
   deployments: "Deployments",
   settings: "Settings",

@@ -6,7 +6,6 @@ export * from "./validate";
 export * from "./graph";
 export * from "./ownership";
 export * from "./agent-template";
-export * from "./integrations";
 export { parseFrontmatter, setFrontmatterValue, stringifyFrontmatter, type Frontmatter } from "./frontmatter";
 export {
   hasRelativeImports,

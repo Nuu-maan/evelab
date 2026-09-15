@@ -8,7 +8,6 @@ import {
   IconFileText,
   IconGitBranch,
   IconGridSquare,
-  IconLayers,
   IconMagnifyingGlass,
   IconRoute,
   IconSettingsGear,
@@ -44,7 +43,7 @@ export function Sidebar({
 }: {
   project: SwitcherProject;
   projects: SwitcherProject[];
-  counts: { tools: number; skills: number; subagents: number; connections?: number; channels?: number; integrations?: number };
+  counts: { tools: number; skills: number; subagents: number; connections?: number; channels?: number };
   /** The signed-in user; absent in local mode. */
   account?: { name: string; image?: string | null };
 }) {
@@ -69,9 +68,7 @@ export function Sidebar({
         { label: "Skills", segment: "skills", icon: KINDS.skill.icon, count: counts.skills },
         { label: "Subagents", segment: "subagents", icon: KINDS.subagent.icon, count: counts.subagents },
         { label: "Connections", segment: "connections", icon: KINDS.connection.icon, count: counts.connections },
-        { label: "Channels", segment: "channels", icon: KINDS.channel.icon, count: counts.channels },
-        { label: "Integrations", segment: "integrations", icon: IconLayers, count: counts.integrations },
-        { label: "Schedules", segment: "schedules", icon: IconClock },
+        { label: "Channels", segment: "channels", icon: KINDS.channel.icon, count: counts.channels },        { label: "Schedules", segment: "schedules", icon: IconClock },
       ],
     },
     { items: [{ label: "Settings", segment: "settings", icon: IconSettingsGear }] },
