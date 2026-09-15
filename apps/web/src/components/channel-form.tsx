@@ -68,9 +68,12 @@ export function ChannelForm({
   chatSdkAdapters,
   chatSdkStates,
   initial,
+  hidePicker,
   onCreated,
 }: {
   onCreated?: () => void;
+  /** The platform was already chosen from a catalog card, so the list is not shown. */
+  hidePicker?: boolean;
   /** A platform to preselect, such as "twilio" or "chat-sdk:whatsapp", when it is still available. */
   initial?: string;
   projectId: string;
@@ -126,7 +129,8 @@ export function ChannelForm({
     <form className="inspector-form" onSubmit={(event) => void submit(event)} key={choice}>
       <FieldGroup>
         <Field>
-          <FieldLabel htmlFor="channel-platform">Platform</FieldLabel>
+          {!hidePicker && <FieldLabel htmlFor="channel-platform">Platform</FieldLabel>}
+          {!hidePicker && (
           <Select value={choice} onValueChange={setChoice}>
             <SelectTrigger id="channel-platform" className="w-full">
               <SelectValue />
@@ -154,6 +158,7 @@ export function ChannelForm({
               )}
             </SelectContent>
           </Select>
+          )}
           {adapter ? (
             <FieldDescription>
               Vercel Chat SDK behind eve&apos;s chat-sdk channel, served at <code className="mono">/eve/v1/{adapter.id}</code>.

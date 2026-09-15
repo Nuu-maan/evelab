@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { agentPath, CHAT_SDK_ADAPTERS, CHAT_SDK_STATES, type ChannelKind } from "@evelab/eve-project";
-import { ChannelForm } from "@/components/channel-form";
+import { BrandLogo } from "@/components/brand-logo";
+import { ChannelCatalog } from "@/components/channel-catalog";
 import { ConfirmSubmit } from "@/components/confirm";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { deleteChannelAction } from "@/lib/actions";
+import { brandFor } from "@/lib/brands";
 import { getProject } from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
@@ -73,11 +75,15 @@ export default async function ChannelsPage({
         )}
         {project.channels.map((channel) => {
           const path = `${directory}${channel.file}`;
+          const brand = brandFor(channel.id);
           return (
             <StaggerItem key={channel.id}>
               <Card size="sm">
                 <CardHeader>
-                  <CardTitle className="font-mono">{channel.id}</CardTitle>
+                  <CardTitle className="flex items-center gap-2 font-mono">
+                    {brand && <BrandLogo brand={brand} size={16} />}
+                    {channel.id}
+                  </CardTitle>
                   <CardDescription>
                     {channel.kind === "eve"
                       ? "Sessions, streaming and the eve TUI. Replaces Eve's default to change who may call it."
@@ -129,7 +135,7 @@ export default async function ChannelsPage({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ChannelForm
+            <ChannelCatalog
               projectId={id}
               initial={platform}
               existing={project.channels.map((channel) => channel.id)}

@@ -2,13 +2,15 @@ import Link from "next/link";
 import { agentPath, type Connection } from "@evelab/eve-project";
 import { IconLink } from "@/components/icons";
 import { ConfirmSubmit } from "@/components/confirm";
-import { ConnectionForm } from "@/components/connection-form";
+import { BrandLogo } from "@/components/brand-logo";
+import { ConnectionCatalog } from "@/components/connection-catalog";
 import { EmptyState } from "@/components/empty-state";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { deleteEntityAction } from "@/lib/actions";
+import { brandFor } from "@/lib/brands";
 import { getProject } from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +24,11 @@ const AUTH_LABELS: Record<Connection["auth"], string> = {
 
 function endpoint(connection: Connection): string | undefined {
   return connection.url ?? connection.spec;
+}
+
+function ConnectionBrand({ name, url }: { name: string; url?: string }) {
+  const brand = brandFor(name, url);
+  return brand ? <BrandLogo brand={brand} size={16} /> : null;
 }
 
 export default async function ConnectionsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -70,7 +77,10 @@ export default async function ConnectionsPage({ params }: { params: Promise<{ id
               <StaggerItem key={definition.id}>
                 <Card size="sm">
                   <CardHeader>
-                    <CardTitle className="font-mono">{definition.id}</CardTitle>
+                    <CardTitle className="flex items-center gap-2 font-mono">
+                      <ConnectionBrand name={definition.id} url={endpoint(definition)} />
+                      {definition.id}
+                    </CardTitle>
                     <CardDescription>{definition.description || "No description"}</CardDescription>
                     <CardAction className="flex items-center gap-4">
                       <Button asChild variant="ghost">
@@ -126,7 +136,10 @@ export default async function ConnectionsPage({ params }: { params: Promise<{ id
               <StaggerItem key={ref}>
                 <Card size="sm">
                   <CardHeader>
-                    <CardTitle className="font-mono">{connection.id}</CardTitle>
+                    <CardTitle className="flex items-center gap-2 font-mono">
+                      <ConnectionBrand name={connection.id} url={endpoint(connection)} />
+                      {connection.id}
+                    </CardTitle>
                     <CardDescription>{connection.description || "No description"}</CardDescription>
                     <CardAction className="flex items-center gap-4">
                       <Button asChild variant="ghost">
@@ -167,11 +180,15 @@ export default async function ConnectionsPage({ params }: { params: Promise<{ id
           <CardHeader>
             <CardTitle>Add a connection</CardTitle>
             <CardDescription>
-              Writes {directory}&lt;name&gt;.ts with defineMcpClientConnection or defineOpenAPIConnection.
+              Pick a service. EveLab writes {directory}&lt;name&gt;.ts the way{" "}
+              <code className="mono">eve add connection/&lt;name&gt;</code> does, with Vercel Connect holding the credential.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ConnectionForm projectId={id} />
+            <ConnectionCatalog
+              projectId={id}
+              existing={[...all.map(({ connection }) => connection.id), ...project.library.connections.map((definition) => definition.id)]}
+            />
           </CardContent>
         </Card>
       </Reveal>
