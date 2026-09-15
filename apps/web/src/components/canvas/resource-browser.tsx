@@ -6,8 +6,10 @@ import { IconFileText, IconGridSquare, IconMagnifyingGlass, IconPlus } from "@/c
 import { PaletteChip } from "@/components/canvas/palette-chip";
 import { isResourceKind } from "@/components/canvas/canvas-node";
 import type { Annotation } from "@/components/canvas/layout";
+import { BrandLogo } from "@/components/brand-logo";
 import { Icon } from "@/components/icon";
 import { KINDS } from "@/components/kinds";
+import { brandFor } from "@/lib/brands";
 
 type Point = { x: number; y: number };
 type GroupKind = Exclude<CanvasNodeKind, "agent">;
@@ -130,13 +132,23 @@ export function ResourceBrowser({
               )}
               {group.items.map((node) => {
                 const users = node.usedBy?.length ?? 0;
+                const brand = node.kind === "channel" || node.kind === "connection" ? brandFor(node.name, node.detail) : undefined;
                 return (
                   <PaletteChip
                     key={node.id}
                     variant="row"
                     draggable={isResourceKind(node.kind)}
                     selected={node.id === selectedId}
-                    item={{ kind: node.kind, title: node.name, detail: node.detail }}
+                    item={{
+                      kind: node.kind,
+                      title: node.name,
+                      detail: node.detail,
+                      tile: brand && (
+                        <span className="kind-tile annotate-tile">
+                          <BrandLogo brand={brand} size={14} />
+                        </span>
+                      ),
+                    }}
                     badge={node.shared ? `${users}` : undefined}
                     dropLabel="Release to attach"
                     onActivate={() => onSelect(node.id)}

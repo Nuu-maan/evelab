@@ -5,8 +5,10 @@ import { Handle, Position, useConnection, type Node, type NodeProps } from "@xyf
 import type { CanvasNodeKind, CapabilityCounts } from "@evelab/eve-project";
 import { IconChevronDown, IconChevronRight } from "@/components/icons";
 import { portFraction, portsFor, type LayoutMode, type PortKind, type WireStyle } from "@/components/canvas/layout";
+import { BrandLogo } from "@/components/brand-logo";
 import { Icon } from "@/components/icon";
 import { KINDS } from "@/components/kinds";
+import { brandFor } from "@/lib/brands";
 
 export type CanvasNodeData = {
   name: string;
@@ -90,6 +92,8 @@ function CanvasNodeCardBase({ id, data, selected }: NodeProps<CapabilityNode>) {
   const ports = owns ? portsFor(data.kind) : [];
   const total = ports.reduce((sum, port) => sum + (data.counts?.[COUNT_KEY[port]] ?? 0), 0);
   const typeLabel = data.kind === "agent" ? "Root agent" : KINDS[data.kind].label;
+  // Slack, Linear and the like show their own logo; the kind colour stays on the wires.
+  const brand = data.kind === "channel" || data.kind === "connection" ? brandFor(data.name, data.detail) : undefined;
 
   const target =
     data.kind === "agent" ? null : (
@@ -110,6 +114,7 @@ function CanvasNodeCardBase({ id, data, selected }: NodeProps<CapabilityNode>) {
       data-horizontal={horizontal || undefined}
       data-kind={data.kind}
       data-tier={tier}
+      data-brand={brand ? "" : undefined}
       data-selected={selected || undefined}
       data-fresh={data.fresh || undefined}
       data-valid={valid || undefined}
@@ -186,7 +191,7 @@ function CanvasNodeCardBase({ id, data, selected }: NodeProps<CapabilityNode>) {
           <div className="node-card">
             {target}
             <span className="node-glyph" aria-hidden="true">
-              <Icon icon={KINDS[data.kind].icon} size={26} />
+              {brand ? <BrandLogo brand={brand} size={26} /> : <Icon icon={KINDS[data.kind].icon} size={26} />}
             </span>
             {data.shared && <span className="node-shared" aria-label="Shared definition" />}
           </div>
