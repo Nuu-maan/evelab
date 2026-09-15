@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createChannelAction, createChatSdkChannelAction } from "@/lib/actions";
 
-type Platform = "slack" | "discord" | "linear" | "github" | "linq" | "photon" | "teams" | "telegram" | "mcp";
+type Platform = "slack" | "discord" | "linear" | "github" | "linq" | "photon" | "teams" | "telegram" | "twilio" | "mcp";
 
 /** A Chat SDK adapter or state store, passed from the server so the core package stays out of the client bundle. */
 export interface ChatSdkOption {
@@ -45,6 +45,13 @@ const PLATFORMS: Record<
     connector: "",
     setup: "The bot token comes from the environment; see the Telegram channel docs.",
   },
+  twilio: {
+    label: "Twilio (SMS and voice)",
+    connect: "none",
+    connector: "",
+    setup:
+      "Reads TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN from the environment. Point the number's webhooks at /eve/v1/twilio/messages and /eve/v1/twilio/voice.",
+  },
   mcp: {
     label: "MCP clients",
     connect: "none",
@@ -60,9 +67,12 @@ export function ChannelForm({
   existing,
   chatSdkAdapters,
   chatSdkStates,
+  initial,
   onCreated,
 }: {
   onCreated?: () => void;
+  /** A platform to preselect, such as "twilio" or "chat-sdk:whatsapp", when it is still available. */
+  initial?: string;
   projectId: string;
   existing: string[];
   chatSdkAdapters: ChatSdkOption[];
@@ -73,7 +83,8 @@ export function ChannelForm({
   const adapters = chatSdkAdapters.filter((adapter) => !existing.includes(adapter.id));
   // Chat SDK comes first: one adapter model for every platform, with credentials left to the environment.
   const first = adapters[0] ? `${CHAT_SDK}${adapters[0].id}` : native[0];
-  const [choice, setChoice] = useState<string | undefined>(first);
+  const available = [...adapters.map((option) => `${CHAT_SDK}${option.id}`), ...native];
+  const [choice, setChoice] = useState<string | undefined>(initial && available.includes(initial) ? initial : first);
   const [state, setState] = useState(chatSdkStates.find((option) => option.id === "redis")?.id ?? chatSdkStates[0]?.id ?? "");
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
@@ -99,6 +110,8 @@ export function ChannelForm({
           connector: text("connector"),
           botName: text("botName"),
           botUsername: text("botUsername"),
+          allowFrom: text("allowFrom"),
+          fromNumber: text("fromNumber"),
         });
     setPending(false);
     if (!result.ok) {
@@ -215,6 +228,20 @@ export function ChannelForm({
             <FieldLabel htmlFor="channel-username">Bot username</FieldLabel>
             <Input className="font-mono" id="channel-username" name="botUsername" placeholder="my_bot" required />
           </Field>
+        )}
+        {platform === "twilio" && (
+          <>
+            <Field>
+              <FieldLabel htmlFor="channel-allow">Allowed caller</FieldLabel>
+              <Input className="font-mono" id="channel-allow" name="allowFrom" placeholder="+15551234567" required />
+              <FieldDescription>Only this number can reach the agent by SMS or voice.</FieldDescription>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="channel-from">Send from</FieldLabel>
+              <Input className="font-mono" id="channel-from" name="fromNumber" placeholder="+15557654321" />
+              <FieldDescription>Your Twilio number, for replies by SMS. Leave empty for voice only.</FieldDescription>
+            </Field>
+          </>
         )}
       </FieldGroup>
 

@@ -69,6 +69,7 @@ export default async function ProjectLayout({
           subagents: project.subagents.length,
           connections: project.connections.length,
           channels: project.channels.length,
+          integrations: project.extensions.length + project.memory.length,
         }}
         account={account && { name: account.name, image: account.image }}
       />

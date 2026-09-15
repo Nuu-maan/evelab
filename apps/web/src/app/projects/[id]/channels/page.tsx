@@ -28,8 +28,14 @@ const LABELS: Partial<Record<ChannelKind, string>> = {
   disabled: "Disabled route",
 };
 
-export default async function ChannelsPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+export default async function ChannelsPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ platform?: string }>;
+}) {
+  const [{ id }, { platform }] = await Promise.all([params, searchParams]);
   const project = await getProject(id);
   const directory = agentPath(project.root, "channels/");
   const hasEve = project.channels.some((channel) => channel.id === "eve");
@@ -114,7 +120,7 @@ export default async function ChannelsPage({ params }: { params: Promise<{ id: s
       </Stagger>
 
       <Reveal delay={0.1}>
-        <Card>
+        <Card id="add" className="scroll-mt-16">
           <CardHeader>
             <CardTitle>Add a channel</CardTitle>
             <CardDescription>
@@ -125,6 +131,7 @@ export default async function ChannelsPage({ params }: { params: Promise<{ id: s
           <CardContent>
             <ChannelForm
               projectId={id}
+              initial={platform}
               existing={project.channels.map((channel) => channel.id)}
               chatSdkAdapters={Object.entries(CHAT_SDK_ADAPTERS).map(([key, value]) => ({ id: key, label: value.label, env: value.env }))}
               chatSdkStates={Object.entries(CHAT_SDK_STATES).map(([key, value]) => ({ id: key, label: value.label, env: value.env }))}

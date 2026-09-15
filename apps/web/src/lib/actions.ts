@@ -14,6 +14,8 @@ import {
   reasoningSchema,
   removeEntity,
   addPackageDependencies,
+  findIntegration,
+  integrationPath,
   CHAT_SDK_ADAPTERS,
   CHAT_SDK_STATES,
   chatSdkDependencies,
@@ -474,13 +476,16 @@ export async function discoverMcpToolsAction(input: {
 
 const channelSchema = z
   .object({
-    kind: z.enum(["slack", "discord", "linear", "github", "linq", "photon", "teams", "telegram", "mcp"]),
+    kind: z.enum(["slack", "discord", "linear", "github", "linq", "photon", "teams", "telegram", "mcp", "twilio"]),
     connector: z.string().trim().max(200).optional(),
     botName: z.string().trim().max(100).optional(),
     botUsername: z.string().trim().max(100).optional(),
+    allowFrom: z.string().trim().regex(/^\+[1-9]\d{6,14}$/, "Use an E.164 number, such as +15551234567").optional(),
+    fromNumber: z.string().trim().regex(/^\+[1-9]\d{6,14}$/, "Use an E.164 number, such as +15557654321").optional(),
   })
   .refine((input) => input.kind !== "github" || input.botName, { message: "Enter the GitHub App's bot name" })
-  .refine((input) => input.kind !== "telegram" || input.botUsername, { message: "Enter the Telegram bot username" });
+  .refine((input) => input.kind !== "telegram" || input.botUsername, { message: "Enter the Telegram bot username" })
+  .refine((input) => input.kind !== "twilio" || input.allowFrom, { message: "Enter the number allowed to reach the agent" });
 
 /**
  * Writes `channels/<platform>.ts`. Where Vercel Connect can hold the platform
@@ -551,6 +556,47 @@ export async function deleteChannelAction(formData: FormData) {
   const channelId = nameSchema.parse(formData.get("channelId"));
   const project = await readProject(projectId);
   project.channels = project.channels.filter((channel) => channel.id !== channelId);
+  await save(projectId, project);
+}
+
+/**
+ * Adds an extension or memory provider from the catalog: the file `eve add`
+ * writes, and the packages it imports in package.json. An existing file is
+ * never replaced.
+ */
+export async function installIntegrationAction(
+  projectId: string,
+  integrationId: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const id = await projectFrom(projectId);
+  const integration = findIntegration(z.string().max(100).parse(integrationId));
+  if (!integration) return { ok: false, message: "That integration is not in the catalog." };
+
+  const project = await readProject(id);
+  const path = agentPath(project.root, integrationPath(integration));
+  if (project.files.some((file) => file.path === path)) return { ok: false, message: `${path} already exists.` };
+  if (Object.keys(integration.packages).length > 0) {
+    const packageFile = project.files.find((file) => file.path === "package.json");
+    if (!packageFile) return { ok: false, message: `This project has no package.json to add ${integration.name} to.` };
+    try {
+      packageFile.content = addPackageDependencies(packageFile.content, integration.packages);
+    } catch {
+      return { ok: false, message: "package.json is not valid JSON, so the packages could not be added." };
+    }
+  }
+  project.files.push({ path, content: integration.source });
+  await save(id, project);
+  return { ok: true };
+}
+
+const integrationFileSchema = z.string().regex(/^(agent\/)?(extensions|memory)\/[A-Za-z0-9][A-Za-z0-9_-]*\.(ts|mts|js|mjs)$/);
+
+/** Removes an extension mount or memory file. Its packages stay in package.json, where other code may use them. */
+export async function removeIntegrationAction(formData: FormData) {
+  const projectId = await projectFrom(formData.get("projectId"));
+  const path = integrationFileSchema.parse(formData.get("path"));
+  const project = await readProject(projectId);
+  project.files = project.files.filter((file) => file.path !== path);
   await save(projectId, project);
 }
 

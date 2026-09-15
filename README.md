@@ -72,8 +72,14 @@ The canvas is the architecture of your agent, drawn from its files.
 - **Tools, skills, subagents, connections, channels and schedules** each have a
   page to list, create and remove them. Connections cover hosted MCP servers and
   OpenAPI services with Vercel Connect or token auth. Channels cover Slack,
-  Discord, Linear, GitHub, Teams, Telegram, MCP clients and Chat SDK adapters.
-  Every one is a single file, written the way Eve's docs and `eve add` write it.
+  Discord, Linear, GitHub, Teams, Telegram, Twilio, MCP clients and Chat SDK
+  adapters. Every one is a single file, written the way Eve's docs and `eve add`
+  write it.
+- **Integrations.** A catalog of eve's registry: channels, extensions
+  (agent-browser, Browserbase, KERNEL) mounted under `agent/extensions/`, and
+  memory providers (file memory, Supermemory, Upstash AgentKit) under
+  `agent/memory/`. Adding one writes the file `eve add` writes and its packages
+  into `package.json`; credentials stay in the environment.
 - **Skill import.** Import a GitHub directory with a `SKILL.md`, a skills.sh
   link or `@skills/owner/repo/skill`. EveLab lists every file, flags the ones
   that can run code, and installs nothing until you confirm.
