@@ -13,6 +13,7 @@ import {
   IconLogoGithub,
   IconPointer,
 } from "@/components/icons";
+import { BrandLogo } from "@/components/brand-logo";
 import { Icon } from "@/components/icon";
 import { KINDS } from "@/components/kinds";
 import { LandingTour } from "@/components/landing/landing-tour";
@@ -20,6 +21,7 @@ import { Mark } from "@/components/mark";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { signInAction } from "@/lib/actions";
+import { BRANDS, type BrandId } from "@/lib/brands";
 import { getAccount, isAuthEnabled } from "@/lib/session";
 import { OPEN_GRAPH, SITE_DESCRIPTION, SITE_NAME, siteUrl } from "@/lib/site";
 import "@/app/landing.css";
@@ -64,55 +66,90 @@ const PRINCIPLES = [
   { icon: IconLogoGithub, title: "Open source", body: "Free to use, and built in the open on GitHub." },
 ];
 
-const HERO_FILES = [
-  { kind: "agent", name: "support-desk", path: "agent/agent.ts" },
-  { kind: "tool", name: "search_docs", path: "agent/tools/search_docs.ts" },
-  { kind: "skill", name: "triage", path: "agent/skills/triage.md" },
-  { kind: "channel", name: "slack", path: "agent/channels/slack.ts" },
-] as const;
+const HERO_POINTS = ["For Eve agents", "Drawn on a canvas", "Shipped as real code"];
 
-const INTEGRATION_GROUPS = [
-  {
-    kind: "channel",
-    title: "Channels",
-    body: "Native eve channels through Vercel Connect, or any Chat SDK adapter.",
-    items: ["Slack", "Discord", "Microsoft Teams", "Telegram", "Twilio", "GitHub", "Linear", "WhatsApp", "Google Chat", "iMessage"],
-  },
-  {
-    kind: "tool",
-    title: "Extensions",
-    body: "Packaged tool sets, mounted under agent/extensions.",
-    items: ["agent-browser", "Browserbase", "KERNEL"],
-  },
-  {
-    kind: "connection",
-    title: "Memory and services",
-    body: "Durable memory, remote MCP servers and OpenAPI specs.",
-    items: ["File memory", "Supermemory", "Upstash AgentKit", "Any MCP server", "Any OpenAPI spec"],
-  },
-] as const;
+const WORKS_WITH: BrandId[] = ["slack", "discord", "teams", "github", "linear", "notion", "stripe", "vercel"];
+
+const INTEGRATIONS: BrandId[] = ["slack", "discord", "teams", "telegram", "twilio", "github", "linear", "notion"];
+
+const TOUR_POINTS = ["A canvas drawn from your files", "Monaco for every file", "Commit, push and pull with GitHub", "A zip you can run with eve dev"];
+
+/** The agent the hero is about, drawn with the canvas's own pieces: channels above, what it uses below. */
+function HeroDiagram() {
+  return (
+    <div className="lp-diagram" aria-hidden="true">
+      <div className="lp-dg-row lp-dg-channels">
+        {(["slack", "discord"] as const).map((brand) => (
+          <span key={brand} className="lp-dg-node">
+            <span className="lp-dg-tile" data-shape="square">
+              <BrandLogo brand={brand} size={24} />
+            </span>
+            <span className="lp-dg-label">{brand}</span>
+          </span>
+        ))}
+      </div>
+      <svg className="lp-dg-wires" viewBox="0 0 360 40">
+        <path d="M120 0 C120 20 180 20 180 40" />
+        <path d="M240 0 C240 20 180 20 180 40" />
+      </svg>
+      <div className="lp-dg-agent">
+        <span className="lp-dg-agent-icon">
+          <Icon icon={KINDS.agent.icon} size={18} />
+        </span>
+        <span className="lp-dg-agent-text">
+          <b>support-desk</b>
+          <code>claude-opus-5</code>
+        </span>
+      </div>
+      <svg className="lp-dg-wires" viewBox="0 0 360 40">
+        <path d="M180 0 C180 20 60 20 60 40" />
+        <path d="M180 0 V40" />
+        <path d="M180 0 C180 20 300 20 300 40" />
+      </svg>
+      <div className="lp-dg-row lp-dg-resources">
+        <span className="lp-dg-node" data-kind="tool">
+          <span className="lp-dg-tile">
+            <Icon icon={KINDS.tool.icon} size={22} />
+          </span>
+          <span className="lp-dg-label">search_docs</span>
+        </span>
+        <span className="lp-dg-node" data-kind="skill">
+          <span className="lp-dg-tile">
+            <Icon icon={KINDS.skill.icon} size={22} />
+          </span>
+          <span className="lp-dg-label">triage</span>
+        </span>
+        <span className="lp-dg-node" data-kind="connection">
+          <span className="lp-dg-tile" data-brand="">
+            <BrandLogo brand="linear" size={22} />
+          </span>
+          <span className="lp-dg-label">linear</span>
+        </span>
+      </div>
+    </div>
+  );
+}
 
 /**
- * The public front door. The playground near the top does the selling: a
- * visitor builds a small agent and sees the Eve code EveLab writes before they
- * sign up. Everyone can read and play; building a real project needs an
- * account once sign-in is configured, and in local mode it opens straight into
- * the app.
+ * The public front door, laid out after vercel.com: a tall hero with the
+ * product drawn in the middle, a row of what it connects to, then one idea per
+ * section with plenty of room around it. Everyone can read and play; building a
+ * real project needs an account once sign-in is configured.
  */
 export default async function LandingPage() {
   const authEnabled = isAuthEnabled();
   const account = authEnabled ? await getAccount() : undefined;
   const canOpen = !authEnabled || Boolean(account);
 
-  const start = (label: string, href: string, size: "sm" | "lg" = "lg") => {
-    const className = size === "lg" ? "h-11 rounded-full px-6 text-[15px]" : "rounded-full px-4";
+  const start = (label: string, href: string) => {
+    const className = "h-11 rounded-full px-6 text-[15px]";
     return canOpen ? (
-      <Button asChild size={size} className={className}>
+      <Button asChild size="lg" className={className}>
         <Link href={href}>{label}</Link>
       </Button>
     ) : (
       <form action={signInAction}>
-        <Button type="submit" size={size} className={className}>
+        <Button type="submit" size="lg" className={className}>
           {label}
         </Button>
       </form>
@@ -133,7 +170,6 @@ export default async function LandingPage() {
         </Link>
         <nav className="lp-nav" aria-label="Sections">
           <a href="#demo">Tour</a>
-          <a href="#how">How it works</a>
           <a href="#features">Features</a>
           <a href="#integrations">Integrations</a>
           <Link href="/templates">Templates</Link>
@@ -172,7 +208,7 @@ export default async function LandingPage() {
 
       <main id="main">
         <section className="lp-hero" aria-labelledby="hero-title">
-          <div className="lp-hero-main">
+          <div className="lp-hero-copy">
             <a className="lp-kicker" href={REPO} target="_blank" rel="noreferrer">
               <i aria-hidden="true" />
               Open source visual IDE for eve
@@ -183,25 +219,6 @@ export default async function LandingPage() {
               <br />
               Get real code.
             </h1>
-            <p className="lp-lede">
-              Every piece you draw is a file in a real Eve project, the same one <code>eve init</code> writes.
-            </p>
-          </div>
-          <div className="lp-hero-side">
-            <ul className="lp-map" aria-label="Pieces on the canvas and the files they become">
-              {HERO_FILES.map((row) => (
-                <li key={row.path} data-kind={row.kind}>
-                  <span className="lp-map-kind">
-                    <span className="lp-map-tile" aria-hidden="true">
-                      <Icon icon={KINDS[row.kind].icon} size={14} />
-                    </span>
-                    {row.name}
-                  </span>
-                  <span className="lp-map-line" aria-hidden="true" />
-                  <code>{row.path}</code>
-                </li>
-              ))}
-            </ul>
             <div className="lp-actions">
               {start(account ? "Open your projects" : "Start building", account ? "/projects" : "/projects/new")}
               <Button asChild variant="outline" size="lg" className="h-11 rounded-full px-6 text-[15px]">
@@ -212,18 +229,56 @@ export default async function LandingPage() {
               </Button>
             </div>
           </div>
+
+          <HeroDiagram />
+
+          <ul className="lp-hero-points">
+            {HERO_POINTS.map((point) => (
+              <li key={point}>{point}</li>
+            ))}
+          </ul>
         </section>
 
-        <section className="lp-demo" id="demo" aria-label="EveLab tour">
-          <LandingTour />
+        <section className="lp-logos" aria-label="Services an agent can connect to">
+          <ul>
+            {WORKS_WITH.map((brand) => (
+              <li key={brand}>
+                <BrandLogo brand={brand} size={22} />
+                {BRANDS[brand].name}
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="lp-section" id="demo" aria-labelledby="demo-title">
+          <div className="lp-section-split">
+            <h2 className="lp-heading" id="demo-title">
+              Watch an agent
+              <br />
+              take shape
+            </h2>
+            <div className="lp-aside">
+              <p className="lp-label">What you get</p>
+              <ul>
+                {TOUR_POINTS.map((point) => (
+                  <li key={point}>{point}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+          <div className="lp-demo">
+            <LandingTour />
+          </div>
         </section>
 
         <section className="lp-section" id="how" aria-labelledby="how-title">
-          <div className="lp-section-head">
-            <p className="lp-eyebrow">How it works</p>
+          <div className="lp-section-split">
             <h2 className="lp-heading" id="how-title">
-              From idea to a running agent in three steps
+              From idea to a running
+              <br />
+              agent in three steps
             </h2>
+            <p className="lp-section-lede">Start or import, draw it, take the code.</p>
           </div>
           <ol className="lp-steps">
             <li className="lp-step">
@@ -288,12 +343,11 @@ export default async function LandingPage() {
 
         <section className="lp-section" id="features" aria-labelledby="features-title">
           <div className="lp-section-split">
-            <div className="lp-section-head">
-              <p className="lp-eyebrow">Features</p>
-              <h2 className="lp-heading" id="features-title">
-                Build agents the way you picture them
-              </h2>
-            </div>
+            <h2 className="lp-heading" id="features-title">
+              Build agents the way
+              <br />
+              you picture them
+            </h2>
             <p className="lp-section-lede">Everything an Eve agent needs, on one canvas.</p>
           </div>
 
@@ -438,41 +492,41 @@ export default async function LandingPage() {
 
         <section className="lp-section" id="integrations" aria-labelledby="integrations-title">
           <div className="lp-section-split">
-            <div className="lp-section-head">
-              <p className="lp-eyebrow">Integrations</p>
-              <h2 className="lp-heading" id="integrations-title">
-                Reach people where they already are
-              </h2>
-            </div>
-            <p className="lp-section-lede">Pick from eve&apos;s registry. EveLab writes the file eve add would.</p>
+            <h2 className="lp-heading" id="integrations-title">
+              Reach people where
+              <br />
+              they already are
+            </h2>
+            <p className="lp-section-lede">Channels and services from eve&apos;s registry, written the way eve add writes them.</p>
           </div>
 
-          <ul className="lp-integrations">
-            {INTEGRATION_GROUPS.map((group) => (
-              <li key={group.title} className="lp-integration-group" data-kind={group.kind}>
-                <span className="lp-integration-icon" aria-hidden="true">
-                  <Icon icon={KINDS[group.kind].icon} size={16} />
+          <ul className="lp-int-grid">
+            {INTEGRATIONS.map((brand) => (
+              <li key={brand} className="lp-int-card">
+                <span className="lp-int-top">
+                  <span className="lp-int-mark">
+                    <BrandLogo brand={brand} size={20} />
+                  </span>
+                  <span className="lp-int-tag">{BRANDS[brand].tag}</span>
                 </span>
-                <h3 className="lp-card-title">{group.title}</h3>
-                <p className="lp-card-body">{group.body}</p>
-                <ul className="lp-integration-list">
-                  {group.items.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
+                <h3 className="lp-int-name">{BRANDS[brand].name}</h3>
+                <p className="lp-card-body">{BRANDS[brand].description}</p>
               </li>
             ))}
           </ul>
+          <a className="lp-more" href="https://eve.dev/integrations" target="_blank" rel="noreferrer">
+            Every integration on eve.dev
+            <Icon icon={IconArrowUpRight} size={14} />
+          </a>
         </section>
 
         <section className="lp-section" id="export" aria-labelledby="export-title">
           <div className="lp-section-split">
-            <div className="lp-section-head">
-              <p className="lp-eyebrow">Export</p>
-              <h2 className="lp-heading" id="export-title">
-                Your code, ready to ship
-              </h2>
-            </div>
+            <h2 className="lp-heading" id="export-title">
+              Your code,
+              <br />
+              ready to ship
+            </h2>
             <p className="lp-section-lede">No lock-in. Take your project anytime.</p>
           </div>
 
@@ -593,6 +647,10 @@ export default async function LandingPage() {
           <p className="lp-label">Resources</p>
           <a href="https://eve.dev/docs" target="_blank" rel="noreferrer">
             Eve docs
+            <Icon icon={IconChevronRight} size={12} />
+          </a>
+          <a href="https://eve.dev/integrations" target="_blank" rel="noreferrer">
+            Eve integrations
             <Icon icon={IconChevronRight} size={12} />
           </a>
           <a href={REPO} target="_blank" rel="noreferrer">

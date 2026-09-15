@@ -97,10 +97,10 @@
   }
 
   .lp-heading {
-    font-size: clamp(32px, 3vw, 40px);
+    font-size: clamp(36px, 4vw, 56px);
     font-weight: 450;
     letter-spacing: -0.06em;
-    line-height: 1.2;
+    line-height: 1.1;
     text-wrap: balance;
   }
 
@@ -146,131 +146,268 @@
 
   /* ---------- Hero ---------- */
 
-  /* Headline left, the pitch and buttons right, so the demo starts above the fold. */
+  /* After vercel.com: headline and buttons left, the product drawn in the middle, three short lines right. */
   .lp-hero {
     display: grid;
-    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-    align-items: end;
-    gap: var(--space-8) var(--space-16);
-    padding: clamp(48px, 6vw, 80px) var(--lp-gutter) clamp(32px, 4vw, 48px);
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 0.7fr);
+    align-items: center;
+    gap: var(--space-12) var(--space-16);
+    min-height: min(840px, calc(100svh - 64px));
+    padding: clamp(80px, 9vw, 140px) var(--lp-gutter);
   }
 
-  .lp-hero-main,
-  .lp-hero-side {
+  .lp-hero-copy {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: var(--space-6);
+    gap: var(--space-8);
   }
 
-  .lp-hero .lp-lede {
-    font-size: 18px;
-    line-height: 28px;
+  .lp-hero .lp-display {
+    font-size: clamp(48px, 5vw, 72px);
   }
 
-  .lp-hero .lp-lede code {
-    color: var(--foreground);
-    font-family: var(--font-mono);
-    font-size: 0.9em;
-  }
-
-  /* The promise shown rather than told: each piece on the canvas and the file it becomes. */
-  .lp-map {
-    width: 100%;
-    max-width: 520px;
+  .lp-hero-points {
+    display: grid;
+    gap: 14px;
+    justify-self: end;
     margin: 0;
     padding: 0;
-    overflow: hidden;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    background: var(--surface);
-    box-shadow: var(--shadow-small);
     list-style: none;
-  }
-
-  .lp-map li {
-    --k: var(--foreground);
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    height: 48px;
-    padding-inline: 12px 14px;
-    font-size: 14px;
+    font-size: 16px;
     line-height: 20px;
   }
 
-  .lp-map li + li {
-    border-top: 1px solid var(--border);
+  @media (max-width: 1180px) {
+    .lp-hero {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .lp-hero-points {
+      display: none;
+    }
   }
 
-  .lp-map [data-kind="tool"],
-  .lp-integration-group[data-kind="tool"] {
+  @media (max-width: 860px) {
+    .lp-hero {
+      grid-template-columns: minmax(0, 1fr);
+      min-height: 0;
+    }
+
+    .lp-diagram {
+      justify-self: center;
+    }
+  }
+
+  /* The agent on the canvas: channels above, what it uses below, each wire flowing toward the agent's work. */
+  .lp-diagram {
+    display: grid;
+    justify-items: center;
+    width: 360px;
+  }
+
+  @media (max-width: 400px) {
+    .lp-diagram {
+      zoom: 0.88;
+    }
+  }
+
+  .lp-dg-row {
+    display: grid;
+    justify-items: center;
+    width: 360px;
+  }
+
+  .lp-dg-channels {
+    grid-template-columns: 60px 120px 120px 60px;
+  }
+
+  .lp-dg-channels .lp-dg-node:first-child {
+    grid-column: 2;
+  }
+
+  .lp-dg-resources {
+    grid-template-columns: repeat(3, 120px);
+  }
+
+  .lp-dg-node {
+    --k: var(--kind-channel);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .lp-dg-channels .lp-dg-node {
+    flex-direction: column-reverse;
+  }
+
+  .lp-dg-node[data-kind="tool"] {
     --k: var(--kind-tool);
   }
 
-  .lp-map [data-kind="skill"] {
+  .lp-dg-node[data-kind="skill"] {
     --k: var(--kind-skill);
   }
 
-  .lp-map [data-kind="channel"],
-  .lp-integration-group[data-kind="channel"] {
-    --k: var(--kind-channel);
-  }
-
-  .lp-integration-group[data-kind="connection"] {
+  .lp-dg-node[data-kind="connection"] {
     --k: var(--kind-connection);
   }
 
-  .lp-map-kind {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    font-weight: 500;
-    white-space: nowrap;
-  }
-
-  .lp-map-tile,
-  .lp-integration-icon {
+  .lp-dg-tile {
     display: grid;
-    flex: none;
     place-items: center;
-    width: 26px;
-    height: 26px;
-    border-radius: 7px;
-    background: color-mix(in srgb, var(--k) 12%, transparent);
+    width: 56px;
+    height: 56px;
+    border: 1px solid color-mix(in srgb, var(--k) 30%, var(--border));
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--k) 10%, var(--surface));
+    box-shadow: var(--shadow-small);
     color: var(--k);
   }
 
-  .lp-map-line {
-    flex: 1;
-    min-width: 12px;
-    border-top: 1px dashed var(--border-strong);
+  .lp-dg-tile[data-shape="square"] {
+    border-radius: 16px;
   }
 
-  .lp-map code {
-    overflow: hidden;
+  .lp-dg-tile[data-shape="square"],
+  .lp-dg-tile[data-brand] {
+    border-color: var(--border);
+    background: var(--surface);
+    color: var(--foreground);
+  }
+
+  .lp-dg-label {
     color: var(--foreground-secondary);
     font-family: var(--font-mono);
-    font-size: 13px;
-    text-overflow: ellipsis;
+    font-size: 12px;
+    line-height: 16px;
     white-space: nowrap;
   }
 
-  /* On a phone the path needs the room more than the leader line does. */
-  @media (max-width: 480px) {
-    .lp-map-line {
-      display: none;
-    }
+  .lp-dg-wires {
+    display: block;
+    width: 360px;
+    height: 40px;
+    fill: none;
+    stroke: var(--border-strong);
+    stroke-dasharray: 3 5;
+    stroke-width: 1.5;
+    animation: lp-flow 1.2s linear infinite;
+  }
 
-    .lp-map code {
-      margin-inline-start: auto;
+  @keyframes lp-flow {
+    to {
+      stroke-dashoffset: -16;
     }
   }
 
-  @media (max-width: 960px) {
-    .lp-hero {
-      grid-template-columns: minmax(0, 1fr);
+  @media (prefers-reduced-motion: reduce) {
+    .lp-dg-wires {
+      animation: none;
     }
+  }
+
+  .lp-dg-agent {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 220px;
+    height: 68px;
+    padding-inline: 14px;
+    border: 1px solid var(--border-strong);
+    border-radius: 16px;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+  }
+
+  .lp-dg-agent-icon {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    background: var(--foreground);
+    color: var(--background);
+  }
+
+  .lp-dg-agent-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .lp-dg-agent-text b {
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 20px;
+  }
+
+  .lp-dg-agent-text code {
+    color: var(--foreground-tertiary);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 16px;
+  }
+
+  /* ---------- Connects to ---------- */
+
+  .lp-logos {
+    padding: 0 var(--lp-gutter) clamp(40px, 5vw, 72px);
+  }
+
+  .lp-logos ul {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-8) var(--space-12);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .lp-logos li {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--foreground-secondary);
+    font-size: 19px;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+  }
+
+  .lp-logos .brand-logo {
+    filter: grayscale(1);
+  }
+
+  @media (max-width: 760px) {
+    .lp-logos ul {
+      justify-content: center;
+      gap: var(--space-6) var(--space-8);
+    }
+
+    .lp-logos li {
+      font-size: 16px;
+    }
+  }
+
+  .lp-aside {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 240px;
+  }
+
+  .lp-aside ul {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 15px;
+    line-height: 22px;
   }
 
   .lp-kicker {
@@ -298,18 +435,17 @@
   /* ---------- Demo ---------- */
 
   .lp-demo {
-    padding-inline: var(--lp-gutter);
-    scroll-margin-top: 80px;
+    min-width: 0;
   }
-
 
   /* ---------- Sections ---------- */
 
+  /* One idea per section, with room around it the way vercel.com spaces its sections. */
   .lp-section {
     display: flex;
     flex-direction: column;
-    gap: var(--space-12);
-    padding: clamp(80px, 10vw, 128px) var(--lp-gutter) 0;
+    gap: clamp(48px, 5vw, 80px);
+    padding: clamp(120px, 14vw, 200px) var(--lp-gutter) 0;
     scroll-margin-top: 16px;
   }
 
@@ -349,7 +485,7 @@
   .lp-step-visual {
     display: grid;
     place-items: center;
-    height: 200px;
+    height: 240px;
     padding: var(--space-6);
     border-bottom: 1px solid var(--border);
     background: var(--background);
@@ -359,7 +495,7 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-2);
-    padding: var(--space-6);
+    padding: var(--space-8);
   }
 
   .lp-step-number {
@@ -484,7 +620,7 @@
   .lp-feature-visual {
     display: grid;
     place-items: center;
-    height: 240px;
+    height: 300px;
     padding: var(--space-6);
     border-bottom: 1px solid var(--border);
     background: var(--background);
@@ -494,7 +630,7 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-2);
-    padding: var(--space-6);
+    padding: var(--space-8);
   }
 
   /* Feature illustrations, drawn from the canvas's own pieces. */
@@ -744,70 +880,89 @@
 
   /* ---------- Integrations ---------- */
 
-  .lp-integrations {
+  /* The cards eve.dev/integrations uses: logo tile and tag, then name and one line. */
+  .lp-int-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-4);
     margin: 0;
     padding: 0;
-    overflow: hidden;
-    border: 1px solid var(--border);
-    border-radius: 14px;
     list-style: none;
   }
 
-  .lp-integration-group {
-    --k: var(--foreground);
+  @media (max-width: 1100px) {
+    .lp-int-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 600px) {
+    .lp-int-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  .lp-int-card {
     display: flex;
     flex-direction: column;
     gap: var(--space-2);
     padding: var(--space-6);
-    border-inline-start: 1px solid var(--border);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
   }
 
-  .lp-integration-group:first-child {
-    border-inline-start: none;
-  }
-
-  .lp-integration-icon {
-    width: 32px;
-    height: 32px;
-    margin-bottom: var(--space-2);
-    border-radius: 8px;
-  }
-
-  .lp-integration-list {
+  .lp-int-top {
     display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin: var(--space-4) 0 0;
-    padding: 0;
-    list-style: none;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: var(--space-4);
   }
 
-  .lp-integration-list li {
-    display: inline-flex;
-    align-items: center;
-    height: 28px;
-    padding-inline: 10px;
+  .lp-int-mark {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--background);
+  }
+
+  .lp-int-tag {
+    padding: 2px 10px;
     border: 1px solid var(--border);
     border-radius: 999px;
-    background: var(--surface);
     color: var(--foreground-secondary);
-    font-size: 13px;
+    font-size: 12px;
+    line-height: 18px;
   }
 
-  @media (max-width: 960px) {
-    .lp-integrations {
-      grid-template-columns: minmax(0, 1fr);
-    }
+  .lp-int-name {
+    font-size: 17px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 24px;
+  }
 
-    .lp-integration-group {
-      border-inline-start: none;
-      border-top: 1px solid var(--border);
-    }
+  .lp-int-card .lp-card-body {
+    font-size: 14px;
+    line-height: 22px;
+  }
 
-    .lp-integration-group:first-child {
-      border-top: none;
+  .lp-more {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    gap: 6px;
+    color: var(--foreground-secondary);
+    font-size: 15px;
+    transition: color var(--duration-hover) ease;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .lp-more:hover {
+      color: var(--foreground);
     }
   }
 
@@ -935,9 +1090,14 @@
   .lp-cta {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
     gap: var(--space-6);
-    padding: clamp(96px, 12vw, 160px) var(--lp-gutter);
+    padding: clamp(160px, 18vw, 260px) var(--lp-gutter);
+    text-align: center;
+  }
+
+  .lp-cta .lp-actions {
+    justify-content: center;
   }
 
   .lp-footer {
