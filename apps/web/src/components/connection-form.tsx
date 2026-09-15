@@ -15,6 +15,16 @@ type Auth = "none" | "connect" | "token";
 type Kind = "mcp" | "openapi";
 type Tool = { name: string; description?: string };
 
+/** Values a catalog entry fills in, all still editable. */
+export interface ConnectionPreset {
+  name?: string;
+  kind?: Kind;
+  url?: string;
+  description?: string;
+  auth?: Auth;
+  connector?: string;
+}
+
 function parseNames(value: string): string[] {
   return value
     .split(/[\s,]+/)
@@ -32,16 +42,18 @@ export function ConnectionForm({
   onCreated,
   onCancel,
   autoFocus,
+  preset,
 }: {
   projectId: string;
   onCreated?: (id: string) => void;
   onCancel?: () => void;
   autoFocus?: boolean;
+  preset?: ConnectionPreset;
 }) {
   const router = useRouter();
-  const [kind, setKind] = useState<Kind>("mcp");
-  const [auth, setAuth] = useState<Auth>("none");
-  const [url, setUrl] = useState("");
+  const [kind, setKind] = useState<Kind>(preset?.kind ?? "mcp");
+  const [auth, setAuth] = useState<Auth>(preset?.auth ?? "none");
+  const [url, setUrl] = useState(preset?.url ?? "");
   const [allow, setAllow] = useState("");
   const [discoveryToken, setDiscoveryToken] = useState("");
   const [tools, setTools] = useState<Tool[]>();
@@ -103,9 +115,9 @@ export function ConnectionForm({
       return;
     }
     formElement.reset();
-    setKind("mcp");
-    setAuth("none");
-    setUrl("");
+    setKind(preset?.kind ?? "mcp");
+    setAuth(preset?.auth ?? "none");
+    setUrl(preset?.url ?? "");
     setAllow("");
     setDiscoveryToken("");
     setTools(undefined);
@@ -124,6 +136,7 @@ export function ConnectionForm({
             id="connection-name"
             name="name"
             placeholder="linear"
+            defaultValue={preset?.name}
             pattern={NAME_PATTERN}
             required
             autoFocus={autoFocus}
@@ -169,7 +182,7 @@ export function ConnectionForm({
         </Field>
         <Field>
           <FieldLabel htmlFor="connection-description">Description</FieldLabel>
-          <Input id="connection-description" name="description" maxLength={500} />
+          <Input id="connection-description" name="description" maxLength={500} defaultValue={preset?.description} />
           <FieldDescription>Tells the model what this service is for.</FieldDescription>
         </Field>
         <Field>
@@ -199,7 +212,8 @@ export function ConnectionForm({
               className="font-mono"
               id="connection-connector"
               name="connector"
-              placeholder="mcp.linear.app/linear"
+              placeholder="linear"
+              defaultValue={preset?.connector}
               required
             />
             <FieldDescription>

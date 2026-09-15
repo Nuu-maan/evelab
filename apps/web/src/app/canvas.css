@@ -1244,6 +1244,15 @@
     border-radius: 14px;
   }
 
+  /* A logo brings its own colour, so its tile stays neutral and the kind colour stays on the wires. */
+  .node[data-brand] .node-glyph {
+    background: var(--surface);
+    box-shadow:
+      inset 0 0 0 1px var(--border),
+      0 1px 2px rgb(0 0 0 / 0.06);
+    color: var(--foreground);
+  }
+
   .node-text {
     display: flex;
     flex: 1;

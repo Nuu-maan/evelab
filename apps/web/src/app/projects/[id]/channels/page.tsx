@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { agentPath, CHAT_SDK_ADAPTERS, CHAT_SDK_STATES, type ChannelKind } from "@evelab/eve-project";
-import { ChannelForm } from "@/components/channel-form";
+import { BrandLogo } from "@/components/brand-logo";
+import { ChannelCatalog } from "@/components/channel-catalog";
 import { ConfirmSubmit } from "@/components/confirm";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { deleteChannelAction } from "@/lib/actions";
+import { brandFor } from "@/lib/brands";
 import { getProject } from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
@@ -28,8 +30,14 @@ const LABELS: Partial<Record<ChannelKind, string>> = {
   disabled: "Disabled route",
 };
 
-export default async function ChannelsPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+export default async function ChannelsPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ platform?: string }>;
+}) {
+  const [{ id }, { platform }] = await Promise.all([params, searchParams]);
   const project = await getProject(id);
   const directory = agentPath(project.root, "channels/");
   const hasEve = project.channels.some((channel) => channel.id === "eve");
@@ -67,11 +75,15 @@ export default async function ChannelsPage({ params }: { params: Promise<{ id: s
         )}
         {project.channels.map((channel) => {
           const path = `${directory}${channel.file}`;
+          const brand = brandFor(channel.id);
           return (
             <StaggerItem key={channel.id}>
               <Card size="sm">
                 <CardHeader>
-                  <CardTitle className="font-mono">{channel.id}</CardTitle>
+                  <CardTitle className="flex items-center gap-2 font-mono">
+                    {brand && <BrandLogo brand={brand} size={16} />}
+                    {channel.id}
+                  </CardTitle>
                   <CardDescription>
                     {channel.kind === "eve"
                       ? "Sessions, streaming and the eve TUI. Replaces Eve's default to change who may call it."
@@ -114,7 +126,7 @@ export default async function ChannelsPage({ params }: { params: Promise<{ id: s
       </Stagger>
 
       <Reveal delay={0.1}>
-        <Card>
+        <Card id="add" className="scroll-mt-16">
           <CardHeader>
             <CardTitle>Add a channel</CardTitle>
             <CardDescription>
@@ -123,8 +135,9 @@ export default async function ChannelsPage({ params }: { params: Promise<{ id: s
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ChannelForm
+            <ChannelCatalog
               projectId={id}
+              initial={platform}
               existing={project.channels.map((channel) => channel.id)}
               chatSdkAdapters={Object.entries(CHAT_SDK_ADAPTERS).map(([key, value]) => ({ id: key, label: value.label, env: value.env }))}
               chatSdkStates={Object.entries(CHAT_SDK_STATES).map(([key, value]) => ({ id: key, label: value.label, env: value.env }))}

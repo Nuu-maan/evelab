@@ -16,7 +16,7 @@ import "@/app/landing-tour.css";
 /* The tour is drawn on a fixed 1200 by 720 stage, scaled to fit, and filmed by a moving camera. */
 const W = 1200;
 const H = 720;
-const MODEL = "anthropic/claude-opus-4.8";
+const MODEL = "anthropic/claude-opus-5";
 
 type PieceKind = "subagent" | "tool" | "skill" | "connection" | "channel";
 type Point = { x: number; y: number };

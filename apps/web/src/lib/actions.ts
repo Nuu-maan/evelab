@@ -474,13 +474,16 @@ export async function discoverMcpToolsAction(input: {
 
 const channelSchema = z
   .object({
-    kind: z.enum(["slack", "discord", "linear", "github", "linq", "photon", "teams", "telegram", "mcp"]),
+    kind: z.enum(["slack", "discord", "linear", "github", "linq", "photon", "teams", "telegram", "mcp", "twilio"]),
     connector: z.string().trim().max(200).optional(),
     botName: z.string().trim().max(100).optional(),
     botUsername: z.string().trim().max(100).optional(),
+    allowFrom: z.string().trim().regex(/^\+[1-9]\d{6,14}$/, "Use an E.164 number, such as +15551234567").optional(),
+    fromNumber: z.string().trim().regex(/^\+[1-9]\d{6,14}$/, "Use an E.164 number, such as +15557654321").optional(),
   })
   .refine((input) => input.kind !== "github" || input.botName, { message: "Enter the GitHub App's bot name" })
-  .refine((input) => input.kind !== "telegram" || input.botUsername, { message: "Enter the Telegram bot username" });
+  .refine((input) => input.kind !== "telegram" || input.botUsername, { message: "Enter the Telegram bot username" })
+  .refine((input) => input.kind !== "twilio" || input.allowFrom, { message: "Enter the number allowed to reach the agent" });
 
 /**
  * Writes `channels/<platform>.ts`. Where Vercel Connect can hold the platform

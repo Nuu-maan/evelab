@@ -280,7 +280,7 @@ export function renderProjectScaffold(input: ProjectScaffoldInput): ProjectFile[
     dependencies: {
       "@vercel/connect": "1.0.0",
       ai: "^7.0.93",
-      eve: "^0.54.4",
+      eve: "^0.55.0",
       zod: "4.5.4",
       ...(input.provider === "anthropic" || input.provider === "openai"
         ? { [DIRECT_PROVIDERS[input.provider].package]: DIRECT_PROVIDERS[input.provider].version }
@@ -313,6 +313,7 @@ export const CHANNEL_TEMPLATES = {
   teams: { factory: "teamsChannel", connect: undefined, connectOptional: true },
   telegram: { factory: "telegramChannel", connect: undefined, connectOptional: true },
   mcp: { factory: "mcpChannel", connect: undefined, connectOptional: true },
+  twilio: { factory: "twilioChannel", connect: undefined, connectOptional: true },
 } as const;
 
 export type ChannelTemplateKind = keyof typeof CHANNEL_TEMPLATES;
@@ -325,6 +326,10 @@ export interface ChannelTemplateInput {
   botName?: string;
   /** Telegram bot username. */
   botUsername?: string;
+  /** Twilio: the phone number allowed to reach the inbound hooks. Eve requires it. */
+  allowFrom?: string;
+  /** Twilio: the number outbound SMS is sent from. */
+  fromNumber?: string;
 }
 
 export function renderChannelModule(input: ChannelTemplateInput): string {
@@ -343,6 +348,11 @@ export function renderChannelModule(input: ChannelTemplateInput): string {
   if (input.kind === "github") options.push(`  botName: ${JSON.stringify(input.botName ?? "")},`);
   if (input.kind === "telegram") options.push(`  botUsername: ${JSON.stringify(input.botUsername ?? "")},`);
   if (input.kind === "mcp") options.push(`  auth: localDev(),`);
+  if (input.kind === "twilio") {
+    if (!input.allowFrom) throw new Error("A Twilio channel needs the number allowed to reach it.");
+    options.push(`  allowFrom: ${JSON.stringify(input.allowFrom)},`);
+    if (input.fromNumber) options.push(`  messaging: { from: ${JSON.stringify(input.fromNumber)} },`);
+  }
   if (connector && template.connect) options.push(`  credentials: ${template.connect}(${JSON.stringify(connector)}),`);
 
   const call = options.length > 0 ? `${template.factory}({\n${options.join("\n")}\n})` : `${template.factory}()`;

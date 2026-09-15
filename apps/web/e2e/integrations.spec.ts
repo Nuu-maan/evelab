@@ -30,10 +30,11 @@ test.describe.configure({ mode: "serial" });
 
 test("a connection with a token from the environment", async ({ page }) => {
   await page.goto("/projects/integrations-agent/connections");
+  await page.getByRole("button", { name: "OpenAPI document", exact: true }).click();
   await page.getByLabel("Connection name").fill("petstore");
-  await page.getByLabel("Protocol").selectOption("openapi");
   await page.getByLabel("URL").fill("https://petstore3.swagger.io/api/v3/openapi.json");
-  await page.getByLabel("Authentication").selectOption("token");
+  await page.getByLabel("Authentication").click();
+  await page.getByRole("option", { name: "Token from an environment variable" }).click();
   await page.getByLabel("Environment variable").fill("PETSTORE_TOKEN");
   await page.getByRole("button", { name: "Create connection" }).click();
 
@@ -46,13 +47,24 @@ test("a connection with a token from the environment", async ({ page }) => {
 test("a Slack channel through Vercel Connect", async ({ page }) => {
   await page.goto("/projects/integrations-agent/channels");
   await expect(page.getByText("The default HTTP session API")).toBeVisible();
-  await page.getByLabel("Platform").selectOption("slack");
+  await page.getByRole("button", { name: "Slack", exact: true }).click();
   await page.getByLabel("Vercel Connect connector").fill("slack/integrations-agent");
   await page.getByRole("button", { name: "Add Slack" }).click();
 
   await expect(page.getByText("Webhook route /eve/v1/slack")).toBeVisible();
   const source = await readFile(join(PROJECT, "agent", "channels", "slack.ts"), "utf8");
   expect(source).toContain('credentials: connectSlackCredentials("slack/integrations-agent"),');
+});
+
+test("a Twilio channel from the channel catalog", async ({ page }) => {
+  await page.goto("/projects/integrations-agent/channels");
+  await page.getByRole("button", { name: "Twilio", exact: true }).click();
+  await page.getByLabel("Allowed caller").fill("+15551234567");
+  await page.getByRole("button", { name: "Add Twilio (SMS and voice)" }).click();
+
+  await expect(page.getByText("Webhook route /eve/v1/twilio")).toBeVisible();
+  const source = await readFile(join(PROJECT, "agent", "channels", "twilio.ts"), "utf8");
+  expect(source).toContain('allowFrom: "+15551234567",');
 });
 
 test("a schedule is a markdown file with a cron", async ({ page }) => {
