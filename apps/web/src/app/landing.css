@@ -168,27 +168,103 @@
     line-height: 28px;
   }
 
-  /* The pitch as three short lines instead of a paragraph. */
-  .lp-points {
-    display: grid;
-    gap: 10px;
+  .lp-hero .lp-lede code {
+    color: var(--foreground);
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+  }
+
+  /* The promise shown rather than told: each piece on the canvas and the file it becomes. */
+  .lp-map {
+    width: 100%;
+    max-width: 520px;
     margin: 0;
     padding: 0;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+    box-shadow: var(--shadow-small);
     list-style: none;
-    color: var(--foreground-secondary);
-    font-size: 18px;
-    line-height: 26px;
   }
 
-  .lp-points li {
+  .lp-map li {
+    --k: var(--foreground);
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
+    height: 48px;
+    padding-inline: 12px 14px;
+    font-size: 14px;
+    line-height: 20px;
   }
 
-  .lp-points .icon {
+  .lp-map li + li {
+    border-top: 1px solid var(--border);
+  }
+
+  .lp-map [data-kind="tool"],
+  .lp-integration-group[data-kind="tool"] {
+    --k: var(--kind-tool);
+  }
+
+  .lp-map [data-kind="skill"] {
+    --k: var(--kind-skill);
+  }
+
+  .lp-map [data-kind="channel"],
+  .lp-integration-group[data-kind="channel"] {
+    --k: var(--kind-channel);
+  }
+
+  .lp-integration-group[data-kind="connection"] {
+    --k: var(--kind-connection);
+  }
+
+  .lp-map-kind {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .lp-map-tile,
+  .lp-integration-icon {
+    display: grid;
     flex: none;
-    color: var(--teal);
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    background: color-mix(in srgb, var(--k) 12%, transparent);
+    color: var(--k);
+  }
+
+  .lp-map-line {
+    flex: 1;
+    min-width: 12px;
+    border-top: 1px dashed var(--border-strong);
+  }
+
+  .lp-map code {
+    overflow: hidden;
+    color: var(--foreground-secondary);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* On a phone the path needs the room more than the leader line does. */
+  @media (max-width: 480px) {
+    .lp-map-line {
+      display: none;
+    }
+
+    .lp-map code {
+      margin-inline-start: auto;
+    }
   }
 
   @media (max-width: 960px) {
@@ -662,6 +738,75 @@
     }
 
     .lp-principles li:first-child {
+      border-top: none;
+    }
+  }
+
+  /* ---------- Integrations ---------- */
+
+  .lp-integrations {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    list-style: none;
+  }
+
+  .lp-integration-group {
+    --k: var(--foreground);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-6);
+    border-inline-start: 1px solid var(--border);
+  }
+
+  .lp-integration-group:first-child {
+    border-inline-start: none;
+  }
+
+  .lp-integration-icon {
+    width: 32px;
+    height: 32px;
+    margin-bottom: var(--space-2);
+    border-radius: 8px;
+  }
+
+  .lp-integration-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: var(--space-4) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .lp-integration-list li {
+    display: inline-flex;
+    align-items: center;
+    height: 28px;
+    padding-inline: 10px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--foreground-secondary);
+    font-size: 13px;
+  }
+
+  @media (max-width: 960px) {
+    .lp-integrations {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .lp-integration-group {
+      border-inline-start: none;
+      border-top: 1px solid var(--border);
+    }
+
+    .lp-integration-group:first-child {
       border-top: none;
     }
   }

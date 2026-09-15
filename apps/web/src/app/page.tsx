@@ -64,6 +64,34 @@ const PRINCIPLES = [
   { icon: IconLogoGithub, title: "Open source", body: "Free to use, and built in the open on GitHub." },
 ];
 
+const HERO_FILES = [
+  { kind: "agent", name: "support-desk", path: "agent/agent.ts" },
+  { kind: "tool", name: "search_docs", path: "agent/tools/search_docs.ts" },
+  { kind: "skill", name: "triage", path: "agent/skills/triage.md" },
+  { kind: "channel", name: "slack", path: "agent/channels/slack.ts" },
+] as const;
+
+const INTEGRATION_GROUPS = [
+  {
+    kind: "channel",
+    title: "Channels",
+    body: "Native eve channels through Vercel Connect, or any Chat SDK adapter.",
+    items: ["Slack", "Discord", "Microsoft Teams", "Telegram", "Twilio", "GitHub", "Linear", "WhatsApp", "Google Chat", "iMessage"],
+  },
+  {
+    kind: "tool",
+    title: "Extensions",
+    body: "Packaged tool sets, mounted under agent/extensions.",
+    items: ["agent-browser", "Browserbase", "KERNEL"],
+  },
+  {
+    kind: "connection",
+    title: "Memory and services",
+    body: "Durable memory, remote MCP servers and OpenAPI specs.",
+    items: ["File memory", "Supermemory", "Upstash AgentKit", "Any MCP server", "Any OpenAPI spec"],
+  },
+] as const;
+
 /**
  * The public front door. The playground near the top does the selling: a
  * visitor builds a small agent and sees the Eve code EveLab writes before they
@@ -107,6 +135,7 @@ export default async function LandingPage() {
           <a href="#demo">Tour</a>
           <a href="#how">How it works</a>
           <a href="#features">Features</a>
+          <a href="#integrations">Integrations</a>
           <Link href="/templates">Templates</Link>
           <a href="https://eve.dev/docs" target="_blank" rel="noreferrer">
             Docs
@@ -154,26 +183,32 @@ export default async function LandingPage() {
               <br />
               Get real code.
             </h1>
+            <p className="lp-lede">
+              Every piece you draw is a file in a real Eve project, the same one <code>eve init</code> writes.
+            </p>
           </div>
           <div className="lp-hero-side">
-            <ul className="lp-points">
-              <li>
-                <Icon icon={IconCheck} size={16} />
-                Draw your agent on a canvas
-              </li>
-              <li>
-                <Icon icon={IconCheck} size={16} />
-                Get a real Eve project, file for file
-              </li>
-              <li>
-                <Icon icon={IconCheck} size={16} />
-                Import any Eve repo and see its graph
-              </li>
+            <ul className="lp-map" aria-label="Pieces on the canvas and the files they become">
+              {HERO_FILES.map((row) => (
+                <li key={row.path} data-kind={row.kind}>
+                  <span className="lp-map-kind">
+                    <span className="lp-map-tile" aria-hidden="true">
+                      <Icon icon={KINDS[row.kind].icon} size={14} />
+                    </span>
+                    {row.name}
+                  </span>
+                  <span className="lp-map-line" aria-hidden="true" />
+                  <code>{row.path}</code>
+                </li>
+              ))}
             </ul>
             <div className="lp-actions">
               {start(account ? "Open your projects" : "Start building", account ? "/projects" : "/projects/new")}
               <Button asChild variant="outline" size="lg" className="h-11 rounded-full px-6 text-[15px]">
-                <a href="#demo">Watch the tour</a>
+                <a href="#demo">
+                  Watch the tour
+                  <Icon icon={IconArrowDown} size={14} />
+                </a>
               </Button>
             </div>
           </div>
@@ -204,7 +239,7 @@ export default async function LandingPage() {
                   </span>
                   <span className="lp-mini-field">
                     <span>Model</span>
-                    <code>claude-opus-4.8</code>
+                    <code>claude-opus-5</code>
                   </span>
                 </div>
               </div>
@@ -401,6 +436,35 @@ export default async function LandingPage() {
           </ul>
         </section>
 
+        <section className="lp-section" id="integrations" aria-labelledby="integrations-title">
+          <div className="lp-section-split">
+            <div className="lp-section-head">
+              <p className="lp-eyebrow">Integrations</p>
+              <h2 className="lp-heading" id="integrations-title">
+                Reach people where they already are
+              </h2>
+            </div>
+            <p className="lp-section-lede">Pick from eve&apos;s registry. EveLab writes the file eve add would.</p>
+          </div>
+
+          <ul className="lp-integrations">
+            {INTEGRATION_GROUPS.map((group) => (
+              <li key={group.title} className="lp-integration-group" data-kind={group.kind}>
+                <span className="lp-integration-icon" aria-hidden="true">
+                  <Icon icon={KINDS[group.kind].icon} size={16} />
+                </span>
+                <h3 className="lp-card-title">{group.title}</h3>
+                <p className="lp-card-body">{group.body}</p>
+                <ul className="lp-integration-list">
+                  {group.items.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ul>
+        </section>
+
         <section className="lp-section" id="export" aria-labelledby="export-title">
           <div className="lp-section-split">
             <div className="lp-section-head">
@@ -521,6 +585,7 @@ export default async function LandingPage() {
           <a href="#demo">Tour</a>
           <a href="#how">How it works</a>
           <a href="#features">Features</a>
+          <a href="#integrations">Integrations</a>
           <a href="#export">Export</a>
           <Link href="/templates">Templates</Link>
         </nav>
