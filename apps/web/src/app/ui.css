@@ -478,6 +478,200 @@
     color: var(--kind);
   }
 
+  /* ---------- Skeletons ---------- */
+
+  /* A flat block that breathes. No shimmer: a sweep needs a gradient, and a pulse reads just as clearly. */
+  .skeleton {
+    display: block;
+    flex: none;
+    border-radius: var(--radius);
+    background: var(--surface-active);
+    animation: skeleton-pulse 1.8s ease-in-out infinite;
+  }
+
+  @keyframes skeleton-pulse {
+    50% {
+      opacity: 0.5;
+    }
+  }
+
+  /* Held back briefly, so a navigation that finishes fast never flashes placeholders. */
+  .loading {
+    animation: reveal 200ms ease 150ms both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .skeleton {
+      animation: none;
+    }
+  }
+
+  .skeleton-dots {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    color: var(--canvas-dot);
+  }
+
+  .skeleton-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 32px;
+    padding-inline: var(--space-2);
+  }
+
+  .skeleton-panel {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+  }
+
+  .skeleton-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .skeleton-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr));
+    gap: var(--space-4);
+  }
+
+  .skeleton-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    height: 128px;
+    padding: var(--space-4);
+  }
+
+  .skeleton-list-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: 14px var(--space-4);
+  }
+
+  .skeleton-list-row + .skeleton-list-row {
+    border-top: 1px solid var(--border);
+  }
+
+  .skeleton-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    padding: var(--space-6);
+  }
+
+  .skeleton-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .skeleton-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: var(--space-1);
+  }
+
+  .skeleton-card-graph {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+  }
+
+  .skeleton-card-tiles {
+    display: flex;
+    gap: 28px;
+  }
+
+  .skeleton-canvas {
+    position: relative;
+    height: 100%;
+    min-height: 480px;
+    overflow: hidden;
+    background: var(--background);
+  }
+
+  .skeleton-canvas-title {
+    position: absolute;
+    top: var(--space-3);
+    inset-inline-start: var(--space-3);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px var(--space-3);
+  }
+
+  .skeleton-canvas-graph {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 56px;
+  }
+
+  .skeleton-canvas-row {
+    display: flex;
+    gap: 64px;
+  }
+
+  .skeleton-canvas-agent {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    width: 240px;
+    height: 68px;
+    padding-inline: 14px;
+    border-color: var(--border-strong);
+  }
+
+  .skeleton-canvas-toolbar {
+    position: absolute;
+    bottom: var(--space-4);
+    left: 50%;
+    display: flex;
+    gap: var(--space-1);
+    padding: 6px;
+    translate: -50% 0;
+  }
+
+  .skeleton-tree {
+    padding-bottom: var(--space-2);
+  }
+
+  .skeleton-editor {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    background: var(--surface);
+  }
+
+  .skeleton-editor-tabs {
+    display: flex;
+    align-items: center;
+    height: 40px;
+    padding-inline: var(--space-4);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .skeleton-editor-code {
+    display: flex;
+    flex-direction: column;
+    padding: var(--space-4) var(--space-5);
+  }
+
   /* File type icons, shared by the explorer, source control and import review. */
   .file-icon {
     display: inline-grid;
