@@ -1,6 +1,6 @@
 <div align="center">
 
-# ◆ evelab
+# evelab
 
 ### Draw your agent. Get real code.
 
@@ -13,6 +13,32 @@ and ship production-ready TypeScript that you fully own.
 ![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=nextdotjs) ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?logo=typescript&logoColor=white) ![React Flow](https://img.shields.io/badge/React_Flow-12-ff0072) ![AI SDK](https://img.shields.io/badge/AI_SDK-7-black?logo=vercel) ![Vercel](https://img.shields.io/badge/Deploy-Vercel-black?logo=vercel)
 
 </div>
+
+---
+
+## What is evelab?
+
+[Eve](https://eve.dev) is a framework for building durable AI agents in TypeScript. An Eve agent is a folder of plain files, and you run it with the `eve` command.
+
+**evelab is the visual layer on top.** It lets you see and build that folder as a diagram. You design the agent in evelab, the files it writes are a normal Eve project, and Eve runs it.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/readme/what-is-evelab-dark.png">
+  <img alt="You design in evelab, evelab writes a normal Eve project, Eve runs it, and your agent answers in Slack, Discord, Teams and the web" src=".github/readme/what-is-evelab-light.png">
+</picture>
+
+### evelab and Eve, side by side
+
+| | **Eve** (eve.dev) | **evelab** |
+| --- | --- | --- |
+| **What it is** | The framework and CLI that runs AI agents | A visual IDE for designing and editing Eve agents |
+| **How you build** | Write each file by hand in your editor | Drag pieces onto a canvas, or edit the code. Both stay in sync |
+| **Seeing the big picture** | Read through the folder | Every agent, tool, skill and channel in one live diagram |
+| **Connecting services** | Write the connection and channel files | Pick Slack, Linear, an MCP server and more from a catalog |
+| **What you end up with** | An Eve project | The exact same Eve project, with nothing extra added |
+| **Running the agent** | `eve dev` and `eve deploy` | Your agent always runs on Eve |
+
+evelab does not replace Eve. It makes Eve faster to learn, easier to see and quicker to build with.
 
 ---
 
@@ -33,17 +59,17 @@ evelab turns that pile into a picture.
 
 | | |
 | --- | --- |
-| 🎨 **Visual canvas** | Agents, sub-agents, tools, skills, connections and channels drawn as one architecture. Tree, row or freeform layouts, notes and sections, undo and redo, minimap and keyboard shortcuts. |
-| 🧩 **Drag and drop building** | Drag a piece onto an agent to attach it. Share one tool or skill across many agents. Detach a wire to remove it. |
-| 🔌 **MCP and OpenAPI** | Paste an MCP server URL, see its tools and choose which ones your agent may call. Connect OpenAPI services too. |
-| 💬 **Channels** | Put your agent in Slack, Discord, Microsoft Teams, Telegram, Twilio, GitHub, Linear and more. |
-| 🧠 **Skill import** | Bring in skills from GitHub or skills.sh. evelab shows every file and flags anything that can run code before it installs. |
-| ✍️ **Code editor** | Monaco for every file, a Zed style file explorer, autosave, quick open and a command palette. |
-| 🤖 **Built-in assistant** | An AI assistant (`Ctrl+I`) that reads your project and builds pieces through the same operations as the UI. |
-| 🔁 **GitHub, both ways** | Import any Eve repo, review changes side by side, commit, push and pull. |
-| 📦 **Export anywhere** | Download a zip that runs with `npm install` and `eve dev`, or push it straight to GitHub. |
-| 🔐 **Teams ready** | Optional GitHub sign-in with private, per-account projects. |
-| 🌗 **Polished everywhere** | Light and dark themes, responsive from phone to wide screen, skeleton loading states and accessible controls. |
+| **Visual canvas** | Agents, sub-agents, tools, skills, connections and channels drawn as one architecture. Tree, row or freeform layouts, notes and sections, undo and redo, minimap and keyboard shortcuts. |
+| **Drag and drop building** | Drag a piece onto an agent to attach it. Share one tool or skill across many agents. Detach a wire to remove it. |
+| **MCP and OpenAPI** | Paste an MCP server URL, see its tools and choose which ones your agent may call. Connect OpenAPI services too. |
+| **Channels** | Put your agent in Slack, Discord, Microsoft Teams, Telegram, Twilio, GitHub, Linear and more. |
+| **Skill import** | Bring in skills from GitHub or skills.sh. evelab shows every file and flags anything that can run code before it installs. |
+| **Code editor** | Monaco for every file, a Zed style file explorer, autosave, quick open and a command palette. |
+| **Built-in assistant** | An AI assistant (`Ctrl+I`) that reads your project and builds pieces through the same operations as the UI. |
+| **GitHub, both ways** | Import any Eve repo, review changes side by side, commit, push and pull. |
+| **Export anywhere** | Download a zip that runs with `npm install` and `eve dev`, or push it straight to GitHub. |
+| **Teams ready** | Optional GitHub sign-in with private, per-account projects. |
+| **Polished everywhere** | Light and dark themes, responsive from phone to wide screen, skeleton loading states and accessible controls. |
 
 ---
 
@@ -51,32 +77,15 @@ evelab turns that pile into a picture.
 
 The idea behind evelab is simple: **the files are the source of truth, and the canvas is a live view of them.**
 
-```mermaid
-flowchart LR
-    Files["📁 Eve project files<br/><sub>agent.ts · instructions.md · tools · skills · channels</sub>"]
-    Engine["⚙️ Project engine<br/><sub>parse · validate · graph</sub>"]
-    Canvas["🎨 Canvas and editors"]
-    Writer["✍️ Code writer<br/><sub>generate · edit in place</sub>"]
-
-    Files -->|read| Engine
-    Engine -->|draw| Canvas
-    Canvas -->|you drag, edit or connect| Writer
-    Writer -->|write only what changed| Files
-
-    classDef files fill:#0f2a1f,stroke:#0ac7b4,color:#e6fffb
-    classDef engine fill:#1b1633,stroke:#8e4ec6,color:#f3ecff
-    classDef ui fill:#10233f,stroke:#47a8ff,color:#e8f3ff
-    classDef writer fill:#33230a,stroke:#ffb224,color:#fff6e5
-    class Files files
-    class Engine engine
-    class Canvas ui
-    class Writer writer
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/readme/how-it-works-dark.png">
+  <img alt="The loop: evelab reads the project files, draws the canvas, you change something, and the code writer saves only what moved" src=".github/readme/how-it-works-light.png">
+</picture>
 
 1. **Read.** evelab parses the project into a typed model and turns it into a graph.
 2. **Draw.** The canvas shows that graph: who owns what, who shares what and how messages reach the agent.
 3. **Change.** When you drag a piece, rename something or edit code, evelab updates the exact file involved and leaves the rest of your code untouched.
-4. **Redraw.** The project is read again, so the canvas always matches what is on disk.
+4. **Save and redraw.** The project is read again, so the canvas always matches what is on disk.
 
 ---
 
@@ -84,67 +93,10 @@ flowchart LR
 
 evelab is a Next.js app on top of a small set of focused packages. Every service beyond the core is optional: with nothing configured it runs as a local, single-user tool on your filesystem.
 
-```mermaid
-flowchart TB
-    User(["👩‍💻 You, in the browser"])
-
-    subgraph App["evelab web app · Next.js"]
-        direction TB
-        UI["Canvas · Editors · Explorer<br/><sub>React Flow · Monaco · Motion</sub>"]
-        Server["Server Actions and API routes"]
-        Assistant["Assistant<br/><sub>AI SDK agent</sub>"]
-    end
-
-    subgraph Core["Core packages"]
-        direction TB
-        EveProject["@evelab/eve-project<br/><sub>parse · generate · validate · graph</sub>"]
-        GitPkg["@evelab/github<br/><sub>tree · status · merge · commit</sub>"]
-        AuthPkg["@evelab/auth<br/><sub>Better Auth</sub>"]
-        DbPkg["@evelab/db<br/><sub>Drizzle schema</sub>"]
-    end
-
-    subgraph Storage["Storage"]
-        direction TB
-        Disk[("Workspace on disk<br/><sub>real Eve folders</sub>")]
-        Postgres[("Postgres<br/><sub>users · projects · files on Vercel</sub>")]
-        Blob[("Vercel Blob<br/><sub>layouts · app state</sub>")]
-    end
-
-    subgraph Cloud["External services"]
-        direction TB
-        GitHub["GitHub<br/><sub>OAuth · repositories</sub>"]
-        Gateway["Vercel AI Gateway<br/><sub>models</sub>"]
-        Sandbox["Vercel Sandbox<br/><sub>runs agents · soon</sub>"]
-        Deploy["Vercel<br/><sub>eve deploy · soon</sub>"]
-    end
-
-    User --> UI
-    UI <--> Server
-    UI --> Assistant
-    Server --> EveProject
-    Assistant --> EveProject
-    Server --> GitPkg
-    Server --> AuthPkg
-    AuthPkg --> DbPkg
-    EveProject --> Disk
-    EveProject --> Postgres
-    Server --> Blob
-    DbPkg --> Postgres
-    GitPkg <--> GitHub
-    AuthPkg <--> GitHub
-    Assistant --> Gateway
-    Server -.-> Sandbox
-    Server -.-> Deploy
-
-    classDef app fill:#10233f,stroke:#47a8ff,color:#e8f3ff
-    classDef core fill:#1b1633,stroke:#8e4ec6,color:#f3ecff
-    classDef store fill:#0f2a1f,stroke:#0ac7b4,color:#e6fffb
-    classDef cloud fill:#1f1f1f,stroke:#a1a1a1,color:#ededed
-    class UI,Server,Assistant app
-    class EveProject,GitPkg,AuthPkg,DbPkg core
-    class Disk,Postgres,Blob store
-    class GitHub,Gateway,Sandbox,Deploy cloud
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/readme/architecture-dark.png">
+  <img alt="evelab architecture: the Next.js web app uses the core packages, which save to storage and talk to GitHub, AI Gateway and Vercel Sandbox" src=".github/readme/architecture-light.png">
+</picture>
 
 ### The pieces
 
@@ -160,45 +112,19 @@ flowchart TB
 
 evelab picks the right place automatically:
 
-```mermaid
-flowchart LR
-    Start{"Where is evelab running?"}
-    Local["💻 Your machine<br/><sub>projects are real folders in .evelab/workspace</sub>"]
-    Vercel["▲ Vercel with a database<br/><sub>project files are stored as rows in Postgres</sub>"]
-    State["Layouts and app state<br/><sub>Vercel Blob when configured, otherwise beside the workspace</sub>"]
-
-    Start -->|locally| Local
-    Start -->|on Vercel| Vercel
-    Local --> State
-    Vercel --> State
-
-    classDef decision fill:#1f1f1f,stroke:#a1a1a1,color:#ededed
-    classDef place fill:#0f2a1f,stroke:#0ac7b4,color:#e6fffb
-    class Start decision
-    class Local,Vercel,State place
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/readme/where-data-lives-dark.png">
+  <img alt="Locally projects are real folders, on Vercel project files live in Postgres, and layouts and app state are kept separately" src=".github/readme/where-data-lives-light.png">
+</picture>
 
 Your project files are never mixed with evelab's own state. Canvas positions, repository links and history are kept separately, so a project folder is always a clean Eve project.
 
 ### What happens when you drag a tool onto an agent
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor You
-    participant Canvas
-    participant Server as Server Action
-    participant Engine as Project engine
-    participant Store as Workspace
-
-    You->>Canvas: Drop "search_docs" on the agent
-    Canvas->>Server: attach tool to agent
-    Server->>Engine: generate agent/tools/search_docs.ts
-    Engine->>Store: write the new file
-    Server->>Engine: read the project again
-    Engine-->>Canvas: fresh graph
-    Canvas-->>You: new card, wired and saved
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/readme/drag-a-tool-dark.png">
+  <img alt="Sequence: you drop a tool, the canvas asks a server action, the engine generates and writes the file, reads it back, and the new card appears" src=".github/readme/drag-a-tool-light.png">
+</picture>
 
 ---
 
@@ -316,6 +242,6 @@ Ideas, bug reports and pull requests are all welcome. Open an [issue](https://gi
 
 <div align="center">
 
-**If evelab helps you build agents, give it a ⭐ so more people can find it.**
+**If evelab helps you build agents, give it a star so more people can find it.**
 
 </div>
