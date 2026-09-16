@@ -107,15 +107,23 @@ function RelationEdgeBase({
       ? `translate(-100%, -50%) translate(${targetX - 24}px, ${targetY}px)`
       : `translate(-50%, -100%) translate(${targetX}px, ${targetY - 22}px)`;
   const active = Boolean(data?.showLabel);
+  // A wire being looked at keeps its label and Detach button at full size however far out the board is zoomed,
+  // so the button stays something you can click. Other wires never subscribe to the zoom.
+  const lift = useStore((state) => (selected || active ? Math.min(3, Math.max(1, 1 / state.transform[2])) : 1));
 
   return (
     <>
       <BaseEdge id={id} path={path} interactionWidth={18} />
-      {data?.relation && data.labelOwner !== false && (active || readable) && (
+      {/* Every channel says "routes to", so those labels only show on the wire being looked at. */}
+      {data?.relation && data.labelOwner !== false && (active || selected || (readable && !channel)) && (
         <EdgeLabelRenderer>
           <div
             className="edge-label-anchor nodrag nopan"
-            style={{ transform: labelTransform }}
+            style={{
+              transform: lift > 1 ? `${labelTransform} scale(${lift})` : labelTransform,
+              // Grow away from the card the label points at, never into it.
+              transformOrigin: channel ? "50% 50%" : horizontal ? "100% 50%" : "50% 100%",
+            }}
             data-actionable={(selected && data.detachable) || undefined}
           >
             <div className="edge-label" data-kind={data.kind} data-active={active || undefined}>

@@ -189,9 +189,9 @@ function CanvasNodeCardBase({ id, data, selected }: NodeProps<CapabilityNode>) {
       ) : (
         <>
           <div className="node-card">
-            {target}
+            {data.kind !== "channel" && target}
             <span className="node-glyph" aria-hidden="true">
-              {brand ? <BrandLogo brand={brand} size={26} /> : <Icon icon={KINDS[data.kind].icon} size={26} />}
+              {brand ? <BrandLogo brand={brand} size={28} /> : <Icon icon={KINDS[data.kind].icon} size={26} />}
             </span>
             {data.shared && <span className="node-shared" aria-label="Shared definition" />}
           </div>
@@ -199,6 +199,8 @@ function CanvasNodeCardBase({ id, data, selected }: NodeProps<CapabilityNode>) {
           <span className="node-type">
             {resource && (data.usedBy ?? 0) > 1 ? `${typeLabel} · ${data.usedBy} agents` : typeLabel}
           </span>
+          {/* A channel's wire leaves from under its name, so it never runs through the label. */}
+          {data.kind === "channel" && target}
         </>
       )}
     </div>

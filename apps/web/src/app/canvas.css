@@ -533,12 +533,17 @@
       height: 36px;
     }
 
-    .canvas-layout .canvas-browser {
+    /* On a phone the panel is a sheet over the board again, so it floats with its own frame. */
+    .canvas-layout .canvas-browser.canvas-float {
       top: calc(46px + var(--float-gap) * 2);
       bottom: calc(42px + var(--float-gap) * 2);
       inset-inline: var(--float-gap);
       z-index: 20;
       width: auto;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--surface-raised);
+      box-shadow: var(--shadow);
     }
 
     .canvas-layout .canvas-inspector {
@@ -635,7 +640,7 @@
   }
 
   .canvas-layout[data-panel] .canvas-bottom-left {
-    inset-inline-start: calc(var(--browser-width) + var(--float-gap) * 2);
+    inset-inline-start: calc(var(--browser-width) + var(--float-gap));
   }
 
   .canvas-icon-float {
@@ -830,15 +835,21 @@
 
   /* ---------- Resource browser ---------- */
 
-  .canvas-browser {
+  /* Docked to the app sidebar as a pane of its own, so the board never shows two sidebars side by side. */
+  .canvas-browser.canvas-float {
     position: absolute;
-    top: var(--float-gap);
-    bottom: var(--float-gap);
-    inset-inline-start: var(--float-gap);
+    top: 0;
+    bottom: 0;
+    inset-inline-start: 0;
     display: flex;
     flex-direction: column;
     width: var(--browser-width);
     overflow: hidden;
+    border: none;
+    border-inline-end: 1px solid var(--border);
+    border-radius: 0;
+    background: var(--background);
+    box-shadow: none;
     animation: float-in-left 160ms var(--ease-out) both;
   }
 
@@ -1219,17 +1230,15 @@
     width: 40px;
     height: 40px;
     border-radius: 11px;
-    background: color-mix(in srgb, var(--kind) 14%, transparent);
-    box-shadow:
-      inset 0 1px 0 color-mix(in srgb, white 55%, transparent),
-      inset 0 0 0 1px color-mix(in srgb, var(--kind) 30%, transparent),
-      0 1px 2px color-mix(in srgb, var(--kind) 18%, transparent);
+    /* A flat tint, no white highlight: the rim of the card already gives the depth. */
+    background: color-mix(in srgb, var(--kind) 12%, transparent);
+    box-shadow: none;
     color: var(--kind);
   }
 
   .node[data-tier="root"] .node-glyph {
     background: var(--foreground);
-    box-shadow: inset 0 1px 0 color-mix(in srgb, white 30%, transparent), 0 1px 2px rgb(0 0 0 / 0.2);
+    box-shadow: none;
     color: var(--background);
   }
 
@@ -1244,12 +1253,10 @@
     border-radius: 14px;
   }
 
-  /* A logo brings its own colour, so its tile stays neutral and the kind colour stays on the wires. */
+  /* A logo brings its own colour, so it sits straight on the card: no second tile, no inner ring. */
   .node[data-brand] .node-glyph {
-    background: var(--surface);
-    box-shadow:
-      inset 0 0 0 1px var(--border),
-      0 1px 2px rgb(0 0 0 / 0.06);
+    background: none;
+    box-shadow: none;
     color: var(--foreground);
   }
 
@@ -3000,5 +3007,13 @@
   .wire-panel-option:focus-visible {
     outline: 2px solid var(--focus);
     outline-offset: 1px;
+  }
+
+  /* On touch screens the add buttons grow to a thumb-sized target. */
+  @media (pointer: coarse) {
+    .browser-group-add {
+      width: 32px;
+      height: 32px;
+    }
   }
 }
