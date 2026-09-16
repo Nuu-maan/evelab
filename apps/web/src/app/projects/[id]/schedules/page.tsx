@@ -60,10 +60,13 @@ export default async function SchedulesPage({ params }: { params: Promise<{ id: 
                   <CardHeader>
                     <CardTitle className="font-mono">{schedule.id}</CardTitle>
                     <CardDescription>{describeCron(schedule.cron) || "No cron"}</CardDescription>
-                    <CardAction className="flex flex-wrap items-center gap-x-4 gap-y-2 max-sm:col-start-1 max-sm:row-span-1 max-sm:row-start-3 max-sm:justify-self-start">
-                      <Badge variant="secondary" className="font-mono">
-                        {schedule.cron || "missing cron"}
-                      </Badge>
+                    <CardAction className="flex flex-wrap items-center gap-x-4 gap-y-2 max-sm:col-start-1 max-sm:row-span-1 max-sm:row-start-3 max-sm:justify-self-start max-sm:gap-x-2">
+                      {/* On a phone the cron gets its own line, so the three actions stay together on the next. */}
+                      <span className="flex max-sm:basis-full">
+                        <Badge variant="secondary" className="font-mono">
+                          {schedule.cron || "missing cron"}
+                        </Badge>
+                      </span>
                       <ScheduleRunButton projectId={id} scheduleId={schedule.id} />
                       <Button asChild variant="ghost">
                         <Link href={`/projects/${id}/files?path=${encodeURIComponent(path)}`}>Edit</Link>

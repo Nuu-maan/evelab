@@ -9,6 +9,8 @@
     display: grid;
     grid-template-columns: var(--pane-sidebar, 240px) minmax(0, 1fr);
     height: 100vh;
+    /* The visible viewport, so a phone's browser toolbar never hides the bottom of the page. */
+    height: 100dvh;
     background: var(--background);
     transition: grid-template-columns var(--duration-panel) var(--ease-drawer);
   }
@@ -438,11 +440,11 @@
   }
 
   /*
-   * Below 720px there is no room for a sidebar column beside the page, so the
-   * sidebar becomes a drawer over the content with a scrim behind it. The
-   * desktop open or closed preference is left untouched.
+   * Below 960px, phones and tablets alike, a sidebar column would squeeze the
+   * canvas and the editor, so the sidebar becomes a drawer over the content
+   * with a scrim behind it. The desktop open or closed preference is left untouched.
    */
-  @media (max-width: 720px) {
+  @media (max-width: 960px) {
     .shell,
     .shell[data-sidebar="closed"] {
       grid-template-columns: minmax(0, 1fr);

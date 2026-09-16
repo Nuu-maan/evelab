@@ -10,7 +10,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { SIDEBAR_COOKIE, type SidebarState } from "@/lib/sidebar-state";
 
 /** Matches the width in shell.css below which the sidebar is a drawer over the page. */
-const DRAWER_QUERY = "(max-width: 720px)";
+const DRAWER_QUERY = "(max-width: 960px)";
 
 function shellElement(): HTMLElement | null {
   return document.querySelector<HTMLElement>("[data-sidebar]");

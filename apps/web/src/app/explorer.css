@@ -272,4 +272,16 @@
       display: none;
     }
   }
+
+  /* A finger needs a bigger target than a pointer: taller rows, and row actions you can hit without nudging the next one. */
+  @media (pointer: coarse) {
+    .tree-row {
+      min-height: 36px;
+    }
+
+    .tree-action {
+      width: 32px;
+      height: 32px;
+    }
+  }
 }
