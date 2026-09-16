@@ -11,7 +11,7 @@ import { isAuthEnabled } from "@/lib/session";
  * Lists an MCP server's tools before a connection's allow list is written.
  *
  * Everything a server returns is untrusted: names must look like tool names,
- * descriptions are cut short, and the UI shows both as plain text. EveLab only
+ * descriptions are cut short, and the UI shows both as plain text. evelab only
  * lists tools here; it never calls one.
  */
 
@@ -56,13 +56,13 @@ async function checkUrl(value: string): Promise<URL> {
   if (url.protocol !== "https:" && !(url.protocol === "http:" && local)) {
     throw new McpDiscoveryError("Use an https URL.");
   }
-  // A shared EveLab must not be usable to reach the network it runs on.
+  // A shared evelab must not be usable to reach the network it runs on.
   if (isAuthEnabled()) {
-    if (local) throw new McpDiscoveryError("That address is not reachable from EveLab.");
+    if (local) throw new McpDiscoveryError("That address is not reachable from evelab.");
     const addresses = await lookup(url.hostname, { all: true }).catch(() => []);
     if (addresses.length === 0) throw new McpDiscoveryError("Could not find that server.");
     if (addresses.some((entry) => isPrivateAddress(entry.address))) {
-      throw new McpDiscoveryError("That address is not reachable from EveLab.");
+      throw new McpDiscoveryError("That address is not reachable from evelab.");
     }
   }
   return url;

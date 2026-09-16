@@ -167,7 +167,7 @@ export const runs = pgTable(
 /**
  * Project files, for deployments where the disk cannot keep them, such as
  * Vercel Functions. One row per file, or per empty folder with no content, so
- * the explorer can show a folder before it holds a file. Locally EveLab keeps
+ * the explorer can show a folder before it holds a file. Locally evelab keeps
  * projects as plain directories and never writes here.
  */
 export const projectEntries = pgTable(
@@ -182,7 +182,7 @@ export const projectEntries = pgTable(
   (table) => [primaryKey({ columns: [table.projectId, table.path] })],
 );
 
-/** EveLab's own state, such as canvas layouts and repository links, when the disk cannot keep it. */
+/** evelab's own state, such as canvas layouts and repository links, when the disk cannot keep it. */
 export const appState = pgTable("app_state", {
   key: text("key").primaryKey(),
   content: text("content").notNull(),

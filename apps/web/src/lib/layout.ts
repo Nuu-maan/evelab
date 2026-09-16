@@ -6,7 +6,7 @@ import { stateStore } from "@/lib/state-store";
 /**
  * Canvas node positions.
  *
- * Layout is EveLab's own presentation state, not Eve configuration, so it is
+ * Layout is evelab's own presentation state, not Eve configuration, so it is
  * stored next to the workspace rather than inside the project. A project
  * directory stays pure Eve, and losing this file costs nothing but a re-layout.
  */

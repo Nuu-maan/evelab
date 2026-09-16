@@ -5,7 +5,7 @@ import { appState, eq, getDb, sql } from "@evelab/db";
 import { storageMode, workspaceRoot } from "@/lib/workspace";
 
 /**
- * Where EveLab keeps its own state: canvas layouts, repository links, run
+ * Where evelab keeps its own state: canvas layouts, repository links, run
  * recordings and deployment history. Never project files.
  *
  * With `BLOB_READ_WRITE_TOKEN` set, state lives in Vercel Blob as private

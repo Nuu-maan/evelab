@@ -4,8 +4,8 @@ import ts from "typescript";
  * Reads and surgically edits the definition object inside an Eve module:
  * `export default defineAgent({ ... })`, `defineTool({ ... })` and the rest.
  *
- * EveLab never rewrites an existing module from a template: that would discard
- * imports, comments, helpers and any option EveLab has no control for. It
+ * evelab never rewrites an existing module from a template: that would discard
+ * imports, comments, helpers and any option evelab has no control for. It
  * locates the definition object literal and replaces only the value ranges it
  * owns, which keeps GUI edits and hand-written code compatible.
  */

@@ -18,7 +18,7 @@ import { platformProducts } from "@/lib/vercel-platform";
 import { readProjectFile } from "@/lib/workspace";
 
 /**
- * EveLab's assistant: an AI SDK agent that builds the user's Eve agent by
+ * evelab's assistant: an AI SDK agent that builds the user's Eve agent by
  * editing its files through the same operations the UI uses. It runs through
  * AI Gateway, so the model is a plain gateway id and there is no provider key.
  */
@@ -29,7 +29,7 @@ export function assistantAvailable(): boolean {
   return platformProducts(process.env).find((product) => product.id === "ai-gateway")?.configured ?? false;
 }
 
-const INSTRUCTIONS = `You are EveLab's assistant. You help the user build an agent with eve, Vercel's filesystem-first framework for durable backend AI agents.
+const INSTRUCTIONS = `You are evelab's assistant. You help the user build an agent with eve, Vercel's filesystem-first framework for durable backend AI agents.
 
 An eve agent is a directory of files under agent/:
 - agent.ts: defineAgent with the model and options.

@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 
-export const SITE_NAME = "EveLab";
-export const SITE_TITLE = "EveLab: visual IDE for Eve agents";
+export const SITE_NAME = "evelab";
+export const SITE_TITLE = "evelab: build AI agents visually, ship real code";
 export const SITE_DESCRIPTION =
-  "An open source visual IDE for Eve agents. Draw an agent on a canvas and EveLab writes the TypeScript project, file for file, like eve init.";
+  "evelab is the open source visual IDE for AI agents built on Eve. Design multi-agent systems on a canvas, plug in tools, skills, MCP servers and chat channels, and ship production-ready TypeScript you fully own.";
+export const REPOSITORY_URL = "https://github.com/anishfn/evelab";
 
-/** Where EveLab is published. */
+/** Where evelab is published. */
 export const PRODUCTION_URL = "https://evelab.vercel.app";
 
 /**

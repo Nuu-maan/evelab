@@ -87,7 +87,7 @@ export function ProjectsBrowser({ projects }: { projects: ProjectEntry[] }) {
                   <Icon icon={IconPlus} />
                 </span>
                 <span className="card-title">New project</span>
-                <span className="project-new-hint">agent.ts, instructions.md, and nothing else</span>
+                <span className="project-new-hint">Start from a blank agent</span>
               </Link>
             </li>
           )}

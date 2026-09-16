@@ -28,7 +28,7 @@ export default async function RuntimePage({ params }: { params: Promise<{ id: st
       <Alert>
         <Icon icon={IconInformation} />
         <AlertTitle className="font-normal text-muted-foreground">
-          Options such as limits, compaction, modelOptions and outputSchema are code, not settings. EveLab
+          Options such as limits, compaction, modelOptions and outputSchema are code, not settings. evelab
           shows them here and never rewrites them, so they round trip exactly as written.
         </AlertTitle>
       </Alert>

@@ -34,7 +34,7 @@ export default async function ProjectLayout({
   // someone else owns is indistinguishable from one that does not exist.
   const [exists] = await Promise.all([projectExists(id), requireProjectPage(id)]);
   if (!exists) notFound();
-  // Projects made before EveLab wrote docs get a README and .env.example, after the page is on its way.
+  // Projects made before evelab wrote docs get a README and .env.example, after the page is on its way.
   // A project linked to a repository keeps exactly the files that repository has.
   after(async () => {
     if (!(await readGitState(id))) await syncProjectDocs(id, { onlyMissing: true, create: true });

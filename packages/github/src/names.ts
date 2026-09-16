@@ -60,7 +60,7 @@ export const branchNameSchema = z
   .refine(isValidBranchName, { message: "Not a valid branch name" });
 
 /**
- * A path from a repository that EveLab may write into a project directory.
+ * A path from a repository that evelab may write into a project directory.
  * Plain relative paths only: no traversal, no absolute paths, no backslashes,
  * and nothing inside a `.git` directory.
  */

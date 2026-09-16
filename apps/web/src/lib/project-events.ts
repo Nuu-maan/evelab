@@ -3,7 +3,7 @@ import "server-only";
 /**
  * Tells the runtime when project files change, without the workspace module
  * having to know about runtimes. A running Vercel Sandbox subscribes so that a
- * save in EveLab reaches `eve dev` in the VM the same way it would on disk.
+ * save in evelab reaches `eve dev` in the VM the same way it would on disk.
  */
 
 export interface FileChange {

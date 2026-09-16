@@ -376,8 +376,10 @@ function CanvasInner(props: CanvasProps) {
   const [wireStyle, setWireStyle] = useState<WireStyle>(props.wireStyle);
   const [tool, setTool] = useState<CanvasTool>("select");
   const [panelOpen, setPanelOpen] = useState(true);
+  // A narrow board (a phone, or a tablet beside the sidebar) shows the panel as a sheet over everything,
+  // so there the board opens first and the panel waits to be asked for. The board's own width decides, not the window's.
   useEffect(() => {
-    if ((surfaceRef.current?.clientWidth ?? 1024) < 640) setPanelOpen(false);
+    if ((layoutRef.current?.clientWidth ?? window.innerWidth) < 700) setPanelOpen(false);
   }, []);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [hovered, setHovered] = useState<{ type: "node" | "edge"; id: string }>();

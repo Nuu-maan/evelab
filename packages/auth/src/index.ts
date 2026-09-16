@@ -9,7 +9,7 @@ export { toNextJsHandler } from "better-auth/next-js";
 /**
  * GitHub sign-in.
  *
- * Auth is optional: without a database, a GitHub OAuth app and a secret, EveLab
+ * Auth is optional: without a database, a GitHub OAuth app and a secret, evelab
  * runs as a local single-user tool against the filesystem. Once all of them are
  * set, this becomes the session source for project ownership.
  *
@@ -17,7 +17,7 @@ export { toNextJsHandler } from "better-auth/next-js";
  * from a client component.
  */
 
-/** True when sign-in is fully configured. Anything less and EveLab stays in local mode. */
+/** True when sign-in is fully configured. Anything less and evelab stays in local mode. */
 export function isAuthEnabled(): boolean {
   return Boolean(
     process.env.DATABASE_URL &&
@@ -33,7 +33,7 @@ function createAuth(db: NonNullable<ReturnType<typeof getDb>>, clientId: string,
     baseURL: process.env.BETTER_AUTH_URL,
     secret: process.env.BETTER_AUTH_SECRET,
     socialProviders: {
-      // repo lets EveLab list, import, commit and push with each person's own GitHub access.
+      // repo lets evelab list, import, commit and push with each person's own GitHub access.
       github: { clientId, clientSecret, scope: ["read:user", "user:email", "repo"] },
     },
     session: { expiresIn: 60 * 60 * 24 * 30 },

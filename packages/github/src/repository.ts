@@ -224,7 +224,7 @@ const createdSchema = z.object({ sha });
 /**
  * Commits local changes on top of the base and moves the branch to it.
  *
- * The branch only moves forward: if GitHub has commits EveLab has not seen,
+ * The branch only moves forward: if GitHub has commits evelab has not seen,
  * this refuses rather than overwriting them. Returns the new base.
  */
 export async function commitFiles(

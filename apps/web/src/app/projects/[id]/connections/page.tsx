@@ -62,7 +62,7 @@ export default async function ConnectionsPage({ params }: { params: Promise<{ id
             <p className="page-description">
               Remote MCP servers and OpenAPI services, one file each under{" "}
               <code className="mono">{directory}</code>. Credentials stay with Vercel Connect or the
-              deployment&apos;s environment; nothing secret is written to the project or to EveLab.
+              deployment&apos;s environment; nothing secret is written to the project or to evelab.
             </p>
           </div>
         </header>
@@ -180,7 +180,7 @@ export default async function ConnectionsPage({ params }: { params: Promise<{ id
           <CardHeader>
             <CardTitle>Add a connection</CardTitle>
             <CardDescription>
-              Pick a service. EveLab writes {directory}&lt;name&gt;.ts the way{" "}
+              Pick a service. evelab writes {directory}&lt;name&gt;.ts the way{" "}
               <code className="mono">eve add connection/&lt;name&gt;</code> does, with Vercel Connect holding the credential.
             </CardDescription>
           </CardHeader>

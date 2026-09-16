@@ -62,11 +62,6 @@
     font-weight: var(--weight-medium);
   }
 
-  /* A thumbnail draws a name as a bar: text at that scale is only noise. */
-  .graph-preview-bar {
-    fill: color-mix(in srgb, var(--foreground) 14%, var(--surface));
-  }
-
   .graph-preview-label {
     fill: var(--foreground-secondary);
     font-size: 15px;
@@ -196,10 +191,6 @@
       border-color: var(--border-strong);
       box-shadow: var(--shadow-small);
     }
-
-    .project-card:hover .graph-preview {
-      transform: scale(1.02);
-    }
   }
 
   .project-card:has(.project-card-link:active),
@@ -213,10 +204,12 @@
     outline-offset: 2px;
   }
 
-  /* A window onto the canvas: the root agent framed at a readable scale, never the whole graph squeezed flat. */
+  /* The project's shape on the canvas's dot grid: channels, the agent, then one tile per kind it uses. */
   .project-card-preview {
     position: relative;
-    aspect-ratio: 2 / 1;
+    display: grid;
+    place-items: center;
+    height: 184px;
     overflow: hidden;
     border-bottom: 1px solid var(--border);
     background: var(--background);
@@ -231,14 +224,142 @@
     color: var(--canvas-dot);
   }
 
-  .project-card-preview .graph-preview {
-    padding: 0;
-    transition: transform 240ms var(--ease-out);
+  .structure {
+    --structure-line: var(--border-strong);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .structure-trunk {
+    width: 1px;
+    height: 14px;
+    background: var(--structure-line);
+  }
+
+  .structure-agent {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 148px;
+    height: 44px;
+    padding-inline: 8px 12px;
+    border: 1px solid color-mix(in srgb, var(--foreground) 32%, var(--background));
+    border-radius: 12px;
+    background: var(--surface);
+    box-shadow: var(--shadow-small);
+  }
+
+  .structure-agent-icon {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: var(--foreground);
+    color: var(--background);
+  }
+
+  .structure-agent-lines {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .structure-agent-lines i {
+    display: block;
+    width: 72%;
+    height: 6px;
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--foreground) 22%, var(--surface));
+  }
+
+  .structure-agent-lines i + i {
+    width: 44%;
+    background: color-mix(in srgb, var(--foreground) 10%, var(--surface));
+  }
+
+  /* A bracket across the row, with a short stub down to each tile. */
+  .structure-branches {
+    position: relative;
+    display: flex;
+    gap: 14px;
+    padding-top: 14px;
+  }
+
+  .structure-branches::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    inset-inline: 19px;
+    height: 1px;
+    background: var(--structure-line);
+  }
+
+  .structure-branches > .structure-tile::before {
+    content: "";
+    position: absolute;
+    top: -15px;
+    left: 50%;
+    width: 1px;
+    height: 14px;
+    background: var(--structure-line);
+  }
+
+  .structure-tile {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border: 1px solid color-mix(in srgb, var(--kind) 45%, var(--border));
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--kind) 10%, var(--surface));
+    color: var(--kind);
+  }
+
+  .structure-tile[data-kind="channel"] {
+    border-radius: 11px;
+  }
+
+  .structure-count {
+    position: absolute;
+    bottom: -5px;
+    inset-inline-end: -9px;
+    min-width: 18px;
+    height: 16px;
+    padding-inline: 4px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--foreground-secondary);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-variant-numeric: tabular-nums;
+    line-height: 14px;
+    text-align: center;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .project-card .structure {
+      transition: transform 240ms var(--ease-out);
+    }
+
+    .project-card:hover .structure {
+      transform: translateY(-2px);
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .project-card-preview .graph-preview {
+    .project-card .structure {
       transition: none;
+    }
+
+    .project-card:hover .structure {
+      transform: none;
     }
   }
 
@@ -246,9 +367,8 @@
     display: flex;
     flex: 1;
     flex-direction: column;
-    gap: 14px;
     min-width: 0;
-    padding: 14px 10px 16px 16px;
+    padding: 12px 10px 12px 16px;
   }
 
   .project-card-heading {
@@ -316,20 +436,6 @@
     white-space: nowrap;
   }
 
-  .project-card-parts {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px 16px;
-    margin: auto 0 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .project-card-parts-empty {
-    color: var(--foreground-tertiary);
-    font-size: 12.5px;
-  }
-
   .project-card-footer {
     display: flex;
     align-items: center;
@@ -377,7 +483,6 @@
 
   .project-new-hint {
     color: var(--foreground-tertiary);
-    font-family: var(--font-mono);
-    font-size: 11px;
+    font-size: 13px;
   }
 }

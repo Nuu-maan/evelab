@@ -1,4 +1,4 @@
-import { IconBookOpen, IconMessage, IconPlug, IconRobot, IconUsers, IconWrench } from "@/components/icons";
+import { IconGraduationCap, IconMessage, IconPlug, IconRobot, IconUsers, IconWrench } from "@/components/icons";
 import type { CanvasNodeKind } from "@evelab/eve-project";
 import { Icon, type IconData } from "@/components/icon";
 
@@ -7,7 +7,7 @@ export const KINDS: Record<CanvasNodeKind, { label: string; plural: string; icon
   agent: { label: "Agent", plural: "Agents", icon: IconRobot },
   subagent: { label: "Subagent", plural: "Subagents", icon: IconUsers },
   tool: { label: "Tool", plural: "Tools", icon: IconWrench },
-  skill: { label: "Skill", plural: "Skills", icon: IconBookOpen },
+  skill: { label: "Skill", plural: "Skills", icon: IconGraduationCap },
   connection: { label: "Connection", plural: "Connections", icon: IconPlug },
   channel: { label: "Channel", plural: "Channels", icon: IconMessage },
 };

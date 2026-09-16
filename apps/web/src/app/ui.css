@@ -593,22 +593,55 @@
     gap: 28px;
   }
 
+  /* Mirrors canvas.css: a 248px docked pane, then the board with its floating chrome 12px in from each edge. */
   .skeleton-canvas {
-    position: relative;
+    display: grid;
+    grid-template-columns: var(--pane-palette, 248px) minmax(0, 1fr);
     height: 100%;
     min-height: 480px;
     overflow: hidden;
     background: var(--background);
   }
 
-  .skeleton-canvas-title {
-    position: absolute;
-    top: var(--space-3);
-    inset-inline-start: var(--space-3);
+  .skeleton-canvas-pane {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    padding: 10px var(--space-3);
+    gap: var(--space-2);
+    min-height: 0;
+    padding-bottom: var(--space-3);
+    border-inline-end: 1px solid var(--border);
+  }
+
+  .skeleton-canvas-group {
+    display: flex;
+    flex-direction: column;
+    margin-top: var(--space-2);
+  }
+
+  .skeleton-canvas-board {
+    position: relative;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .skeleton-canvas-toolbar {
+    position: absolute;
+    top: var(--space-3);
+    left: 50%;
+    display: flex;
+    align-items: center;
+    padding: 6px;
+    translate: -50% 0;
+  }
+
+  .skeleton-canvas-tools {
+    display: flex;
+    gap: var(--space-1);
+    padding-inline: 6px;
+  }
+
+  .skeleton-canvas-tools + .skeleton-canvas-tools {
+    border-inline-start: 1px solid var(--border);
   }
 
   .skeleton-canvas-graph {
@@ -618,32 +651,66 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 56px;
   }
 
   .skeleton-canvas-row {
     display: flex;
-    gap: 64px;
+    gap: 56px;
+  }
+
+  /* The wire between tiers: a dashed hairline, like the canvas's own structure wires. */
+  .skeleton-canvas-link {
+    width: 0;
+    height: 44px;
+    border-inline-start: 1px dashed var(--border-strong);
   }
 
   .skeleton-canvas-agent {
     display: flex;
     align-items: center;
     gap: var(--space-3);
-    width: 240px;
+    width: 260px;
     height: 68px;
     padding-inline: 14px;
     border-color: var(--border-strong);
   }
 
-  .skeleton-canvas-toolbar {
+  .skeleton-canvas-corner {
     position: absolute;
-    bottom: var(--space-4);
-    left: 50%;
+    bottom: var(--space-3);
     display: flex;
-    gap: var(--space-1);
-    padding: 6px;
-    translate: -50% 0;
+    gap: var(--space-2);
+  }
+
+  .skeleton-canvas-corner[data-corner="start"] {
+    inset-inline-start: var(--space-3);
+  }
+
+  .skeleton-canvas-corner[data-corner="end"] {
+    inset-inline-end: var(--space-3);
+  }
+
+  .skeleton-canvas-pill {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    height: 36px;
+    padding-inline: 4px;
+  }
+
+  .skeleton-canvas-pill:has(> .h-3) {
+    padding-inline: var(--space-3);
+  }
+
+  @media (max-width: 760px) {
+    .skeleton-canvas {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .skeleton-canvas-pane,
+    .skeleton-canvas-corner[data-corner="end"] {
+      display: none;
+    }
   }
 
   .skeleton-tree {

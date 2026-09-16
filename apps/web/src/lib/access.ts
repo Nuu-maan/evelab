@@ -1,7 +1,7 @@
 /**
  * Who may open a project. Pure, so the rule is tested without a database.
  *
- * With sign-in off, EveLab is a local single-user tool and everything on disk is
+ * With sign-in off, evelab is a local single-user tool and everything on disk is
  * the user's. With it on, only a project's members see it; to everyone else it
  * does not exist.
  */

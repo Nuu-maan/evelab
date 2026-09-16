@@ -30,7 +30,7 @@ const PAGES: Record<string, string> = {
 
 export interface HeaderGit {
   changes: number;
-  /** Undefined when EveLab has no recent answer from GitHub. */
+  /** Undefined when evelab has no recent answer from GitHub. */
   remoteMoved?: boolean;
 }
 

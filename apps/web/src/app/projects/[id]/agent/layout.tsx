@@ -27,7 +27,6 @@ export default async function AgentLayout({
           <div className="row" style={{ gap: "var(--space-4)", minWidth: 0 }}>
             <Avatar name={project.agent.name} size="large" />
             <div className="page-heading">
-              <p className="page-kicker">Agent</p>
               <h1 className="page-title">{project.agent.name}</h1>
               <div className="agent-meta">
                 <Badge variant="outline" className="font-mono">

@@ -6,7 +6,7 @@ const ENV_TEMPLATE = /(^|\/)\.env\.(example|sample|template)$/;
 
 /**
  * Local environment files never leave the machine, whatever `.gitignore` says.
- * EveLab does not hold secrets, and it must not publish the user's either.
+ * evelab does not hold secrets, and it must not publish the user's either.
  */
 export function isSecretPath(path: string): boolean {
   return ENV_FILE.test(path) && !ENV_TEMPLATE.test(path);

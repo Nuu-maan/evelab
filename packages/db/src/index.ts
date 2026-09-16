@@ -9,7 +9,7 @@ let client: ReturnType<typeof postgres> | undefined;
 /**
  * Returns the database, or undefined when DATABASE_URL is unset.
  *
- * EveLab runs locally against the filesystem without Postgres; the database is
+ * evelab runs locally against the filesystem without Postgres; the database is
  * only needed once accounts, GitHub links and run history come into play.
  */
 export function getDb() {

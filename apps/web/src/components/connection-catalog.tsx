@@ -47,7 +47,7 @@ const ENTRIES: Entry[] = [
   {
     key: "custom-mcp",
     name: "MCP server",
-    description: "Any hosted MCP server by URL. EveLab can list its tools so you pick the ones to allow.",
+    description: "Any hosted MCP server by URL. evelab can list its tools so you pick the ones to allow.",
     tag: "MCP",
     preset: { kind: "mcp" },
   },

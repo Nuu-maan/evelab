@@ -1,18 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import type { CanvasNodeKind } from "@evelab/eve-project";
 import { IconGridSquare, IconLogoGithub, IconPlus } from "@/components/icons";
 import { EmptyState } from "@/components/empty-state";
 import { Icon } from "@/components/icon";
-import { GraphPreview } from "@/components/graph-preview";
-import { KindCount } from "@/components/kinds";
 import { PlainShell } from "@/components/plain-shell";
 import { ProjectCardMenu } from "@/components/project-card-menu";
+import { ProjectStructure } from "@/components/project-structure";
+import "@/app/graph-preview.css";
 import { ProjectsBrowser } from "@/components/projects-browser";
 import { Reveal } from "@/components/motion";
 import { Button } from "@/components/ui/button";
 import { requireAccount, visibleProjectIds } from "@/lib/session";
-import { readLayout } from "@/lib/layout";
 import { listProjects, type ProjectSummary } from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
@@ -37,28 +35,26 @@ function ago(time: number): string {
   return "just now";
 }
 
-function ProjectCard({ project, positions }: { project: ProjectSummary; positions: Parameters<typeof GraphPreview>[0]["positions"] }) {
-  const parts: [CanvasNodeKind, number][] = (
-    [
-      ["subagent", project.subagentCount],
-      ["tool", project.toolCount],
-      ["skill", project.skillCount],
-      ["connection", project.connectionCount],
-      ["channel", project.channelCount],
-    ] as [CanvasNodeKind, number][]
-  ).filter(([, count]) => count > 0);
-
+function ProjectCard({ project }: { project: ProjectSummary }) {
   return (
     // The name's link stretches over the whole card; the menu sits above it, so no control is nested in a link.
     <article className="project-card">
       <div className="project-card-preview" aria-hidden="true">
         <svg className="project-card-dots">
-          <pattern id={`dots-${project.id}`} width="14" height="14" patternUnits="userSpaceOnUse">
-            <circle cx="7" cy="7" r="0.9" fill="currentColor" />
+          <pattern id={`dots-${project.id}`} width="16" height="16" patternUnits="userSpaceOnUse">
+            <circle cx="8" cy="8" r="0.9" fill="currentColor" />
           </pattern>
           <rect width="100%" height="100%" fill={`url(#dots-${project.id})`} />
         </svg>
-        <GraphPreview graph={project.graph} positions={positions} thumbnail />
+        <ProjectStructure
+          counts={{
+            subagent: project.subagentCount,
+            tool: project.toolCount,
+            skill: project.skillCount,
+            connection: project.connectionCount,
+            channel: project.channelCount,
+          }}
+        />
       </div>
 
       <div className="project-card-body">
@@ -73,18 +69,6 @@ function ProjectCard({ project, positions }: { project: ProjectSummary; position
           </div>
           <ProjectCardMenu id={project.id} name={project.name} fileCount={project.fileCount} />
         </div>
-
-        {parts.length > 0 ? (
-          <ul className="project-card-parts" aria-label="What it is made of">
-            {parts.map(([kind, count]) => (
-              <li key={kind}>
-                <KindCount kind={kind} count={count} />
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="project-card-parts project-card-parts-empty">Just the root agent</p>
-        )}
       </div>
 
       <div className="project-card-footer">
@@ -102,9 +86,6 @@ export default async function ProjectsPage() {
   const visible = await visibleProjectIds();
   const all = await listProjects(visible);
   const projects = visible ? all.filter((project) => visible.has(project.id)) : all;
-  const layouts = new Map(
-    await Promise.all(projects.map(async (project) => [project.id, (await readLayout(project.id)).positions] as const)),
-  );
 
   return (
     <PlainShell>
@@ -113,11 +94,8 @@ export default async function ProjectsPage() {
           <Reveal>
             <header className="page-header">
               <div className="page-heading">
-                <span className="page-kicker">Workspace</span>
                 <h1 className="page-title">Projects</h1>
-                <p className="page-description">
-                  Every project is a real Eve project on disk that runs with or without EveLab.
-                </p>
+                <p className="page-description">Each project is a normal Eve agent. It runs with or without evelab.</p>
               </div>
               <div className="page-actions">
                 <Button asChild variant="outline">
@@ -140,14 +118,14 @@ export default async function ProjectsPage() {
             <Reveal delay={0.08}>
               <EmptyState
                 icon={IconGridSquare}
-                title="No projects yet."
+                title="No projects yet"
                 action={
                   <Button asChild variant="outline">
-                    <Link href="/projects/new">Create your first project</Link>
+                    <Link href="/projects/new">Create a project</Link>
                   </Button>
                 }
               >
-                Creating one writes agent.ts and instructions.md, then gets out of your way.
+                Start with a blank agent, or import one from GitHub.
               </EmptyState>
             </Reveal>
           ) : (
@@ -158,7 +136,7 @@ export default async function ProjectsPage() {
                   name: project.name,
                   model: project.model,
                   updatedAt: project.updatedAt,
-                  card: <ProjectCard project={project} positions={layouts.get(project.id) ?? {}} />,
+                  card: <ProjectCard project={project} />,
                 }))}
               />
             </Reveal>

@@ -20,10 +20,8 @@ export default async function NewProjectPage() {
           <Reveal>
             <header className="page-header">
               <div className="page-heading">
-                <h1 className="page-title">Create Eve project</h1>
-                <p className="page-description">
-                  The same questions <code className="mono">eve init</code> asks, and the same files it writes.
-                </p>
+                <h1 className="page-title">Create a project</h1>
+                <p className="page-description">Name your agent and choose a model. You get a ready-to-run project in seconds.</p>
               </div>
             </header>
           </Reveal>

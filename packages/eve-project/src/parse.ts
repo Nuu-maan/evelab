@@ -68,7 +68,7 @@ interface Settings {
   raw: Record<string, string>;
 }
 
-/** Turns the files of a real Eve project into the EveLab project model. */
+/** Turns the files of a real Eve project into the evelab project model. */
 export function parseProject(files: ProjectFile[], options: ParseOptions = {}): ParseResult {
   const contents = new Map(files.map((file) => [file.path, file.content]));
   const paths = [...contents.keys()];
@@ -89,7 +89,7 @@ export function parseProject(files: ProjectFile[], options: ParseOptions = {}): 
   const settings = readSettings(configSource, configPath, context.warnings);
 
   // Eve reads instructions.md (or .ts) at the agent root, then the entries of instructions/ in filename order.
-  // EveLab edits one markdown file: the root one, or the first markdown entry when only the directory exists.
+  // evelab edits one markdown file: the root one, or the first markdown entry when only the directory exists.
   const instructionsDir = `${base}instructions/`;
   const instructionEntries = paths
     .filter((path) => path.startsWith(instructionsDir) && !path.slice(instructionsDir.length).includes("/"))

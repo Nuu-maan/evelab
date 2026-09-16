@@ -1,7 +1,7 @@
 import type { ConnectionAuth, ProjectFile, Reasoning } from "./types";
 
 /**
- * Source for files EveLab creates. Each shape is taken from Eve's own
+ * Source for files evelab creates. Each shape is taken from Eve's own
  * documentation or from what `eve init` (eve 0.54.3) writes. Existing files are
  * never regenerated from these: they are always patched in place.
  */
@@ -261,7 +261,7 @@ Run the validation the task requests. When it does not establish the behavior yo
 
 /**
  * The files `eve init` writes for a new project, so a project created in
- * EveLab is indistinguishable from one created on the command line.
+ * evelab is indistinguishable from one created on the command line.
  */
 export function renderProjectScaffold(input: ProjectScaffoldInput): ProjectFile[] {
   const packageJson = {
@@ -302,7 +302,7 @@ export function renderProjectScaffold(input: ProjectScaffoldInput): ProjectFile[
   ];
 }
 
-/** Platform channels EveLab can write, each in the shape its Eve docs page shows. */
+/** Platform channels evelab can write, each in the shape its Eve docs page shows. */
 export const CHANNEL_TEMPLATES = {
   slack: { factory: "slackChannel", connect: "connectSlackCredentials", connectOptional: true },
   discord: { factory: "discordChannel", connect: "connectDiscordCredentials", connectOptional: false },
