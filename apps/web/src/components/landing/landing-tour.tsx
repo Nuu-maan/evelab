@@ -38,7 +38,7 @@ interface Piece {
   code: string;
 }
 
-/* Written by the same templates EveLab uses, so the tour shows the code a project really gets. */
+/* Written by the same templates evelab uses, so the tour shows the code a project really gets. */
 const PIECES: readonly Piece[] = [
   {
     id: "search_docs",
@@ -107,6 +107,12 @@ interface Scene {
 }
 
 const CHAPTERS = ["Drag and drop", "Real code", "Export", "Import"] as const;
+const CHAPTER_NOTES = [
+  "Drop tools, skills and channels onto your agent.",
+  "Each piece is a file you can read and edit.",
+  "Download a zip or push it to GitHub.",
+  "Open any Eve repo and see how it fits together.",
+] as const;
 const REPO_NAME = "you/support-desk";
 
 const FULL: Camera = { x: W / 2, y: H / 2, s: 1 };
@@ -235,7 +241,7 @@ function ToastIcon({ icon }: { icon: Toast["icon"] }) {
 }
 
 /**
- * The landing page's tour: a short, looping film of EveLab at work. A cursor
+ * The landing page's tour: a short, looping film of evelab at work. A cursor
  * drags pieces onto an agent, the camera moves in to the code they write, and
  * the project is downloaded and pushed to GitHub. It pauses off screen and
  * holds a single frame for people who prefer less motion.
@@ -319,7 +325,7 @@ export function LandingTour() {
 
   return (
     <div className="tour" ref={root}>
-      <div className="tour-viewport" ref={viewport} role="img" aria-label="A looping tour of EveLab: pieces dragged onto an agent, the code they write, the project exported to a zip and to GitHub, and a GitHub repository imported as a graph">
+      <div className="tour-viewport" ref={viewport} role="img" aria-label="A looping tour of evelab: pieces dragged onto an agent, the code they write, the project exported to a zip and to GitHub, and a GitHub repository imported as a graph">
         <div className="tour-fit" style={{ transform: `scale(${fit})`, visibility: fit ? "visible" : "hidden" }} aria-hidden="true">
           <div
             className="tour-camera"
@@ -495,10 +501,8 @@ export function LandingTour() {
           <span>{scene.chapter + 1}</span>
           {scene.caption}
         </p>
-      </div>
 
-      {!reduced && (
-        <div className="tour-controls">
+        {!reduced && (
           <button type="button" className="tour-play" onClick={() => setPlaying((value) => !value)} aria-label={playing ? "Pause the tour" : "Play the tour"}>
             {playing ? (
               <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
@@ -509,30 +513,36 @@ export function LandingTour() {
               <Icon icon={IconPlay} size={14} />
             )}
           </button>
-          {CHAPTERS.map((label, chapter) => (
-            <button
-              key={label}
-              type="button"
-              className="tour-chapter"
-              data-current={scene.chapter === chapter || undefined}
-              onClick={() => {
-                setIndex(CHAPTER_START[chapter]);
-                setPlaying(true);
-              }}
-            >
-              <span className="tour-chapter-track">
-                <span
-                  className="tour-chapter-fill"
-                  ref={(element) => {
-                    bars.current[chapter] = element;
-                  }}
-                />
-              </span>
-              {label}
-            </button>
-          ))}
-        </div>
-      )}
+        )}
+      </div>
+
+      {/* The chapters are the tour's table of contents: a progress line, a name and one plain sentence each. */}
+      <div className="tour-controls">
+        {CHAPTERS.map((label, chapter) => (
+          <button
+            key={label}
+            type="button"
+            className="tour-chapter"
+            data-current={(!reduced && scene.chapter === chapter) || undefined}
+            disabled={reduced}
+            onClick={() => {
+              setIndex(CHAPTER_START[chapter]);
+              setPlaying(true);
+            }}
+          >
+            <span className="tour-chapter-track" aria-hidden="true">
+              <span
+                className="tour-chapter-fill"
+                ref={(element) => {
+                  bars.current[chapter] = element;
+                }}
+              />
+            </span>
+            <span className="tour-chapter-title">{label}</span>
+            <span className="tour-chapter-note">{CHAPTER_NOTES[chapter]}</span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

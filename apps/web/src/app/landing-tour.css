@@ -1,5 +1,5 @@
 /*
- * The landing page tour: EveLab drawn on a 1200 by 720 stage, filmed by a
+ * The landing page tour: evelab drawn on a 1200 by 720 stage, filmed by a
  * camera that pans and zooms. Everything moves with CSS transitions between
  * scenes, so the component only says where things end up.
  */
@@ -637,48 +637,63 @@
     }
   }
 
-  .tour-controls {
-    display: flex;
-    align-items: center;
-    gap: var(--space-4);
-  }
-
+  /* Play and pause sit in the corner of the picture, the way a video player puts them. */
   .tour-play {
+    position: absolute;
+    right: 16px;
+    bottom: 16px;
     display: grid;
-    flex: none;
     place-items: center;
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     border: 1px solid var(--border);
     border-radius: 50%;
     background: var(--surface);
+    box-shadow: var(--shadow);
     color: var(--foreground);
     cursor: pointer;
+    transition: transform var(--duration-press) var(--ease-out);
+  }
+
+  .tour-play:active {
+    transform: scale(0.96);
+  }
+
+  .tour-play:focus-visible,
+  .tour-chapter:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .tour-controls {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-6);
+    margin-top: var(--space-5);
   }
 
   .tour-chapter {
-    display: grid;
-    flex: 1;
-    gap: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
     padding: 0;
     border: none;
+    border-radius: 4px;
     background: none;
-    color: var(--foreground-tertiary);
+    color: var(--foreground-secondary);
     font: inherit;
-    font-size: 13px;
-    line-height: 16px;
     text-align: start;
     cursor: pointer;
-    transition: color 150ms ease;
   }
 
-  .tour-chapter[data-current] {
-    color: var(--foreground);
+  .tour-chapter:disabled {
+    cursor: default;
   }
 
   .tour-chapter-track {
     overflow: hidden;
     height: 2px;
+    margin-bottom: 12px;
     border-radius: 2px;
     background: var(--border);
   }
@@ -691,9 +706,41 @@
     transform-origin: left;
   }
 
+  .tour-chapter-title {
+    color: var(--foreground-secondary);
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    line-height: 22px;
+    transition: color var(--duration-hover) ease;
+  }
+
+  .tour-chapter-note {
+    color: var(--foreground-tertiary);
+    font-size: 14px;
+    line-height: 20px;
+    text-wrap: pretty;
+    transition: color var(--duration-hover) ease;
+  }
+
+  .tour-chapter[data-current] .tour-chapter-title {
+    color: var(--foreground);
+  }
+
+  .tour-chapter[data-current] .tour-chapter-note {
+    color: var(--foreground-secondary);
+  }
+
   @media (hover: hover) and (pointer: fine) {
-    .tour-chapter:hover {
+    .tour-chapter:not(:disabled):hover .tour-chapter-title {
       color: var(--foreground);
+    }
+  }
+
+  @media (max-width: 860px) {
+    .tour-controls {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      row-gap: var(--space-5);
     }
   }
 
@@ -711,8 +758,11 @@
       font-size: 10px;
     }
 
-    .tour-controls {
-      gap: var(--space-3);
+    .tour-play {
+      right: 8px;
+      bottom: 8px;
+      width: 28px;
+      height: 28px;
     }
   }
 

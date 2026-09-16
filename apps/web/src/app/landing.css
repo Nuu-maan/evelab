@@ -446,8 +446,21 @@
 
   /* ---------- Connects to ---------- */
 
+  /* A quiet band between hairlines: one small line of text, then the marks in gray. */
   .lp-logos {
-    padding: 0 var(--lp-gutter) clamp(40px, 5vw, 72px);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+    padding: var(--space-10) var(--lp-gutter);
+    border-block: 1px solid var(--border);
+  }
+
+  .lp-logos-title {
+    color: var(--foreground-tertiary);
+    font-size: 14px;
+    line-height: 20px;
+    text-align: center;
+    text-wrap: balance;
   }
 
   .lp-logos ul {
@@ -455,7 +468,7 @@
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: var(--space-8) var(--space-12);
+    gap: var(--space-6) var(--space-10);
     margin: 0;
     padding: 0;
     list-style: none;
@@ -464,11 +477,11 @@
   .lp-logos li {
     display: inline-flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     color: var(--foreground-secondary);
-    font-size: 19px;
+    font-size: 17px;
     font-weight: 500;
-    letter-spacing: -0.03em;
+    letter-spacing: -0.02em;
   }
 
   .lp-logos .brand-logo {
@@ -511,74 +524,7 @@
   /* ---------- Demo ---------- */
 
   .lp-demo {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-10);
     min-width: 0;
-  }
-
-  /* What the tour shows, as a row of hairline cells under it. */
-  .lp-points {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    margin: 0;
-    padding: 0;
-    border-top: 1px solid var(--border);
-    list-style: none;
-  }
-
-  .lp-points li {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    padding: var(--space-6) var(--space-6) 0;
-    border-inline-start: 1px solid var(--border);
-  }
-
-  .lp-points li:first-child {
-    padding-inline-start: 0;
-    border-inline-start: none;
-  }
-
-  .lp-points .icon {
-    margin-bottom: var(--space-3);
-    color: var(--foreground-secondary);
-  }
-
-  .lp-point-title {
-    font-size: 15px;
-    font-weight: 500;
-    letter-spacing: -0.01em;
-    line-height: 22px;
-  }
-
-  .lp-point-body {
-    color: var(--foreground-secondary);
-    font-size: 14px;
-    line-height: 20px;
-    text-wrap: pretty;
-  }
-
-  @media (max-width: 900px) {
-    .lp-points {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .lp-points li:nth-child(odd) {
-      padding-inline-start: 0;
-      border-inline-start: none;
-    }
-  }
-
-  @media (max-width: 520px) {
-    .lp-points {
-      grid-template-columns: minmax(0, 1fr);
-    }
-
-    .lp-points li {
-      padding-inline: 0;
-      border-inline-start: none;
-    }
   }
 
   /* ---------- Sections ---------- */
@@ -587,9 +533,82 @@
   .lp-section {
     display: flex;
     flex-direction: column;
-    gap: clamp(48px, 5vw, 80px);
-    padding: clamp(120px, 14vw, 200px) var(--lp-gutter) 0;
-    scroll-margin-top: 16px;
+    gap: clamp(40px, 4vw, 64px);
+    padding: clamp(96px, 11vw, 160px) var(--lp-gutter) 0;
+    scroll-margin-top: 64px;
+  }
+
+  /* ---------- Questions ---------- */
+
+  /* The heading on the left, answers on the right between hairlines, stacked on narrow screens. */
+  .lp-faq {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+    gap: var(--space-8) var(--space-16);
+    align-items: start;
+  }
+
+  @media (max-width: 860px) {
+    .lp-faq {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  .lp-faq-list {
+    border-top: 1px solid var(--border);
+  }
+
+  .lp-faq-item {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .lp-faq-item summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    min-height: 64px;
+    padding-block: var(--space-4);
+    font-size: 17px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    line-height: 24px;
+    list-style: none;
+    cursor: pointer;
+  }
+
+  .lp-faq-item summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .lp-faq-item summary .icon {
+    color: var(--foreground-tertiary);
+    transition: rotate 200ms var(--ease-out);
+  }
+
+  .lp-faq-item[open] summary .icon {
+    rotate: 180deg;
+  }
+
+  .lp-faq-item summary:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  .lp-faq-item p {
+    max-width: 60ch;
+    padding-bottom: var(--space-5);
+    color: var(--foreground-secondary);
+    font-size: 16px;
+    line-height: 26px;
+    text-wrap: pretty;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .lp-faq-item summary .icon {
+      transition: none;
+    }
   }
 
   .lp-section-head {
@@ -978,49 +997,6 @@
     stroke: var(--amber);
   }
 
-  .lp-principles {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    list-style: none;
-  }
-
-  .lp-principles li {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-    padding: var(--space-6);
-    border-inline-start: 1px solid var(--border);
-  }
-
-  .lp-principles li:first-child {
-    border-inline-start: none;
-  }
-
-  .lp-principles .icon {
-    margin-bottom: var(--space-2);
-    color: var(--foreground-secondary);
-  }
-
-  @media (max-width: 860px) {
-    .lp-principles {
-      grid-template-columns: minmax(0, 1fr);
-    }
-
-    .lp-principles li {
-      border-inline-start: none;
-      border-top: 1px solid var(--border);
-    }
-
-    .lp-principles li:first-child {
-      border-top: none;
-    }
-  }
-
   /* ---------- Integrations ---------- */
 
   /* The cards eve.dev/integrations uses: logo tile and tag, then name and one line. */
@@ -1109,125 +1085,6 @@
     }
   }
 
-  /* ---------- Export ---------- */
-
-  .lp-bento-3 {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  @media (max-width: 1000px) {
-    .lp-bento-3 {
-      grid-template-columns: minmax(0, 1fr);
-    }
-  }
-
-  .lp-fx-zip,
-  .lp-fx-commit {
-    width: 100%;
-    max-width: 300px;
-    overflow: hidden;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    background: var(--surface);
-  }
-
-  .lp-fx-zip-head,
-  .lp-fx-commit-repo {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    height: 42px;
-    padding-inline: 12px;
-    border-bottom: 1px solid var(--border);
-    font-size: 13px;
-    font-weight: 500;
-  }
-
-  .lp-fx-zip-head > span,
-  .lp-fx-branch {
-    margin-inline-start: auto;
-    color: var(--foreground-tertiary);
-    font-weight: 400;
-  }
-
-  .lp-fx-branch {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-family: var(--font-mono);
-    font-size: 12px;
-  }
-
-  .lp-fx-zip ul {
-    margin: 0;
-    padding: 8px 12px 10px;
-    list-style: none;
-    color: var(--foreground-secondary);
-    font-family: var(--font-mono);
-    font-size: 12px;
-    line-height: 24px;
-  }
-
-  .lp-fx-commit-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 12px;
-    font-size: 13px;
-    line-height: 18px;
-  }
-
-  .lp-fx-commit-row code {
-    color: var(--foreground-tertiary);
-    font-size: 12px;
-  }
-
-  .lp-fx-commit-done {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 12px;
-    border-top: 1px solid var(--border);
-    color: var(--teal);
-    font-size: 13px;
-  }
-
-  .lp-fx-pull {
-    display: grid;
-    justify-items: center;
-    gap: 10px;
-  }
-
-  .lp-fx-pull-step {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    height: 38px;
-    padding-inline: 14px;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    background: var(--surface);
-    font-size: 13px;
-  }
-
-  .lp-fx-pull-step[data-done] {
-    border-color: color-mix(in srgb, var(--teal) 40%, var(--border));
-  }
-
-  .lp-fx-pull-step[data-done] .icon {
-    color: var(--teal);
-  }
-
-  .lp-fx-pull-arrow {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    color: var(--foreground-tertiary);
-    font-family: var(--font-mono);
-    font-size: 12px;
-  }
-
   /* ---------- Closing ---------- */
 
   .lp-cta {
@@ -1235,7 +1092,7 @@
     flex-direction: column;
     align-items: center;
     gap: var(--space-6);
-    padding: clamp(160px, 18vw, 260px) var(--lp-gutter);
+    padding: clamp(120px, 14vw, 200px) var(--lp-gutter);
     text-align: center;
   }
 
@@ -1281,5 +1138,49 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
+  }
+
+  /* ---------- Narrow screens ---------- */
+
+  /* The menu button stands in for the inline nav, and cards drop their desktop-sized picture areas. */
+  .lp-menu {
+    display: none;
+  }
+
+  @media (max-width: 760px) {
+    .lp-menu {
+      display: inline-flex;
+    }
+
+    .lp-header {
+      gap: var(--space-4);
+    }
+
+    .lp-step-visual {
+      height: 200px;
+    }
+
+    .lp-feature-visual {
+      height: 240px;
+    }
+
+    .lp-step-text,
+    .lp-feature-text {
+      padding: var(--space-5);
+    }
+
+    .lp-card-title {
+      font-size: 18px;
+      line-height: 24px;
+    }
+
+    .lp-card-body {
+      font-size: 15px;
+      line-height: 22px;
+    }
+
+    .lp-int-grid {
+      gap: var(--space-3);
+    }
   }
 }

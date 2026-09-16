@@ -6,12 +6,14 @@ import { Mark } from "@/components/mark";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { EVE_TEMPLATES } from "@/lib/eve-templates";
-import { OPEN_GRAPH } from "@/lib/site";
+import { LandingMenu } from "@/components/landing/landing-menu";
+import { OPEN_GRAPH, REPOSITORY_URL } from "@/lib/site";
 import "@/app/landing.css";
 import "@/app/templates.css";
 
-const TITLE = "Eve agent templates";
-const DESCRIPTION = "Real Eve agents from eve.dev. Import one into EveLab to see its graph and code.";
+const TITLE = "AI agent templates";
+const DESCRIPTION =
+  "Production-ready Eve agent templates for support, engineering, marketing and more. Import one into evelab and explore its canvas and code in seconds.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -29,9 +31,9 @@ export default function TemplatesPage() {
       </a>
 
       <header className="lp-header">
-        <Link className="lp-brand" href="/" aria-label="EveLab home">
+        <Link className="lp-brand" href="/" aria-label="evelab home">
           <Mark />
-          EveLab
+          evelab
         </Link>
         <nav className="lp-nav" aria-label="Sections">
           <Link href="/#demo">Tour</Link>
@@ -45,6 +47,15 @@ export default function TemplatesPage() {
         </nav>
         <div className="lp-header-actions">
           <ThemeToggle />
+          <LandingMenu
+            repository={REPOSITORY_URL}
+            links={[
+              { label: "Tour", href: "/#demo" },
+              { label: "Features", href: "/#features" },
+              { label: "Templates", href: "/templates" },
+              { label: "Docs", href: "https://eve.dev/docs", external: true },
+            ]}
+          />
           <Button asChild size="sm">
             <Link href="/projects">Open app</Link>
           </Button>
@@ -58,8 +69,8 @@ export default function TemplatesPage() {
             <h1 className="lp-heading" id="templates-title">
               Start from a real Eve agent
             </h1>
+            <p className="lp-section-lede">Pick a template and import it to see its canvas and code, or read more about it on eve.dev.</p>
           </div>
-          <p className="lp-section-lede">Import one to see its graph and code. Or open it on eve.dev.</p>
 
           <ul className="tpl-grid">
             {EVE_TEMPLATES.map((template) => (

@@ -4,19 +4,17 @@ import {
   IconArrowDown,
   IconArrowUpRight,
   IconCheck,
+  IconChevronDown,
   IconChevronRight,
-  IconCodeBracket,
-  IconDownload,
-  IconFileText,
-  IconGitBranch,
   IconGlobe,
   IconLogoGithub,
   IconPointer,
-  IconRoute,
 } from "@/components/icons";
 import { BrandLogo } from "@/components/brand-logo";
 import { Icon } from "@/components/icon";
 import { KINDS } from "@/components/kinds";
+import { InView } from "@/components/landing/in-view";
+import { LandingMenu } from "@/components/landing/landing-menu";
 import { LandingTour } from "@/components/landing/landing-tour";
 import { Mark } from "@/components/mark";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -24,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { signInAction } from "@/lib/actions";
 import { BRANDS, type BrandId } from "@/lib/brands";
 import { getAccount, isAuthEnabled } from "@/lib/session";
-import { OPEN_GRAPH, SITE_DESCRIPTION, SITE_NAME, siteUrl } from "@/lib/site";
+import { OPEN_GRAPH, REPOSITORY_URL, SITE_DESCRIPTION, SITE_NAME, siteUrl } from "@/lib/site";
 import "@/app/landing.css";
 
 export const dynamic = "force-dynamic";
@@ -34,9 +32,9 @@ export const metadata: Metadata = {
   openGraph: { ...OPEN_GRAPH, url: "/" },
 };
 
-const REPO = "https://github.com/anishfn/evelab";
+const REPO = REPOSITORY_URL;
 
-/** Only facts the page itself states: what EveLab is, that it is free, and where the code lives. */
+/** Only facts the page itself states: what evelab is, that it is free, and where the code lives. */
 function structuredData() {
   const url = siteUrl().toString();
   return {
@@ -55,17 +53,20 @@ function structuredData() {
         offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
         sameAs: [REPO],
       },
+      {
+        "@type": "FAQPage",
+        "@id": `${url}#faq`,
+        mainEntity: FAQ.map((item) => ({
+          "@type": "Question",
+          name: item.question,
+          acceptedAnswer: { "@type": "Answer", text: item.answer },
+        })),
+      },
     ],
   };
 }
 
 const KIND_ORDER = ["subagent", "tool", "skill", "connection", "channel"] as const;
-
-const PRINCIPLES = [
-  { icon: IconFileText, title: "Real files", body: "A plain Eve project. No EveLab SDK inside." },
-  { icon: IconCodeBracket, title: "Always in sync", body: "Edit the code, the canvas redraws. Edit the canvas, the code updates." },
-  { icon: IconLogoGithub, title: "Open source", body: "Free to use, and built in the open on GitHub." },
-];
 
 const HERO_FILES = ["agent/agent.ts", "agent/channels/slack.ts", "agent/tools/search_docs.ts"];
 
@@ -73,11 +74,26 @@ const WORKS_WITH: BrandId[] = ["slack", "discord", "teams", "github", "linear", 
 
 const INTEGRATIONS: BrandId[] = ["slack", "discord", "teams", "telegram", "twilio", "github", "linear", "notion"];
 
-const TOUR_POINTS = [
-  { icon: IconRoute, title: "A canvas from your files", body: "Every card on it is a file in the project." },
-  { icon: IconCodeBracket, title: "Monaco for every file", body: "Edit the code and the canvas redraws." },
-  { icon: IconGitBranch, title: "GitHub, both ways", body: "Commit, push and pull without leaving." },
-  { icon: IconDownload, title: "A zip that runs", body: "Unzip it, then npm install and eve dev." },
+/** Plain questions a first visitor asks, answered in a sentence or two. The same text feeds the FAQ structured data. */
+const FAQ = [
+  {
+    question: "What is Eve?",
+    answer:
+      "Eve is a framework for building AI agents in TypeScript. An Eve agent is a folder of plain files: instructions, tools, skills, connections and channels.",
+  },
+  {
+    question: "Do I need evelab to run my agent?",
+    answer:
+      "No. evelab writes a normal Eve project. Run it with eve dev, deploy it like any other Eve agent, and keep editing it in any code editor.",
+  },
+  {
+    question: "Can I open an agent I already have?",
+    answer: "Yes. Import any Eve repository from GitHub and evelab draws the canvas from its files.",
+  },
+  {
+    question: "Is evelab free?",
+    answer: "Yes. evelab is free to use and open source. The code is on GitHub.",
+  },
 ];
 
 /** The hero's picture: a window onto the canvas with the agent drawn in it, and the files it writes along the bottom. */
@@ -205,9 +221,9 @@ export default async function LandingPage() {
       </a>
 
       <header className="lp-header">
-        <Link className="lp-brand" href="/" aria-label="EveLab home">
+        <Link className="lp-brand" href="/" aria-label="evelab home">
           <Mark />
-          EveLab
+          evelab
         </Link>
         <nav className="lp-nav" aria-label="Sections">
           <a href="#demo">Tour</a>
@@ -220,6 +236,17 @@ export default async function LandingPage() {
         </nav>
         <div className="lp-header-actions">
           <ThemeToggle />
+          <LandingMenu
+            repository={REPO}
+            links={[
+              { label: "Tour", href: "#demo" },
+              { label: "Features", href: "#features" },
+              { label: "Integrations", href: "#integrations" },
+              { label: "Questions", href: "#faq" },
+              { label: "Templates", href: "/templates" },
+              { label: "Docs", href: "https://eve.dev/docs", external: true },
+            ]}
+          />
           <Button asChild variant="outline" size="sm" className="lp-header-link max-[760px]:hidden">
             <a href={REPO} target="_blank" rel="noreferrer">
               <Icon icon={IconLogoGithub} size={14} />
@@ -252,7 +279,7 @@ export default async function LandingPage() {
           <div className="lp-hero-copy">
             <a className="lp-kicker" href={REPO} target="_blank" rel="noreferrer">
               <i aria-hidden="true" />
-              Open source visual IDE for eve
+              Free and open source
               <Icon icon={IconChevronRight} size={12} />
             </a>
             <h1 className="lp-display" id="hero-title">
@@ -261,8 +288,8 @@ export default async function LandingPage() {
               Get real code.
             </h1>
             <p className="lp-hero-lede">
-              An open source canvas for Eve agents. Every piece you drop in is written as a real file you can run with
-              eve dev.
+              evelab is the visual IDE for AI agents. Design your agent on a canvas, plug in tools and channels, and ship
+              real TypeScript you own.
             </p>
             <div className="lp-actions">
               {start(account ? "Open your projects" : "Start building", account ? "/projects" : "/projects/new")}
@@ -278,7 +305,10 @@ export default async function LandingPage() {
           <HeroStage />
         </section>
 
-        <section className="lp-logos" aria-label="Services an agent can connect to">
+        <section className="lp-logos" aria-labelledby="logos-title">
+          <p className="lp-logos-title" id="logos-title">
+            Connect your agent to the apps your team already uses
+          </p>
           <ul>
             {WORKS_WITH.map((brand) => (
               <li key={brand}>
@@ -290,37 +320,27 @@ export default async function LandingPage() {
         </section>
 
         <section className="lp-section" id="demo" aria-labelledby="demo-title">
-          <div className="lp-section-split">
+          <InView className="lp-section-split">
             <h2 className="lp-heading" id="demo-title">
-              Watch an agent
-              <br />
-              take shape
+              See it in action
             </h2>
-            <p className="lp-section-lede">A short loop of EveLab at work: draw the agent, read the code it writes, then take it with you.</p>
-          </div>
-          <div className="lp-demo">
+            <p className="lp-section-lede">Build an agent, read the code it writes, then take it with you. It all happens in one place.</p>
+          </InView>
+          <InView className="lp-demo" delay={0.08}>
             <LandingTour />
-            <ul className="lp-points">
-              {TOUR_POINTS.map((point) => (
-                <li key={point.title}>
-                  <Icon icon={point.icon} size={16} />
-                  <h3 className="lp-point-title">{point.title}</h3>
-                  <p className="lp-point-body">{point.body}</p>
-                </li>
-              ))}
-            </ul>
-          </div>
+          </InView>
         </section>
 
         <section className="lp-section" id="how" aria-labelledby="how-title">
-          <div className="lp-section-split">
+          <InView className="lp-section-split">
             <h2 className="lp-heading" id="how-title">
-              From idea to a running
+              From idea to a working
               <br />
               agent in three steps
             </h2>
-            <p className="lp-section-lede">Start or import, draw it, take the code.</p>
-          </div>
+            <p className="lp-section-lede">No setup to learn. If you can sketch it, you can build it.</p>
+          </InView>
+          <InView delay={0.08}>
           <ol className="lp-steps">
             <li className="lp-step">
               <div className="lp-step-visual" aria-hidden="true">
@@ -342,7 +362,7 @@ export default async function LandingPage() {
               <div className="lp-step-text">
                 <span className="lp-step-number">01</span>
                 <h3 className="lp-card-title">Start or import</h3>
-                <p className="lp-card-body">Create a new agent, or import an Eve repo from GitHub.</p>
+                <p className="lp-card-body">Name a new agent and pick a model, or import one from GitHub.</p>
               </div>
             </li>
             <li className="lp-step">
@@ -358,8 +378,8 @@ export default async function LandingPage() {
               </div>
               <div className="lp-step-text">
                 <span className="lp-step-number">02</span>
-                <h3 className="lp-card-title">Draw the architecture</h3>
-                <p className="lp-card-body">Drag pieces onto agents. Every card is a file.</p>
+                <h3 className="lp-card-title">Add what it needs</h3>
+                <p className="lp-card-body">Drag tools, skills and channels onto your agent. Each one becomes a file.</p>
               </div>
             </li>
             <li className="lp-step">
@@ -375,23 +395,25 @@ export default async function LandingPage() {
               </div>
               <div className="lp-step-text">
                 <span className="lp-step-number">03</span>
-                <h3 className="lp-card-title">Take the code</h3>
-                <p className="lp-card-body">Download a zip or push to GitHub. Run it with eve dev.</p>
+                <h3 className="lp-card-title">Run it anywhere</h3>
+                <p className="lp-card-body">Download a zip or push to GitHub, then start it with eve dev.</p>
               </div>
             </li>
           </ol>
+          </InView>
         </section>
 
         <section className="lp-section" id="features" aria-labelledby="features-title">
-          <div className="lp-section-split">
+          <InView className="lp-section-split">
             <h2 className="lp-heading" id="features-title">
               Build agents the way
               <br />
               you picture them
             </h2>
-            <p className="lp-section-lede">Everything an Eve agent needs, on one canvas.</p>
-          </div>
+            <p className="lp-section-lede">The canvas and the code stay in sync. Change one and the other follows.</p>
+          </InView>
 
+          <InView delay={0.08}>
           <ul className="lp-bento">
             <li className="lp-feature-card">
               <div className="lp-feature-visual" aria-hidden="true">
@@ -410,8 +432,8 @@ export default async function LandingPage() {
                 </div>
               </div>
               <div className="lp-feature-text">
-                <h3 className="lp-card-title">Drag pieces onto agents</h3>
-                <p className="lp-card-body">Drop a piece on an agent. Its file is written for you.</p>
+                <h3 className="lp-card-title">Drag and drop</h3>
+                <p className="lp-card-body">Drop a piece on an agent and evelab writes its file.</p>
               </div>
             </li>
 
@@ -439,8 +461,8 @@ export default async function LandingPage() {
                 </div>
               </div>
               <div className="lp-feature-text">
-                <h3 className="lp-card-title">Share what agents need</h3>
-                <p className="lp-card-body">One tool or skill can serve many agents.</p>
+                <h3 className="lp-card-title">Share pieces</h3>
+                <p className="lp-card-body">Write a tool or skill once and give it to as many agents as you like.</p>
               </div>
             </li>
 
@@ -473,8 +495,8 @@ export default async function LandingPage() {
                 </div>
               </div>
               <div className="lp-feature-text">
-                <h3 className="lp-card-title">Discover MCP tools</h3>
-                <p className="lp-card-body">Paste an MCP URL and pick the tools to allow.</p>
+                <h3 className="lp-card-title">Plug in MCP servers</h3>
+                <p className="lp-card-body">Paste a server URL, see its tools, and choose which ones your agent can use.</p>
               </div>
             </li>
 
@@ -515,32 +537,24 @@ export default async function LandingPage() {
               </div>
               <div className="lp-feature-text">
                 <h3 className="lp-card-title">Lay it out your way</h3>
-                <p className="lp-card-body">Hierarchy, horizontal or freeform, with notes.</p>
+                <p className="lp-card-body">Arrange the canvas as a tree, a row or freely, and leave notes for your team.</p>
               </div>
             </li>
           </ul>
-
-          <ul className="lp-principles">
-            {PRINCIPLES.map((principle) => (
-              <li key={principle.title}>
-                <Icon icon={principle.icon} size={18} />
-                <h3 className="lp-card-title">{principle.title}</h3>
-                <p className="lp-card-body">{principle.body}</p>
-              </li>
-            ))}
-          </ul>
+          </InView>
         </section>
 
         <section className="lp-section" id="integrations" aria-labelledby="integrations-title">
-          <div className="lp-section-split">
+          <InView className="lp-section-split">
             <h2 className="lp-heading" id="integrations-title">
-              Reach people where
+              Meet people where
               <br />
-              they already are
+              they already talk
             </h2>
-            <p className="lp-section-lede">Channels and services from eve&apos;s registry, written the way eve add writes them.</p>
-          </div>
+            <p className="lp-section-lede">Put your agent in Slack, Discord, Teams and more. Every integration is wired up and ready to run.</p>
+          </InView>
 
+          <InView delay={0.08}>
           <ul className="lp-int-grid">
             {INTEGRATIONS.map((brand) => (
               <li key={brand} className="lp-int-card">
@@ -555,103 +569,37 @@ export default async function LandingPage() {
               </li>
             ))}
           </ul>
+          </InView>
           <a className="lp-more" href="https://eve.dev/integrations" target="_blank" rel="noreferrer">
-            Every integration on eve.dev
+            See every integration on eve.dev
             <Icon icon={IconArrowUpRight} size={14} />
           </a>
         </section>
 
-        <section className="lp-section" id="export" aria-labelledby="export-title">
-          <div className="lp-section-split">
-            <h2 className="lp-heading" id="export-title">
-              Your code,
-              <br />
-              ready to ship
+        <section className="lp-section" id="faq" aria-labelledby="faq-title">
+          <InView className="lp-faq">
+            <h2 className="lp-heading" id="faq-title">
+              Questions
             </h2>
-            <p className="lp-section-lede">No lock-in. Take your project anytime.</p>
-          </div>
-
-          <ul className="lp-bento lp-bento-3">
-            <li className="lp-feature-card">
-              <div className="lp-feature-visual" aria-hidden="true">
-                <div className="lp-fx-zip">
-                  <span className="lp-fx-zip-head">
-                    <Icon icon={IconDownload} size={14} />
-                    support-desk.zip
-                    <span>12 files</span>
-                  </span>
-                  <ul>
-                    <li>agent/agent.ts</li>
-                    <li>agent/instructions.md</li>
-                    <li>agent/tools/search_docs.ts</li>
-                    <li>agent/connections/github.ts</li>
-                    <li>package.json</li>
-                  </ul>
-                </div>
-              </div>
-              <div className="lp-feature-text">
-                <h3 className="lp-card-title">Download a zip</h3>
-                <p className="lp-card-body">All files, ready for npm install and eve dev.</p>
-              </div>
-            </li>
-
-            <li className="lp-feature-card">
-              <div className="lp-feature-visual" aria-hidden="true">
-                <div className="lp-fx-commit">
-                  <span className="lp-fx-commit-repo">
-                    <Icon icon={IconLogoGithub} size={14} />
-                    you/support-desk
-                    <span className="lp-fx-branch">
-                      <Icon icon={IconGitBranch} size={12} />
-                      main
-                    </span>
-                  </span>
-                  <span className="lp-fx-commit-row">
-                    <span>Add search_docs tool and github connection</span>
-                    <code>a1c9e2f</code>
-                  </span>
-                  <span className="lp-fx-commit-done">
-                    <Icon icon={IconCheck} size={13} />
-                    Pushed 3 changed files
-                  </span>
-                </div>
-              </div>
-              <div className="lp-feature-text">
-                <h3 className="lp-card-title">Push to GitHub</h3>
-                <p className="lp-card-body">Commit to a new or existing repo.</p>
-              </div>
-            </li>
-
-            <li className="lp-feature-card">
-              <div className="lp-feature-visual" aria-hidden="true">
-                <div className="lp-fx-pull">
-                  <span className="lp-fx-pull-step">
-                    <Icon icon={IconLogoGithub} size={14} />
-                    Edited on GitHub
-                  </span>
-                  <span className="lp-fx-pull-arrow">
-                    <Icon icon={IconArrowDown} size={14} />
-                    Pull
-                  </span>
-                  <span className="lp-fx-pull-step" data-done="">
-                    <Icon icon={IconCheck} size={14} />
-                    Canvas redrawn from the files
-                  </span>
-                </div>
-              </div>
-              <div className="lp-feature-text">
-                <h3 className="lp-card-title">Pull changes back</h3>
-                <p className="lp-card-body">Edited elsewhere? Pull, and the canvas redraws.</p>
-              </div>
-            </li>
-          </ul>
+            <div className="lp-faq-list">
+              {FAQ.map((item) => (
+                <details key={item.question} className="lp-faq-item">
+                  <summary>
+                    {item.question}
+                    <Icon icon={IconChevronDown} size={16} />
+                  </summary>
+                  <p>{item.answer}</p>
+                </details>
+              ))}
+            </div>
+          </InView>
         </section>
 
         <section className="lp-cta" aria-labelledby="cta-title">
           <h2 className="lp-display lp-display-small" id="cta-title">
-            Draw your first agent
+            Build your first agent
           </h2>
-          <p className="lp-lede">Free and open source. Your code stays yours.</p>
+          <p className="lp-lede">It is free, it is open source, and the code is yours to keep.</p>
           <div className="lp-actions">
             {start(account ? "Open your projects" : "Get started", account ? "/projects" : "/projects/new")}
             <Button asChild variant="outline" size="lg" className="h-11 rounded-full px-6 text-[15px]">
@@ -668,7 +616,7 @@ export default async function LandingPage() {
         <div className="lp-footer-brand">
           <span className="lp-brand">
             <Mark />
-            EveLab
+            evelab
           </span>
           <p>The open source visual IDE for Eve agents.</p>
           <a className="lp-credit" href="https://eve.dev" target="_blank" rel="noreferrer">
@@ -681,7 +629,7 @@ export default async function LandingPage() {
           <a href="#how">How it works</a>
           <a href="#features">Features</a>
           <a href="#integrations">Integrations</a>
-          <a href="#export">Export</a>
+          <a href="#faq">Questions</a>
           <Link href="/templates">Templates</Link>
         </nav>
         <nav className="lp-footer-links" aria-label="Resources">
