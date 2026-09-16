@@ -29,7 +29,7 @@ export function ConnectRepository({
   const [branch, setBranch] = useState("");
   const [name, setName] = useState(suggestedName);
   const [isPrivate, setIsPrivate] = useState(true);
-  const [message, setMessage] = useState("Initial commit from EveLab");
+  const [message, setMessage] = useState("Initial commit from evelab");
   const [busy, setBusy] = useState<"connect" | "create" | undefined>();
   const [error, setError] = useState<{ form: "connect" | "create"; text: string } | undefined>();
 

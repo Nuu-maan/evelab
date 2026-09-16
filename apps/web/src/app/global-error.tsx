@@ -9,7 +9,7 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
       <body>
         <main style={{ display: "grid", placeItems: "center", minHeight: "100vh", padding: 24, textAlign: "center" }}>
           <div style={{ display: "grid", gap: 12, justifyItems: "center" }}>
-            <h1 style={{ fontSize: 24, fontWeight: 500 }}>EveLab could not load</h1>
+            <h1 style={{ fontSize: 24, fontWeight: 500 }}>evelab could not load</h1>
             <p style={{ color: "var(--foreground-secondary)", maxWidth: "48ch" }}>
               Your project files are unchanged. Reload to try again.
             </p>

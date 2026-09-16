@@ -32,7 +32,7 @@ export default async function SourcePage({ params }: { params: Promise<{ id: str
         {header}
         <EmptyState icon={IconLogoGithub} title="GitHub is not configured.">
           Set GITHUB_TOKEN to a token with read and write access to repository contents, then restart
-          EveLab. The token is read on the server only and never stored.
+          evelab. The token is read on the server only and never stored.
         </EmptyState>
       </div>
     );

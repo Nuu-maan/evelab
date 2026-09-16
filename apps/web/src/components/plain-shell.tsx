@@ -21,7 +21,7 @@ export async function PlainShell({ children }: { children: React.ReactNode }) {
       <header className="topbar">
         <Link className="topbar-brand" href="/projects">
           <Mark />
-          EveLab
+          evelab
         </Link>
         <div className="topbar-actions">
           <ThemeToggle />

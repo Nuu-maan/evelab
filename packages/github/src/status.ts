@@ -11,7 +11,7 @@ export interface SyncedFile {
 }
 
 /**
- * The last state EveLab and GitHub agreed on: a commit and the text files in it.
+ * The last state evelab and GitHub agreed on: a commit and the text files in it.
  * Local edits are measured against this, and a pull merges against it.
  */
 export interface SyncBase {
@@ -32,7 +32,7 @@ export interface GitStatus {
   changes: FileChange[];
   /** The branch's current commit on GitHub, when it could be read. */
   remoteHead?: string;
-  /** True when GitHub has commits EveLab has not pulled. */
+  /** True when GitHub has commits evelab has not pulled. */
   remoteMoved: boolean;
 }
 

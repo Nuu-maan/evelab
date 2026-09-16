@@ -8,7 +8,7 @@ import { stateStore } from "@/lib/state-store";
 /**
  * Deployment is `eve deploy`, the same command a developer runs: it installs
  * dependencies, runs `vercel deploy --prod`, and Vercel provisions Workflow,
- * Sandbox, Cron and AI Gateway access for the agent. EveLab only starts it,
+ * Sandbox, Cron and AI Gateway access for the agent. evelab only starts it,
  * keeps the log, and records the result beside the workspace.
  */
 
@@ -90,7 +90,7 @@ export function deployAvailability(): { ok: true } | { ok: false; reason: string
   if (process.env.VERCEL_TOKEN || process.env.EVELAB_EVE_BIN) return { ok: true };
   return {
     ok: false,
-    reason: "Set VERCEL_TOKEN on the EveLab server. eve deploy runs non-interactively, so it cannot open a browser to sign in.",
+    reason: "Set VERCEL_TOKEN on the evelab server. eve deploy runs non-interactively, so it cannot open a browser to sign in.",
   };
 }
 

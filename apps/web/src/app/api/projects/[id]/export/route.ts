@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 /**
  * The project as a zip of its real files, inside a folder named after it, ready
  * to unpack and run with `eve dev`. Dependencies, build output and Git internals
- * stay out, as they do everywhere else EveLab reads a project.
+ * stay out, as they do everywhere else evelab reads a project.
  */
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

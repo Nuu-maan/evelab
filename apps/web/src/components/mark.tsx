@@ -1,5 +1,5 @@
 /**
- * The EveLab mark: a solid diamond, the node you place on the canvas. One shape,
+ * The evelab mark: a solid diamond, the node you place on the canvas. One shape,
  * like Vercel's triangle, so it stays sharp at any size.
  */
 export const MARK_VIEWBOX = "0 0 20 20";

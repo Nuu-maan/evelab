@@ -523,7 +523,7 @@ function Wiring({ graph, node }: InspectorProps & { node: CanvasNode }) {
         </pre>
       ) : (
         <p className="insp-note">
-          Defined in its agent&apos;s folder. Attach it to a second agent and EveLab moves the definition to{" "}
+          Defined in its agent&apos;s folder. Attach it to a second agent and evelab moves the definition to{" "}
           <code className="mono">lib/{slot}/</code>, leaving each agent a one-line re-export instead of a copy.
         </p>
       )}

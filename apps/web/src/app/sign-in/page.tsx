@@ -23,9 +23,9 @@ export default async function SignInPage() {
       <Card className="w-full max-w-sm">
         <CardHeader>
           <Mark />
-          <CardTitle className="mt-3 text-lg">Sign in to EveLab</CardTitle>
+          <CardTitle className="mt-3 text-lg">Sign in to evelab</CardTitle>
           <CardDescription>
-            Your projects are private to your account. EveLab reads your GitHub name and email to
+            Your projects are private to your account. evelab reads your GitHub name and email to
             create it and never asks for repository access here.
           </CardDescription>
         </CardHeader>

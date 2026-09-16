@@ -4,8 +4,8 @@ import { sessionStatus, type EveEvent, type SessionStatus } from "@/lib/run-time
 import { stateStore } from "@/lib/state-store";
 
 /**
- * A record of every session started from EveLab, so a run can be inspected
- * after the dev server stops. Like canvas layouts this is EveLab's own state,
+ * A record of every session started from evelab, so a run can be inspected
+ * after the dev server stops. Like canvas layouts this is evelab's own state,
  * kept beside the workspace and never inside a project. Events are stored as
  * eve emitted them, keyed by `meta.id` so re-reading a stream adds nothing.
  */

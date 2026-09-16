@@ -24,7 +24,7 @@ describe("round trip", () => {
     });
   }
 
-  it("passes through every file EveLab does not model", () => {
+  it("passes through every file evelab does not model", () => {
     const files = loadFixture("full-agent");
     const generated = new Map(generateProject(parseProject(files).project).map((file) => [file.path, file.content]));
     for (const path of ["package.json", "README.md", "agent/lib/format.ts", "agent/hooks/audit.ts", "evals/smoke.eval.ts"]) {

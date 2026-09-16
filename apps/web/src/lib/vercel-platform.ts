@@ -1,7 +1,7 @@
 /**
- * Which Vercel products EveLab can use right now, read from the environment.
+ * Which Vercel products evelab can use right now, read from the environment.
  *
- * EveLab is built to run on Vercel: agents run in Vercel Sandbox, long work runs
+ * evelab is built to run on Vercel: agents run in Vercel Sandbox, long work runs
  * in Vercel Workflow, model calls go through AI Gateway, files live in Vercel
  * Blob, and external services connect through Vercel Connect. Every one of them
  * has a local fallback, so the app works before anything is configured; this
@@ -18,10 +18,10 @@ export type PlatformProductId = "ai-gateway" | "sandbox" | "workflow" | "blob" |
 export interface PlatformProduct {
   id: PlatformProductId;
   name: string;
-  /** What EveLab uses it for, in one sentence. */
+  /** What evelab uses it for, in one sentence. */
   role: string;
   configured: boolean;
-  /** What EveLab does instead while it is not configured. */
+  /** What evelab does instead while it is not configured. */
   fallback: string;
   /** The variables that turn it on. */
   env: string[];
@@ -52,16 +52,16 @@ export function platformProducts(env: PlatformEnv): PlatformProduct[] {
     {
       id: "sandbox",
       name: "Vercel Sandbox",
-      role: "Runs each agent's dev server in an isolated microVM, so project code never runs on the EveLab server.",
+      role: "Runs each agent's dev server in an isolated microVM, so project code never runs on the evelab server.",
       configured: Boolean(sandboxCredentials(env)),
-      fallback: "Runs eve dev on this machine, which is only allowed when EveLab is a single-user local tool.",
+      fallback: "Runs eve dev on this machine, which is only allowed when evelab is a single-user local tool.",
       env: ["VERCEL_OIDC_TOKEN", "or VERCEL_TOKEN, VERCEL_TEAM_ID, VERCEL_PROJECT_ID"],
       docs: "https://vercel.com/docs/vercel-sandbox",
     },
     {
       id: "ai-gateway",
       name: "AI Gateway",
-      role: "Model calls for your agents and for EveLab's assistant, with one key for every provider.",
+      role: "Model calls for your agents and for evelab's assistant, with one key for every provider.",
       configured: Boolean(env.AI_GATEWAY_API_KEY) || oidc,
       fallback: "The model catalog still loads, but runs and the assistant cannot call a model.",
       env: ["AI_GATEWAY_API_KEY", "or VERCEL_OIDC_TOKEN"],
@@ -73,7 +73,7 @@ export function platformProducts(env: PlatformEnv): PlatformProduct[] {
       role: "Deploys and other long tasks run as durable workflows that survive restarts and retry failed steps.",
       configured: onVercel || env.WORKFLOW_TARGET_WORLD === "vercel",
       fallback: "Workflows run on the local world, stored on disk beside the workspace.",
-      env: ["Deploy EveLab to Vercel", "or WORKFLOW_TARGET_WORLD=vercel"],
+      env: ["Deploy evelab to Vercel", "or WORKFLOW_TARGET_WORLD=vercel"],
       docs: "https://vercel.com/docs/workflow",
     },
     {
@@ -90,7 +90,7 @@ export function platformProducts(env: PlatformEnv): PlatformProduct[] {
       name: "Vercel Connect",
       role: "Holds OAuth and API credentials for connections and channels, so no secret is written to a project.",
       configured: oidc || Boolean(env.VERCEL_TOKEN),
-      fallback: "Connector names are written into files, but EveLab cannot list or create connectors for you.",
+      fallback: "Connector names are written into files, but evelab cannot list or create connectors for you.",
       env: ["VERCEL_OIDC_TOKEN", "or VERCEL_TOKEN"],
       docs: "https://vercel.com/kb/guide/vercel-connect",
     },
@@ -106,9 +106,9 @@ export function platformProducts(env: PlatformEnv): PlatformProduct[] {
     {
       id: "observability",
       name: "Observability",
-      role: "Runtime logs, traces and the Agent Runs view for deployed agents, next to EveLab's own run history.",
+      role: "Runtime logs, traces and the Agent Runs view for deployed agents, next to evelab's own run history.",
       configured: onVercel || Boolean(env.VERCEL_TOKEN),
-      fallback: "Run history and usage come from runs recorded by EveLab.",
+      fallback: "Run history and usage come from runs recorded by evelab.",
       env: ["VERCEL_TOKEN"],
       docs: "https://vercel.com/docs/observability",
     },

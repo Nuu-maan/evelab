@@ -41,7 +41,7 @@ export default async function ImportPage({ searchParams }: { searchParams: Promi
               <div className="page-heading">
                 <h1 className="page-title">Import from GitHub</h1>
                 <p className="page-description">
-                  Open an existing Eve project. EveLab reads it without running anything, shows you
+                  Open an existing Eve project. evelab reads it without running anything, shows you
                   what it found, and stays connected so you can commit and pull.
                 </p>
               </div>
@@ -61,7 +61,7 @@ export default async function ImportPage({ searchParams }: { searchParams: Promi
               <ImportRepository repositories={repositories} listError={listError} initialRepository={initialRepository} />
             ) : (
               <EmptyState icon={IconLogoGithub} title="GitHub is not configured.">
-                Set GITHUB_TOKEN to a token that can read the repository, then restart EveLab. The token
+                Set GITHUB_TOKEN to a token that can read the repository, then restart evelab. The token
                 is read on the server only and never stored.
               </EmptyState>
             )}

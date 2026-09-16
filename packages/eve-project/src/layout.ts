@@ -3,7 +3,7 @@ import type { AgentRoot } from "./types";
 /**
  * Eve discovers an agent by walking fixed slots. The recommended layout keeps
  * them under `agent/`; the flat layout puts them at the package root. Both are
- * valid Eve projects, so EveLab detects which one it was given and writes back
+ * valid Eve projects, so evelab detects which one it was given and writes back
  * to the same place.
  */
 

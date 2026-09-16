@@ -36,7 +36,7 @@ export default async function ModelPage({ params }: { params: Promise<{ id: stri
       <div className="settings-stack">
         <SettingCard
           title="Model"
-          description="This agent builds its model in code, so EveLab shows it and leaves it alone."
+          description="This agent builds its model in code, so evelab shows it and leaves it alone."
           footer={
             <>
               Defined in <code className="mono">{configPath}</code>.

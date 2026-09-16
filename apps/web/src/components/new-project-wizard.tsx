@@ -402,7 +402,7 @@ export function NewProjectWizard({ models, defaultModel }: { models: GatewayMode
                         {provider === "ai-gateway-key" && (
                           <>
                             Add <code className="mono">AI_GATEWAY_API_KEY</code> to <code className="mono">.env.local</code> and to
-                            the deployment&apos;s environment. EveLab never stores the key.
+                            the deployment&apos;s environment. evelab never stores the key.
                           </>
                         )}
                         {provider === "chatgpt" &&
@@ -410,7 +410,7 @@ export function NewProjectWizard({ models, defaultModel }: { models: GatewayMode
                         {provider === "external" && (
                           <>
                             Set <code className="mono">{DIRECT[direct].env}</code> in <code className="mono">.env.local</code> and on
-                            the deployment. EveLab adds <code className="mono">{DIRECT[direct].pkg}</code> to package.json.
+                            the deployment. evelab adds <code className="mono">{DIRECT[direct].pkg}</code> to package.json.
                           </>
                         )}
                       </p>

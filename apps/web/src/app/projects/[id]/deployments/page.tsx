@@ -47,7 +47,7 @@ export default function DeploymentsPage() {
 //             <CardHeader>
 //               <CardTitle>Vercel project</CardTitle>
 //               <CardDescription>
-//                 eve deploy links this project first, creating it if it does not exist. Stored with EveLab, not in the
+//                 eve deploy links this project first, creating it if it does not exist. Stored with evelab, not in the
 //                 project.
 //               </CardDescription>
 //             </CardHeader>
@@ -86,7 +86,7 @@ export default function DeploymentsPage() {
 //           <Card>
 //             <CardHeader>
 //               <CardTitle>Before the first deploy</CardTitle>
-//               <CardDescription>Set these in the Vercel project&apos;s environment variables. EveLab never sees the values.</CardDescription>
+//               <CardDescription>Set these in the Vercel project&apos;s environment variables. evelab never sees the values.</CardDescription>
 //             </CardHeader>
 //             <CardContent className="section">
 //               {env.length > 0 && (

@@ -1,12 +1,12 @@
 import { z } from "zod";
 
 /**
- * The EveLab project model.
+ * The evelab project model.
  *
  * This is NOT a replacement for Eve's own representation. It is a lossless view
  * of a real Eve project (https://eve.dev/docs/getting-started#project-layout),
  * used to translate between GUI state and files on disk. Every entity keeps the
- * verbatim source of the file that defines it, and anything EveLab does not
+ * verbatim source of the file that defines it, and anything evelab does not
  * model is carried through untouched, so a round trip never drops information.
  */
 
@@ -163,7 +163,7 @@ export interface Subagent {
   model?: ModelConfig;
   reasoning?: Reasoning;
   raw: Record<string, string>;
-  /** agent.ts of a local subagent, or the remote agent module. Empty for one EveLab has not written yet. */
+  /** agent.ts of a local subagent, or the remote agent module. Empty for one evelab has not written yet. */
   source: string;
   instructions: string;
   hasInstructions: boolean;
@@ -212,25 +212,25 @@ export const memorySlotSchema = z.object({
 export type MemorySlot = z.infer<typeof memorySlotSchema>;
 
 export const agentConfigSchema = z.object({
-  /** The root agent's name: package.json `name`, or the directory name. Eve derives it; EveLab only shows it. */
+  /** The root agent's name: package.json `name`, or the directory name. Eve derives it; evelab only shows it. */
   name: z.string().min(1),
   /** Whether `agent.ts` exists. Without it Eve uses its default model. */
   hasConfig: z.boolean(),
   model: modelConfigSchema.optional(),
   reasoning: reasoningSchema.optional(),
   description: z.string().optional(),
-  /** Config keys EveLab has no control for, mapped to their verbatim source text. */
+  /** Config keys evelab has no control for, mapped to their verbatim source text. */
   raw: z.record(z.string()).default({}),
   /** Verbatim agent.ts, kept so edits patch it rather than regenerate it. */
   source: z.string().default(""),
-  /** Contents of the markdown instructions EveLab edits, at `instructionsPath`. */
+  /** Contents of the markdown instructions evelab edits, at `instructionsPath`. */
   instructions: z.string().default(""),
   /**
-   * Repository path of the markdown instructions EveLab edits: the root instructions.md when there
+   * Repository path of the markdown instructions evelab edits: the root instructions.md when there
    * is one, otherwise the first markdown entry of instructions/. Empty means the root instructions.md.
    */
   instructionsPath: z.string().default(""),
-  /** Other instruction sources EveLab shows but does not edit: instructions.ts and the other instructions/ entries. */
+  /** Other instruction sources evelab shows but does not edit: instructions.ts and the other instructions/ entries. */
   instructionSources: z.array(z.string()).default([]),
 });
 export type AgentConfig = z.infer<typeof agentConfigSchema>;
@@ -265,7 +265,7 @@ export const eveProjectSchema = z.object({
   sandbox: z.string().optional(),
   library: librarySchema.default({ tools: [], skills: [], connections: [] }),
   /**
-   * Every file of the source project, including ones EveLab does not interpret
+   * Every file of the source project, including ones evelab does not interpret
    * (package.json, lib/, hooks/, sandbox/, evals/, lockfiles). Generation
    * re-emits these untouched, which keeps import, edit and export non-destructive.
    */

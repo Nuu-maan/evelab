@@ -3,7 +3,7 @@ import { CHAT_SDK_ADAPTERS, CHAT_SDK_STATES, type ProjectFile } from "@evelab/ev
 /**
  * Environment variables a project's source reads, so the Deployments page can
  * say what the Vercel project needs before a deploy fails at run time. Only
- * names are collected; values never pass through EveLab.
+ * names are collected; values never pass through evelab.
  */
 
 const READ = /process\.env\.([A-Z_][A-Z0-9_]*)|process\.env\[\s*["']([A-Z_][A-Z0-9_]*)["']\s*\]/g;

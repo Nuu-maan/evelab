@@ -5,7 +5,7 @@ import { expect, test } from "@playwright/test";
 /**
  * Runs against `eve dev`. The suite's EVELAB_EVE_BIN is e2e/fake-eve.mjs, which
  * serves eve's session API and streams events in eve's format, so this covers
- * EveLab's process management, proxying, recording and timeline without a model.
+ * evelab's process management, proxying, recording and timeline without a model.
  */
 
 const WORKSPACE = process.env.E2E_WORKSPACE ?? "/tmp/evelab-e2e/workspace";

@@ -58,7 +58,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
       <Card className="border-destructive/30">
         <CardHeader>
           <CardTitle>Delete project</CardTitle>
-          <CardDescription>Deletes the project and all its files from EveLab. There is no undo.</CardDescription>
+          <CardDescription>Deletes the project and all its files from evelab. There is no undo.</CardDescription>
         </CardHeader>
         <CardFooter className="justify-end">
           <form action={deleteProjectAction}>

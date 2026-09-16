@@ -73,7 +73,7 @@ function ToolCard({ part, projectId }: { part: ToolPart; projectId: string }) {
 
 /**
  * A side panel that builds the agent with you. Every change it makes goes
- * through the same file operations as the rest of EveLab, and each one shows up
+ * through the same file operations as the rest of evelab, and each one shows up
  * as a card that links to the file it wrote. The launcher decides when it is
  * open, and loads this module the first time it is.
  */
@@ -158,7 +158,7 @@ export function AssistantPanel({
               <div className="assistant-empty">
                 <p className="assistant-empty-title">Connect AI Gateway to build with AI</p>
                 <p className="hint">
-                  The assistant calls models through Vercel AI Gateway. Set AI_GATEWAY_API_KEY on the EveLab server, or link
+                  The assistant calls models through Vercel AI Gateway. Set AI_GATEWAY_API_KEY on the evelab server, or link
                   the project to Vercel so its OIDC token is available.
                 </p>
                 <Button asChild variant="outline" size="sm">

@@ -82,7 +82,7 @@ function checkOwner(issues: ValidationIssue[], prefix: string, owner: Capability
       if (!subagent.description.trim() && subagent.raw.description === undefined) {
         issues.push({ level: "error", at: `${at}.description`, message: "A subagent needs a description." });
       }
-      // A subagent EveLab has not written yet gets a model when it is generated.
+      // A subagent evelab has not written yet gets a model when it is generated.
       if (subagent.source && !subagent.model?.id && !subagent.model?.expression && subagent.raw.model === undefined) {
         issues.push({ level: "error", at: `${at}.model`, message: "Eve requires a model in every subagent's agent.ts." });
       }

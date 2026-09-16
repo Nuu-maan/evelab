@@ -44,7 +44,7 @@ export default async function ToolsPage({ params }: { params: Promise<{ id: stri
             <h1 className="page-title">Tools</h1>
             <p className="page-description">
               What your agent can do. One file per tool under <code className="mono">{directory}</code>,
-              named after the file: EveLab scaffolds it, then the source is yours.
+              named after the file: evelab scaffolds it, then the source is yours.
             </p>
           </div>
           <div className="page-actions">

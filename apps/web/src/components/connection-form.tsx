@@ -34,7 +34,7 @@ function parseNames(value: string): string[] {
 
 /**
  * Writes an MCP or OpenAPI connection. Used on the canvas and on the
- * Connections page, so both write the same file. For an MCP server, EveLab can
+ * Connections page, so both write the same file. For an MCP server, evelab can
  * list its tools first, so the allow list is picked rather than typed.
  */
 export function ConnectionForm({
@@ -199,7 +199,7 @@ export function ConnectionForm({
           </Select>
           <FieldDescription>
             {auth === "connect"
-              ? "Vercel Connect holds the credential and signs each call. EveLab never sees it."
+              ? "Vercel Connect holds the credential and signs each call. evelab never sees it."
               : auth === "token"
                 ? "The token is read from the deployment's environment at run time."
                 : "For public servers."}
@@ -255,10 +255,10 @@ export function ConnectionForm({
             </div>
             <FieldDescription>
               {auth === "connect"
-                ? "Vercel Connect signs requests only when the agent runs, so EveLab cannot list this server's tools. Type their names below."
+                ? "Vercel Connect signs requests only when the agent runs, so evelab cannot list this server's tools. Type their names below."
                 : auth === "token"
                   ? "The token is used once to list tools and is never saved."
-                  : "EveLab asks the server for its tools. It never calls one."}
+                  : "evelab asks the server for its tools. It never calls one."}
             </FieldDescription>
 
             {discoverError && (

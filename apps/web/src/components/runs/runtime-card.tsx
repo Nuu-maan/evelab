@@ -102,7 +102,7 @@ export function RuntimeCard({
 
       <p className="hint">
         {!available
-          ? "This EveLab is shared. Connect Vercel Sandbox in Settings to run agents in isolation."
+          ? "This evelab is shared. Connect Vercel Sandbox in Settings to run agents in isolation."
           : live
             ? sandbox && minutesLeft !== undefined
               ? `Serving at ${runtime.url}. The sandbox stops in about ${minutesLeft} minutes.`

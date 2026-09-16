@@ -92,7 +92,7 @@ export function ChannelForm({
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
 
-  if (!choice) return <p className="hint">Every channel EveLab can write is already set up.</p>;
+  if (!choice) return <p className="hint">Every channel evelab can write is already set up.</p>;
   const adapter = choice.startsWith(CHAT_SDK) ? chatSdkAdapters.find((option) => `${CHAT_SDK}${option.id}` === choice) : undefined;
   const platform = adapter ? undefined : (choice as Platform);
   const info = platform ? PLATFORMS[platform] : undefined;
@@ -162,7 +162,7 @@ export function ChannelForm({
           {adapter ? (
             <FieldDescription>
               Vercel Chat SDK behind eve&apos;s chat-sdk channel, served at <code className="mono">/eve/v1/{adapter.id}</code>.
-              The same bot code works on every platform, and EveLab adds the adapter packages to package.json.
+              The same bot code works on every platform, and evelab adds the adapter packages to package.json.
             </FieldDescription>
           ) : (
             info?.setup && <FieldDescription>{info.setup}</FieldDescription>

@@ -94,7 +94,7 @@ test("an edit shows up as a change, and committing sends only that file", async 
     { path: "agent/instructions.md", mode: "100644", type: "blob", content: edited },
   ]);
   expect(github.fileAt(REPO, "main", "agent/instructions.md")).toBe(edited);
-  // A file EveLab never imported is untouched by the commit.
+  // A file evelab never imported is untouched by the commit.
   expect(github.pathsAt(REPO, "main")).toContain("logo.png");
   await expect(page.getByRole("link", { name: "Synced" })).toBeVisible();
 });

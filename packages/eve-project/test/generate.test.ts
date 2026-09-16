@@ -64,7 +64,7 @@ describe("generateProject", () => {
 
   it("scaffolds a project the way eve init does, and it round trips", () => {
     const files = renderProjectScaffold({ packageName: "demo-agent", model: "openai/gpt-5.6-luna-fast" });
-    // The same files eve init writes, apart from the README EveLab generates and what npm install and git init add.
+    // The same files eve init writes, apart from the README evelab generates and what npm install and git init add.
     expect(files.map((file) => file.path).sort()).toEqual([
       ".gitignore",
       ".vercelignore",

@@ -17,8 +17,8 @@ import { isIgnoredPath, projectRoot, readProjectFiles } from "@/lib/workspace";
  * Where it runs depends on what is configured. With Vercel credentials it runs
  * inside a Vercel Sandbox microVM: the project is uploaded, dependencies are
  * installed there, and the dev server is exposed on the sandbox's own domain.
- * Project code never touches the EveLab server, which is what makes runs safe
- * for a shared EveLab. Without credentials, a local, single-user EveLab runs it
+ * Project code never touches the evelab server, which is what makes runs safe
+ * for a shared evelab. Without credentials, a local, single-user evelab runs it
  * as a child process in the project directory with a scrubbed environment.
  */
 
@@ -65,7 +65,7 @@ const SANDBOX_TIMEOUT_MS = 45 * 60_000;
 const registry: Map<string, RuntimeEntry> = ((globalThis as { __evelabRuntimes?: Map<string, RuntimeEntry> }).__evelabRuntimes ??=
   new Map());
 
-/** Environment variables a child may see. Everything else EveLab holds stays in EveLab. */
+/** Environment variables a child may see. Everything else evelab holds stays in evelab. */
 const PASSED_ENV = ["PATH", "HOME", "USER", "LANG", "LC_ALL", "TERM", "TMPDIR", "SHELL", "NODE_OPTIONS", "AI_GATEWAY_API_KEY", "VERCEL_OIDC_TOKEN"];
 
 export function childEnv(extra: Record<string, string> = {}): NodeJS.ProcessEnv {
@@ -81,8 +81,8 @@ export function runtimeTarget(): RuntimeTarget {
 }
 
 /**
- * Running project code on the EveLab server is only acceptable when EveLab is a
- * local, single-user tool. A shared EveLab runs agents in Vercel Sandbox.
+ * Running project code on the evelab server is only acceptable when evelab is a
+ * local, single-user tool. A shared evelab runs agents in Vercel Sandbox.
  */
 export function localRuntimeAllowed(): boolean {
   return !isAuthEnabled() || process.env.EVELAB_ALLOW_LOCAL_RUNTIME === "1";
@@ -359,7 +359,7 @@ export async function startRuntime(projectId: string): Promise<RuntimeSnapshot> 
       status: "failed",
       target,
       steps: [],
-      message: "This EveLab is shared, so it does not run project code itself. Connect Vercel Sandbox to run agents in isolation.",
+      message: "This evelab is shared, so it does not run project code itself. Connect Vercel Sandbox to run agents in isolation.",
       log: [],
     };
   }
@@ -402,7 +402,7 @@ export function stopRuntime(projectId: string): RuntimeSnapshot {
   return snapshot(entry);
 }
 
-// A save in EveLab reaches a running sandbox the way it would reach a local
+// A save in evelab reaches a running sandbox the way it would reach a local
 // directory, so eve dev reloads on it. Local runtimes read the directory already.
 const syncRegistered = (globalThis as { __evelabRuntimeSync?: boolean }).__evelabRuntimeSync;
 if (!syncRegistered) {

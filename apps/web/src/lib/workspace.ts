@@ -23,7 +23,7 @@ import { ENV_EXAMPLE_PATH, ENV_MARKER, README_MARKER, README_PATH, renderEnvExam
  * Project storage.
  *
  * The canonical form of a project is a directory of real Eve files, so a user
- * can `cd` into it, run `eve dev`, and commit it without EveLab. That is how
+ * can `cd` into it, run `eve dev`, and commit it without evelab. That is how
  * projects live locally. A deployment whose disk cannot keep files, such as
  * Vercel Functions, keeps the same files as rows in Postgres instead; nothing
  * above this module can tell the difference.
@@ -70,7 +70,7 @@ export function storageMode(): "fs" | "database" {
 
 /** Where a project lives, as a person would look for it. */
 export function projectLocation(id: string): string {
-  return storageMode() === "database" ? `${id} in the EveLab database` : projectRoot(id);
+  return storageMode() === "database" ? `${id} in the evelab database` : projectRoot(id);
 }
 
 interface ProjectStorage {
@@ -547,7 +547,7 @@ export async function deleteProjectFile(id: string, path: string): Promise<void>
   emitProjectFilesChanged(id, [{ path }]);
 }
 
-/** True for paths EveLab never reads into a project: dependencies, build output, Git internals. */
+/** True for paths evelab never reads into a project: dependencies, build output, Git internals. */
 export function isIgnoredPath(path: string): boolean {
   return path.split("/").some((segment) => IGNORED.has(segment));
 }

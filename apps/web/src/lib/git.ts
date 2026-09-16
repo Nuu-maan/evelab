@@ -41,7 +41,7 @@ import {
 /**
  * The bridge between a workspace project and its GitHub repository.
  *
- * The sync record is EveLab's note of the last commit it agreed on with GitHub,
+ * The sync record is evelab's note of the last commit it agreed on with GitHub,
  * with the text of the files in that commit. It lives next to the workspace,
  * like canvas layouts, so the project directory stays exactly what is in Git.
  * Commits are created on GitHub directly, so committing is also pushing.
@@ -64,7 +64,7 @@ const gitStateSchema = z.object({
 
 type GitState = z.infer<typeof gitStateSchema>;
 
-/** The sync record's key in EveLab's state store: beside the workspace on disk, or in the database on Vercel. */
+/** The sync record's key in evelab's state store: beside the workspace on disk, or in the database on Vercel. */
 function stateKey(projectId: string): string {
   if (!ID_PATTERN.test(projectId)) throw new Error(`Invalid project id: ${projectId}`);
   return `git/${projectId}.json`;
@@ -97,7 +97,7 @@ export async function disconnectRepository(projectId: string): Promise<void> {
 }
 
 /**
- * How EveLab reaches GitHub, or undefined when it has not been configured.
+ * How evelab reaches GitHub, or undefined when it has not been configured.
  * A GitHub App wins when one is set up. With sign-in on, everyone else uses
  * their own GitHub login, so each person sees and changes only what they can.
  */
@@ -118,14 +118,14 @@ async function client(): Promise<GitHubClient> {
     if (!account) throw new SourceControlError("Sign in with GitHub to use your repositories.");
     const access = await githubAccess(account.id);
     if (!access?.canUseRepositories) {
-      throw new SourceControlError("EveLab needs access to your repositories. Sign out, then sign in with GitHub again to allow it.");
+      throw new SourceControlError("evelab needs access to your repositories. Sign out, then sign in with GitHub again to allow it.");
     }
     return createGitHubClient({ kind: "token", token: access.token }, { baseUrl: env.GITHUB_API_URL });
   }
   if (mode === "token") {
     return createGitHubClient({ kind: "token", token: env.GITHUB_TOKEN ?? "" }, { baseUrl: env.GITHUB_API_URL });
   }
-  throw new SourceControlError("GitHub is not configured. Set GITHUB_TOKEN and restart EveLab.");
+  throw new SourceControlError("GitHub is not configured. Set GITHUB_TOKEN and restart evelab.");
 }
 
 /** The message to show for a failure, or undefined for an unexpected error that should surface. */

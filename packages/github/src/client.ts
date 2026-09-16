@@ -15,7 +15,7 @@ export class GitHubError extends Error {
 /** The branch moved on GitHub since the last sync. */
 export class RemoteMovedError extends GitHubError {
   constructor() {
-    super("GitHub has commits EveLab has not pulled. Pull first, then commit.", 409);
+    super("GitHub has commits evelab has not pulled. Pull first, then commit.", 409);
     this.name = "RemoteMovedError";
   }
 }
@@ -90,7 +90,7 @@ export function createGitHubClient(auth: GitHubAuth, options: { baseUrl?: string
         throw new GitHubError(describe(statusOf(error)), statusOf(error));
       }
       const parsed = schema.safeParse(data);
-      if (!parsed.success) throw new GitHubError("GitHub returned a response EveLab did not expect.");
+      if (!parsed.success) throw new GitHubError("GitHub returned a response evelab did not expect.");
       return parsed.data;
     },
   };

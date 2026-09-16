@@ -410,7 +410,7 @@ export async function changeOwnershipAction(
 }
 
 /**
- * Writes `connections/<id>.ts`. Credentials never touch EveLab: Vercel Connect
+ * Writes `connections/<id>.ts`. Credentials never touch evelab: Vercel Connect
  * resolves them at run time, or the token comes from the deployment's environment.
  */
 export async function createConnectionAction(input: {

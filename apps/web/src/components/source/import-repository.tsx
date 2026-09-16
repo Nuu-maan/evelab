@@ -20,7 +20,7 @@ function size(bytes: number): string {
 
 /**
  * Import is two steps, like skill import: read the branch and show everything
- * EveLab found and skipped, then write the exact commit that was reviewed.
+ * evelab found and skipped, then write the exact commit that was reviewed.
  */
 export function ImportRepository({
   repositories,
@@ -118,7 +118,7 @@ export function ImportRepository({
               </Field>
             </div>
             <FieldDescription>
-              EveLab reads the branch and shows what it found. Nothing is written until you import.
+              evelab reads the branch and shows what it found. Nothing is written until you import.
             </FieldDescription>
             {error && <FieldError>{error}</FieldError>}
           </CardContent>
@@ -147,7 +147,7 @@ export function ImportRepository({
 
             {errors.length + warnings.length + preview.parseWarnings.length > 0 && (
               <div className="section">
-                <p className="label">What EveLab noticed</p>
+                <p className="label">What evelab noticed</p>
                 <ul className="list">
                   {[...errors, ...warnings].map((issue, index) => (
                     <li className="list-item" key={`${issue.at}-${index}`}>

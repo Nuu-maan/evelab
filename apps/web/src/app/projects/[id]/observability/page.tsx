@@ -80,7 +80,7 @@ export default function ObservabilityPage() {
 //           <div className="page-heading">
 //             <h1 className="page-title">Observability</h1>
 //             <p className="page-description">
-//               What your agent did and what it cost, from the events eve streamed for every run started in EveLab. Deployed
+//               What your agent did and what it cost, from the events eve streamed for every run started in evelab. Deployed
 //               sessions live in Vercel Observability, next to runtime logs and traces.
 //             </p>
 //           </div>

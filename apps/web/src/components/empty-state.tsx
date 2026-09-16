@@ -9,7 +9,7 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 
-/** shadcn's Empty, framed the way every EveLab empty state is: say what is missing and why. */
+/** shadcn's Empty, framed the way every evelab empty state is: say what is missing and why. */
 export function EmptyState({
   icon,
   title,
