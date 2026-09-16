@@ -184,96 +184,542 @@
     }
   }
 
-  /* The isometric line model beside the pitch: text-coloured lines on the page colour, so it holds in both themes. */
-  .iso {
-    display: block;
+  /*
+   * The hero illustration: evelab, eve and Vercel as rounded isometric islands.
+   * Everything is mixed from the page's own colours at low contrast, so it sits
+   * quietly beside the headline in light and dark. One eight second loop runs the
+   * story: drag and drop, wire, code, deploy.
+   */
+  .iso-figure {
+    --iso-loop: 8s;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
     width: 100%;
-    max-width: 680px;
-    height: auto;
+    max-width: 540px;
+    margin: 0;
     justify-self: center;
-    overflow: visible;
-    color: var(--foreground);
   }
 
-  .iso-face {
-    fill: var(--background);
-    stroke: currentColor;
-    stroke-width: 1.25;
-    stroke-linejoin: round;
+  .iso {
+    --iso-ink: var(--foreground);
+    --iso-paper: var(--background);
+    --iso-line: color-mix(in srgb, var(--iso-ink) 26%, var(--iso-paper));
+    --iso-top: color-mix(in srgb, var(--iso-ink) 3%, var(--surface));
+    --iso-side: color-mix(in srgb, var(--iso-ink) 10%, var(--iso-paper));
+    --iso-wall: color-mix(in srgb, var(--iso-ink) 7%, var(--iso-paper));
+    --iso-soft: color-mix(in srgb, var(--iso-ink) 16%, var(--iso-paper));
+    --iso-loop: 8s;
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  .iso-name {
+    fill: color-mix(in srgb, var(--iso-ink) 45%, var(--iso-paper));
+    font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  /* The three steps the drawing acts out, each lit while its part of the loop plays. */
+  .iso-steps {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid var(--border);
+    list-style: none;
+  }
+
+  .iso-steps li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 10px;
+    row-gap: 2px;
+    align-content: start;
+    align-items: center;
+    padding: 14px 12px 0 0;
+    color: var(--foreground-tertiary);
+    animation: iso-step var(--iso-loop) linear infinite;
+  }
+
+  .iso-steps li:nth-child(2) {
+    animation-name: iso-step-2;
+  }
+
+  .iso-steps li:nth-child(3) {
+    animation-name: iso-step-3;
+  }
+
+  .iso-step-number {
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 1;
+  }
+
+  .iso-step-title {
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 20px;
+  }
+
+  .iso-step-body {
+    grid-column: 2;
+    font-size: 12.5px;
+    line-height: 18px;
+    text-wrap: pretty;
+  }
+
+  @keyframes iso-step {
+    0%,
+    58% {
+      color: var(--foreground);
+    }
+    61%,
+    100% {
+      color: var(--foreground-tertiary);
+    }
+  }
+
+  @keyframes iso-step-2 {
+    0%,
+    59% {
+      color: var(--foreground-tertiary);
+    }
+    62%,
+    82% {
+      color: var(--foreground);
+    }
+    85%,
+    100% {
+      color: var(--foreground-tertiary);
+    }
+  }
+
+  @keyframes iso-step-3 {
+    0%,
+    83% {
+      color: var(--foreground-tertiary);
+    }
+    86%,
+    100% {
+      color: var(--foreground);
+    }
+  }
+
+  @media (max-width: 520px) {
+    .iso-steps {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .iso-steps li {
+      padding-top: 12px;
+    }
+  }
+
+  .iso-top,
+  .iso-side,
+  .iso-inner,
+  .iso-slot,
+  .iso-ring,
+  .iso-shadow,
+  .iso-wire,
+  .iso-rule {
+    vector-effect: non-scaling-stroke;
+  }
+
+  .iso-top {
+    fill: var(--iso-top);
+    stroke: var(--iso-line);
+    stroke-width: 1.2;
   }
 
   .iso-side {
-    stroke: color-mix(in srgb, currentColor 70%, transparent);
+    fill: var(--iso-side);
+    stroke: var(--iso-line);
+    stroke-width: 1.2;
   }
 
-  .iso-rib {
-    stroke: color-mix(in srgb, currentColor 22%, transparent);
+  .iso-wall {
+    fill: var(--iso-wall);
+  }
+
+  .iso-edge {
+    stroke: var(--iso-line);
+    stroke-width: 1.2;
+  }
+
+  .iso-inner {
+    fill: none;
+    stroke: var(--iso-soft);
     stroke-width: 1;
   }
 
-  .iso-hatch {
-    stroke: color-mix(in srgb, currentColor 45%, transparent);
-    stroke-width: 1;
+  .iso-shadow {
+    fill: color-mix(in srgb, var(--iso-ink) 4%, transparent);
   }
 
   .iso-dot {
-    fill: color-mix(in srgb, currentColor 30%, transparent);
+    fill: var(--iso-soft);
   }
 
-  /* The evelab mark: a solid cube, so its top face reads as the diamond. */
-  .iso-mark .iso-face {
-    fill: currentColor;
-    stroke: currentColor;
+  .iso-ink {
+    fill: color-mix(in srgb, var(--iso-ink) 82%, var(--iso-paper));
   }
 
-  .iso-mark .iso-side {
-    fill: color-mix(in srgb, currentColor 55%, var(--background));
+  .iso-bar {
+    fill: var(--iso-soft);
   }
 
-  .iso-label {
-    fill: color-mix(in srgb, currentColor 72%, transparent);
-    font-family: var(--font-mono);
-    font-weight: 500;
-    letter-spacing: 0.08em;
+  .iso-bar-soft {
+    fill: color-mix(in srgb, var(--iso-ink) 10%, var(--iso-paper));
   }
 
-  .iso-code text {
-    fill: color-mix(in srgb, currentColor 55%, transparent);
-    font-family: var(--font-mono);
+  .iso-rule {
+    stroke: var(--iso-line);
+    stroke-width: 1;
   }
 
   .iso-glyph {
     fill: none;
     stroke: var(--kind);
-    stroke-width: 1.5;
+    stroke-width: 1.6;
     stroke-linecap: round;
     stroke-linejoin: round;
   }
 
-  /* A slow flow along each bridge toward the agent: the pieces feeding it. */
-  .iso-flow {
-    stroke: currentColor;
-    stroke-width: 1.25;
-    stroke-dasharray: 2 6;
+  .iso-wire {
+    fill: none;
+    stroke: color-mix(in srgb, var(--iso-ink) 38%, var(--iso-paper));
+    stroke-width: 1.4;
     stroke-linecap: round;
-    animation: lp-flow 1.6s linear infinite;
+    stroke-linejoin: round;
+    stroke-dasharray: 3 4;
+    animation: iso-march 1.4s linear infinite;
   }
 
-  @keyframes lp-flow {
+  .iso-slot {
+    fill: none;
+    stroke: color-mix(in srgb, var(--iso-ink) 35%, var(--iso-paper));
+    stroke-width: 1.2;
+    stroke-dasharray: 3 3;
+    animation: iso-slot var(--iso-loop) var(--ease-out) infinite;
+  }
+
+  .iso-tube-outer {
+    fill: none;
+    stroke: var(--iso-line);
+    stroke-width: 11;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .iso-tube-inner {
+    fill: none;
+    stroke: var(--iso-top);
+    stroke-width: 8.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .iso-pulse {
+    fill: color-mix(in srgb, var(--iso-ink) 75%, var(--iso-paper));
+    opacity: 0;
+  }
+
+  .iso-prism-front {
+    fill: color-mix(in srgb, var(--iso-ink) 86%, var(--iso-paper));
+    stroke: color-mix(in srgb, var(--iso-ink) 86%, var(--iso-paper));
+    stroke-linejoin: round;
+    stroke-width: 1;
+  }
+
+  .iso-prism-side {
+    fill: color-mix(in srgb, var(--iso-ink) 62%, var(--iso-paper));
+    stroke: color-mix(in srgb, var(--iso-ink) 62%, var(--iso-paper));
+    stroke-linejoin: round;
+    stroke-width: 1;
+  }
+
+  .iso-prism-slope {
+    fill: color-mix(in srgb, var(--iso-ink) 52%, var(--iso-paper));
+    stroke: color-mix(in srgb, var(--iso-ink) 52%, var(--iso-paper));
+    stroke-linejoin: round;
+    stroke-width: 1;
+  }
+
+  .iso-ring {
+    fill: none;
+    stroke: color-mix(in srgb, var(--iso-ink) 45%, var(--iso-paper));
+    stroke-width: 1.2;
+    transform-box: fill-box;
+    transform-origin: center;
+    opacity: 0;
+    animation: iso-ring 2.4s var(--ease-out) infinite;
+  }
+
+  .iso-ring-1 {
+    animation-delay: 0.8s;
+  }
+
+  .iso-ring-2 {
+    animation-delay: 1.6s;
+  }
+
+  .iso-cursor {
+    fill: var(--iso-ink);
+    stroke: var(--iso-paper);
+    stroke-width: 1.4;
+    stroke-linejoin: round;
+    animation: iso-cursor var(--iso-loop) var(--ease-in-out) infinite;
+  }
+
+  /* Islands drift, each out of step with the next. */
+  .iso-bob {
+    animation: iso-bob 6s var(--ease-in-out) infinite alternate;
+  }
+
+  .iso-bob-2 {
+    animation-delay: -2s;
+  }
+
+  .iso-bob-3 {
+    animation-delay: -4s;
+  }
+
+  /* The loop. 0 to 48%: drag and drop. 50 to 62%: the wire draws in. 72 to 84%: code types. */
+  .iso-drag {
+    animation: iso-drag var(--iso-loop) var(--ease-in-out) infinite;
+  }
+
+  .iso-wire-new {
+    stroke-dasharray: 1 1;
+    animation: iso-draw var(--iso-loop) var(--ease-out) infinite;
+  }
+
+  .iso-type {
+    transform-box: fill-box;
+    transform-origin: left center;
+    animation: iso-type var(--iso-loop) var(--ease-out) infinite;
+  }
+
+  .iso-type-1 {
+    animation-name: iso-type-1;
+  }
+
+  .iso-type-2 {
+    animation-name: iso-type-2;
+  }
+
+  .iso-type-3 {
+    animation-name: iso-type-3;
+  }
+
+  .iso-type-4 {
+    animation-name: iso-type-4;
+  }
+
+  @keyframes iso-march {
     to {
-      stroke-dashoffset: -16;
+      stroke-dashoffset: -14;
     }
   }
 
+  @keyframes iso-bob {
+    from {
+      translate: 0 3px;
+    }
+    to {
+      translate: 0 -4px;
+    }
+  }
+
+  @keyframes iso-ring {
+    0% {
+      opacity: 0;
+      scale: 0.35;
+    }
+    20% {
+      opacity: 0.9;
+    }
+    100% {
+      opacity: 0;
+      scale: 1.1;
+    }
+  }
+
+  @keyframes iso-drag {
+    0%,
+    4% {
+      opacity: 0;
+      translate: 90px -70px;
+    }
+    12% {
+      opacity: 1;
+      translate: 90px -70px;
+    }
+    38% {
+      opacity: 1;
+      translate: 0 -16px;
+    }
+    46%,
+    90% {
+      opacity: 1;
+      translate: 0 0;
+    }
+    98%,
+    100% {
+      opacity: 0;
+      translate: 0 0;
+    }
+  }
+
+  @keyframes iso-cursor {
+    0%,
+    4% {
+      opacity: 0;
+      translate: 90px -70px;
+    }
+    12% {
+      opacity: 1;
+      translate: 90px -70px;
+    }
+    38% {
+      opacity: 1;
+      translate: 0 -16px;
+    }
+    46% {
+      opacity: 1;
+      translate: 0 0;
+    }
+    58%,
+    100% {
+      opacity: 0;
+      translate: 26px 18px;
+    }
+  }
+
+  @keyframes iso-slot {
+    0%,
+    40% {
+      opacity: 1;
+    }
+    47%,
+    96% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes iso-draw {
+    0%,
+    48% {
+      stroke-dashoffset: 1;
+      opacity: 1;
+    }
+    62%,
+    90% {
+      stroke-dashoffset: 0;
+      opacity: 1;
+    }
+    98%,
+    100% {
+      stroke-dashoffset: 0;
+      opacity: 0;
+    }
+  }
+
+  @keyframes iso-type {
+    0%,
+    72% {
+      scale: 0 1;
+    }
+    75%,
+    100% {
+      scale: 1 1;
+    }
+  }
+
+  @keyframes iso-type-1 {
+    0%,
+    74.5% {
+      scale: 0 1;
+    }
+    77.5%,
+    100% {
+      scale: 1 1;
+    }
+  }
+
+  @keyframes iso-type-2 {
+    0%,
+    77% {
+      scale: 0 1;
+    }
+    80%,
+    100% {
+      scale: 1 1;
+    }
+  }
+
+  @keyframes iso-type-3 {
+    0%,
+    79.5% {
+      scale: 0 1;
+    }
+    82.5%,
+    100% {
+      scale: 1 1;
+    }
+  }
+
+  @keyframes iso-type-4 {
+    0%,
+    82% {
+      scale: 0 1;
+    }
+    85%,
+    100% {
+      scale: 1 1;
+    }
+  }
+
+  /* With less motion: the finished scene, standing still. */
   @media (prefers-reduced-motion: reduce) {
-    .iso-flow {
-      animation: none;
+    .iso *,
+    .iso-steps li {
+      animation: none !important;
+    }
+
+    .iso-steps li {
+      color: var(--foreground-secondary);
+    }
+
+    .iso-cursor,
+    .iso-slot,
+    .iso-motion {
+      display: none;
+    }
+
+    .iso-ring-0 {
+      opacity: 0.5;
+      scale: 0.7;
     }
   }
 
   @media (max-width: 1000px) {
-    .iso {
-      max-width: 520px;
+    .iso-figure {
+      max-width: 540px;
     }
   }
 
