@@ -58,7 +58,7 @@ export function PlainShellSkeleton({ children }: { children: ReactNode }) {
       <header className="topbar">
         <span className="topbar-brand">
           <Mark />
-          EveLab
+          evelab
         </span>
         <div className="topbar-actions">
           <Skeleton className="size-8" />
@@ -234,38 +234,95 @@ export function ProjectPageSkeleton() {
   );
 }
 
-/** The canvas: dot grid, the floating title, an agent with a channel above and pieces below, and the toolbar. */
+const CANVAS_GROUPS = [
+  [64, 52, 76],
+  [88, 60],
+  [56, 72, 48],
+];
+
+/**
+ * The canvas as it lands: the docked resource pane, then the board with its
+ * toolbar on top, an agent with channels above and pieces below, and the zoom
+ * and legend along the bottom. Every block sits where the real one will.
+ */
 export function CanvasSkeleton() {
   return (
     <Loading label="Loading canvas" className="skeleton-canvas">
-      <Dots id="skeleton-canvas-dots" gap={20} />
-      <span className="skeleton-panel skeleton-canvas-title">
-        <Skeleton className="h-3.5 w-28" />
-        <Skeleton className="h-3 w-40" />
-      </span>
-      <span className="skeleton-canvas-graph" aria-hidden="true">
-        <span className="skeleton-canvas-row">
-          <Skeleton className="size-12 rounded-2xl" />
-          <Skeleton className="size-12 rounded-2xl" />
+      <aside className="skeleton-canvas-pane" aria-hidden="true">
+        <span className="skeleton-row h-11 justify-between px-3.5">
+          <Skeleton className="h-3.5 w-24" />
+          <Skeleton className="h-3 w-12" />
         </span>
-        <span className="skeleton-panel skeleton-canvas-agent">
-          <Skeleton className="size-10 rounded-xl" />
-          <span className="flex flex-1 flex-col gap-1.5">
-            <Skeleton className="h-3.5 w-24" />
-            <Skeleton className="h-3 w-32" />
+        <span className="px-2">
+          <Skeleton className="h-9 w-full rounded-lg" />
+        </span>
+        {CANVAS_GROUPS.map((widths, group) => (
+          <span key={group} className="skeleton-canvas-group">
+            <span className="skeleton-row h-7 px-2">
+              <Skeleton className="h-2.5 w-16" />
+            </span>
+            {widths.map((width, index) => (
+              <span key={index} className="skeleton-row h-9 px-2">
+                <Skeleton className="size-6 rounded-md" />
+                <Skeleton className="h-3" style={{ width }} />
+              </span>
+            ))}
+          </span>
+        ))}
+      </aside>
+
+      <div className="skeleton-canvas-board">
+        <Dots id="skeleton-canvas-dots" gap={20} />
+        <span className="skeleton-panel skeleton-canvas-toolbar" aria-hidden="true">
+          {[3, 5, 2].map((count, group) => (
+            <span key={group} className="skeleton-canvas-tools">
+              {Array.from({ length: count }, (_, index) => (
+                <Skeleton key={index} className="size-8 rounded-lg" />
+              ))}
+            </span>
+          ))}
+        </span>
+
+        <span className="skeleton-canvas-graph" aria-hidden="true">
+          <span className="skeleton-canvas-row">
+            <Skeleton className="size-[72px] rounded-[18px]" />
+            <Skeleton className="size-[72px] rounded-[18px]" />
+          </span>
+          <span className="skeleton-canvas-link" />
+          <span className="skeleton-panel skeleton-canvas-agent">
+            <Skeleton className="size-10 rounded-[11px]" />
+            <span className="flex flex-1 flex-col gap-1.5">
+              <Skeleton className="h-3.5 w-24" />
+              <Skeleton className="h-3 w-16" />
+            </span>
+          </span>
+          <span className="skeleton-canvas-link" />
+          <span className="skeleton-canvas-row">
+            <Skeleton className="size-[72px] rounded-full" />
+            <Skeleton className="size-[72px] rounded-full" />
+            <Skeleton className="size-[72px] rounded-full" />
           </span>
         </span>
-        <span className="skeleton-canvas-row">
-          <Skeleton className="size-12 rounded-full" />
-          <Skeleton className="size-12 rounded-full" />
-          <Skeleton className="size-12 rounded-full" />
+
+        <span className="skeleton-canvas-corner" data-corner="start" aria-hidden="true">
+          <span className="skeleton-panel skeleton-canvas-pill">
+            <Skeleton className="size-7" />
+            <Skeleton className="h-3 w-9" />
+            <Skeleton className="size-7" />
+          </span>
+          <span className="skeleton-panel skeleton-canvas-pill">
+            <Skeleton className="size-7" />
+            <Skeleton className="size-7" />
+          </span>
         </span>
-      </span>
-      <span className="skeleton-panel skeleton-canvas-toolbar">
-        {Array.from({ length: 6 }, (_, index) => (
-          <Skeleton key={index} className="size-7" />
-        ))}
-      </span>
+        <span className="skeleton-canvas-corner" data-corner="end" aria-hidden="true">
+          <span className="skeleton-panel skeleton-canvas-pill">
+            {Array.from({ length: 5 }, (_, index) => (
+              <Skeleton key={index} className="h-3 w-9" />
+            ))}
+          </span>
+        </span>
+      </div>
     </Loading>
   );
 }
