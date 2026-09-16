@@ -13,6 +13,7 @@ import {
 import { BrandLogo } from "@/components/brand-logo";
 import { Icon } from "@/components/icon";
 import { KINDS } from "@/components/kinds";
+import { HeroScene } from "@/components/landing/hero-scene";
 import { InView } from "@/components/landing/in-view";
 import { LandingMenu } from "@/components/landing/landing-menu";
 import { LandingTour } from "@/components/landing/landing-tour";
@@ -68,8 +69,6 @@ function structuredData() {
 
 const KIND_ORDER = ["subagent", "tool", "skill", "connection", "channel"] as const;
 
-const HERO_FILES = ["agent/agent.ts", "agent/channels/slack.ts", "agent/tools/search_docs.ts"];
-
 const WORKS_WITH: BrandId[] = ["slack", "discord", "teams", "github", "linear", "notion", "stripe", "vercel"];
 
 const INTEGRATIONS: BrandId[] = ["slack", "discord", "teams", "telegram", "twilio", "github", "linear", "notion"];
@@ -95,97 +94,6 @@ const FAQ = [
     answer: "Yes. evelab is free to use and open source. The code is on GitHub.",
   },
 ];
-
-/** The hero's picture: a window onto the canvas with the agent drawn in it, and the files it writes along the bottom. */
-function HeroStage() {
-  return (
-    <figure className="lp-stage" aria-hidden="true">
-      <div className="lp-stage-bar">
-        <Mark />
-        <span className="lp-stage-crumb">support-desk</span>
-        <span className="lp-stage-muted">/</span>
-        <span className="lp-stage-muted">Canvas</span>
-        <span className="lp-stage-status">
-          <i />
-          In sync
-        </span>
-      </div>
-      <div className="lp-stage-canvas">
-        <svg className="lp-stage-dots">
-          <pattern id="lp-stage-dots" width="20" height="20" patternUnits="userSpaceOnUse">
-            <circle cx="10" cy="10" r="1" fill="currentColor" />
-          </pattern>
-          <rect width="100%" height="100%" fill="url(#lp-stage-dots)" />
-        </svg>
-        <HeroDiagram />
-      </div>
-      <ul className="lp-stage-files">
-        {HERO_FILES.map((file) => (
-          <li key={file}>
-            <Icon icon={IconCheck} size={12} />
-            {file}
-          </li>
-        ))}
-      </ul>
-    </figure>
-  );
-}
-
-/** The agent the hero is about, drawn with the canvas's own pieces: channels above, what it uses below. */
-function HeroDiagram() {
-  return (
-    <div className="lp-diagram">
-      <div className="lp-dg-row lp-dg-channels">
-        {(["slack", "discord"] as const).map((brand) => (
-          <span key={brand} className="lp-dg-node">
-            <span className="lp-dg-tile" data-shape="square">
-              <BrandLogo brand={brand} size={24} />
-            </span>
-            <span className="lp-dg-label">{brand}</span>
-          </span>
-        ))}
-      </div>
-      <svg className="lp-dg-wires" viewBox="0 0 360 40">
-        <path d="M120 0 C120 20 180 20 180 40" />
-        <path d="M240 0 C240 20 180 20 180 40" />
-      </svg>
-      <div className="lp-dg-agent">
-        <span className="lp-dg-agent-icon">
-          <Icon icon={KINDS.agent.icon} size={18} />
-        </span>
-        <span className="lp-dg-agent-text">
-          <b>support-desk</b>
-          <code>claude-opus-5</code>
-        </span>
-      </div>
-      <svg className="lp-dg-wires" viewBox="0 0 360 40">
-        <path d="M180 0 C180 20 60 20 60 40" />
-        <path d="M180 0 V40" />
-        <path d="M180 0 C180 20 300 20 300 40" />
-      </svg>
-      <div className="lp-dg-row lp-dg-resources">
-        <span className="lp-dg-node" data-kind="tool">
-          <span className="lp-dg-tile">
-            <Icon icon={KINDS.tool.icon} size={22} />
-          </span>
-          <span className="lp-dg-label">search_docs</span>
-        </span>
-        <span className="lp-dg-node" data-kind="skill">
-          <span className="lp-dg-tile">
-            <Icon icon={KINDS.skill.icon} size={22} />
-          </span>
-          <span className="lp-dg-label">triage</span>
-        </span>
-        <span className="lp-dg-node" data-kind="connection">
-          <span className="lp-dg-tile" data-brand="">
-            <BrandLogo brand="linear" size={22} />
-          </span>
-          <span className="lp-dg-label">linear</span>
-        </span>
-      </div>
-    </div>
-  );
-}
 
 /**
  * The public front door, laid out after vercel.com: a tall hero with the
@@ -302,7 +210,7 @@ export default async function LandingPage() {
             </div>
           </div>
 
-          <HeroStage />
+          <HeroScene />
         </section>
 
         <section className="lp-logos" aria-labelledby="logos-title">
