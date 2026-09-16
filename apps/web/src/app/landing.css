@@ -184,209 +184,79 @@
     }
   }
 
-  .lp-stage {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    margin: 0;
-    overflow: hidden;
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    background: var(--surface);
-    box-shadow: var(--shadow-large);
-  }
-
-  .lp-stage-bar {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    height: 44px;
-    padding-inline: 16px 12px;
-    border-bottom: 1px solid var(--border);
-    font-size: 13px;
-    line-height: 20px;
-  }
-
-  .lp-stage-bar .topbar-mark {
-    width: 13px;
-    height: 13px;
-    margin-inline-end: 4px;
-  }
-
-  .lp-stage-crumb {
-    font-weight: 500;
-  }
-
-  .lp-stage-muted {
-    color: var(--foreground-tertiary);
-  }
-
-  .lp-stage-status {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    height: 24px;
-    margin-inline-start: auto;
-    padding-inline: 8px 10px;
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    color: var(--foreground-secondary);
-    font-size: 12px;
-  }
-
-  .lp-stage-status i {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--success);
-  }
-
-  .lp-stage-canvas {
-    position: relative;
-    display: grid;
-    place-items: center;
-    padding: 56px 24px;
-    background: var(--background);
-  }
-
-  .lp-stage-dots {
-    position: absolute;
-    inset: 0;
+  /* The isometric line model beside the pitch: text-coloured lines on the page colour, so it holds in both themes. */
+  .iso {
+    display: block;
     width: 100%;
-    height: 100%;
-    color: var(--canvas-dot);
-  }
-
-  /* One line: files that do not fit are cut at the frame, the way a status bar would be. */
-  .lp-stage-files {
-    display: flex;
-    gap: 20px;
-    overflow: hidden;
-    margin: 0;
-    padding: 12px 16px;
-    border-top: 1px solid var(--border);
-    color: var(--foreground-secondary);
-    font-family: var(--font-mono);
-    font-size: 12px;
-    line-height: 16px;
-    list-style: none;
-  }
-
-  .lp-stage-files li {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    white-space: nowrap;
-  }
-
-  .lp-stage-files svg {
-    color: var(--success);
-  }
-
-  /* The agent on the canvas: channels above, what it uses below, each wire flowing toward the agent's work. */
-  .lp-diagram {
-    position: relative;
-    display: grid;
-    justify-items: center;
-    width: 360px;
-  }
-
-  @media (max-width: 480px) {
-    .lp-stage-canvas {
-      padding: 36px 0;
-    }
-
-    .lp-diagram {
-      zoom: 0.8;
-    }
-
-    .lp-stage-files li:nth-child(n + 3) {
-      display: none;
-    }
-  }
-
-  .lp-dg-row {
-    display: grid;
-    justify-items: center;
-    width: 360px;
-  }
-
-  .lp-dg-channels {
-    grid-template-columns: 60px 120px 120px 60px;
-  }
-
-  .lp-dg-channels .lp-dg-node:first-child {
-    grid-column: 2;
-  }
-
-  .lp-dg-resources {
-    grid-template-columns: repeat(3, 120px);
-  }
-
-  .lp-dg-node {
-    --k: var(--kind-channel);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .lp-dg-channels .lp-dg-node {
-    flex-direction: column-reverse;
-  }
-
-  .lp-dg-node[data-kind="tool"] {
-    --k: var(--kind-tool);
-  }
-
-  .lp-dg-node[data-kind="skill"] {
-    --k: var(--kind-skill);
-  }
-
-  .lp-dg-node[data-kind="connection"] {
-    --k: var(--kind-connection);
-  }
-
-  .lp-dg-tile {
-    display: grid;
-    place-items: center;
-    width: 56px;
-    height: 56px;
-    border: 1px solid color-mix(in srgb, var(--k) 30%, var(--border));
-    border-radius: 50%;
-    background: color-mix(in srgb, var(--k) 10%, var(--surface));
-    box-shadow: var(--shadow-small);
-    color: var(--k);
-  }
-
-  .lp-dg-tile[data-shape="square"] {
-    border-radius: 16px;
-  }
-
-  .lp-dg-tile[data-shape="square"],
-  .lp-dg-tile[data-brand] {
-    border-color: var(--border);
-    background: var(--surface);
+    max-width: 680px;
+    height: auto;
+    justify-self: center;
+    overflow: visible;
     color: var(--foreground);
   }
 
-  .lp-dg-label {
-    color: var(--foreground-secondary);
-    font-family: var(--font-mono);
-    font-size: 12px;
-    line-height: 16px;
-    white-space: nowrap;
+  .iso-face {
+    fill: var(--background);
+    stroke: currentColor;
+    stroke-width: 1.25;
+    stroke-linejoin: round;
   }
 
-  .lp-dg-wires {
-    display: block;
-    width: 360px;
-    height: 40px;
+  .iso-side {
+    stroke: color-mix(in srgb, currentColor 70%, transparent);
+  }
+
+  .iso-rib {
+    stroke: color-mix(in srgb, currentColor 22%, transparent);
+    stroke-width: 1;
+  }
+
+  .iso-hatch {
+    stroke: color-mix(in srgb, currentColor 45%, transparent);
+    stroke-width: 1;
+  }
+
+  .iso-dot {
+    fill: color-mix(in srgb, currentColor 30%, transparent);
+  }
+
+  /* The evelab mark: a solid cube, so its top face reads as the diamond. */
+  .iso-mark .iso-face {
+    fill: currentColor;
+    stroke: currentColor;
+  }
+
+  .iso-mark .iso-side {
+    fill: color-mix(in srgb, currentColor 55%, var(--background));
+  }
+
+  .iso-label {
+    fill: color-mix(in srgb, currentColor 72%, transparent);
+    font-family: var(--font-mono);
+    font-weight: 500;
+    letter-spacing: 0.08em;
+  }
+
+  .iso-code text {
+    fill: color-mix(in srgb, currentColor 55%, transparent);
+    font-family: var(--font-mono);
+  }
+
+  .iso-glyph {
     fill: none;
-    stroke: var(--border-strong);
-    stroke-dasharray: 3 5;
+    stroke: var(--kind);
     stroke-width: 1.5;
-    animation: lp-flow 1.2s linear infinite;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* A slow flow along each bridge toward the agent: the pieces feeding it. */
+  .iso-flow {
+    stroke: currentColor;
+    stroke-width: 1.25;
+    stroke-dasharray: 2 6;
+    stroke-linecap: round;
+    animation: lp-flow 1.6s linear infinite;
   }
 
   @keyframes lp-flow {
@@ -396,52 +266,15 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .lp-dg-wires {
+    .iso-flow {
       animation: none;
     }
   }
 
-  .lp-dg-agent {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    width: 220px;
-    height: 68px;
-    padding-inline: 14px;
-    border: 1px solid var(--border-strong);
-    border-radius: 16px;
-    background: var(--surface);
-    box-shadow: var(--shadow);
-  }
-
-  .lp-dg-agent-icon {
-    display: grid;
-    flex: none;
-    place-items: center;
-    width: 38px;
-    height: 38px;
-    border-radius: 11px;
-    background: var(--foreground);
-    color: var(--background);
-  }
-
-  .lp-dg-agent-text {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-  }
-
-  .lp-dg-agent-text b {
-    font-size: 15px;
-    font-weight: 500;
-    line-height: 20px;
-  }
-
-  .lp-dg-agent-text code {
-    color: var(--foreground-tertiary);
-    font-family: var(--font-mono);
-    font-size: 12px;
-    line-height: 16px;
+  @media (max-width: 1000px) {
+    .iso {
+      max-width: 520px;
+    }
   }
 
   /* ---------- Connects to ---------- */
