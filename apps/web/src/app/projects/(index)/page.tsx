@@ -1,17 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { CanvasNodeKind } from "@evelab/eve-project";
-import { IconArrowUpRight, IconGridSquare, IconLogoGithub, IconPlus, IconTrash } from "@/components/icons";
-import { ConfirmSubmit } from "@/components/confirm";
+import { IconGridSquare, IconLogoGithub, IconPlus } from "@/components/icons";
 import { EmptyState } from "@/components/empty-state";
 import { Icon } from "@/components/icon";
 import { GraphPreview } from "@/components/graph-preview";
-import { KINDS } from "@/components/kinds";
+import { KindCount } from "@/components/kinds";
 import { PlainShell } from "@/components/plain-shell";
+import { ProjectCardMenu } from "@/components/project-card-menu";
 import { ProjectsBrowser } from "@/components/projects-browser";
 import { Reveal } from "@/components/motion";
 import { Button } from "@/components/ui/button";
-import { deleteProjectAction } from "@/lib/actions";
 import { requireAccount, visibleProjectIds } from "@/lib/session";
 import { readLayout } from "@/lib/layout";
 import { listProjects, type ProjectSummary } from "@/lib/workspace";
@@ -50,66 +49,51 @@ function ProjectCard({ project, positions }: { project: ProjectSummary; position
   ).filter(([, count]) => count > 0);
 
   return (
-    // The delete form sits beside the link, not in it: a button inside a link is not a button anyone can rely on.
-    <div className="project-card-wrap">
-    <Link className="project-card" href={`/projects/${project.id}`}>
+    // The name's link stretches over the whole card; the menu sits above it, so no control is nested in a link.
+    <article className="project-card">
       <div className="project-card-preview" aria-hidden="true">
         <svg className="project-card-dots">
-          <pattern id={`dots-${project.id}`} width="16" height="16" patternUnits="userSpaceOnUse">
-            <circle cx="8" cy="8" r="1" fill="currentColor" />
+          <pattern id={`dots-${project.id}`} width="14" height="14" patternUnits="userSpaceOnUse">
+            <circle cx="7" cy="7" r="0.9" fill="currentColor" />
           </pattern>
           <rect width="100%" height="100%" fill={`url(#dots-${project.id})`} />
         </svg>
-        <GraphPreview graph={project.graph} positions={positions} />
-        <span className="project-card-open">
-          <Icon icon={IconArrowUpRight} size={14} />
-        </span>
+        <GraphPreview graph={project.graph} positions={positions} thumbnail />
       </div>
 
       <div className="project-card-body">
         <div className="project-card-heading">
-          <h2 className="project-card-name">{project.name}</h2>
-          <time className="project-card-time" dateTime={new Date(project.updatedAt).toISOString()}>
-            {ago(project.updatedAt)}
-          </time>
+          <div className="project-card-title">
+            <h2 className="project-card-name">
+              <Link className="project-card-link" href={`/projects/${project.id}`}>
+                {project.name}
+              </Link>
+            </h2>
+            <p className="project-card-model">{project.model || "No model set"}</p>
+          </div>
+          <ProjectCardMenu id={project.id} name={project.name} fileCount={project.fileCount} />
         </div>
-        <p className="project-card-model">{project.model || "No model set"}</p>
 
         {parts.length > 0 ? (
           <ul className="project-card-parts" aria-label="What it is made of">
             {parts.map(([kind, count]) => (
-              <li key={kind} className="project-card-part" data-kind={kind}>
-                <span className="project-card-dot" aria-hidden="true" />
-                {count} {(count === 1 ? KINDS[kind].label : KINDS[kind].plural).toLowerCase()}
+              <li key={kind}>
+                <KindCount kind={kind} count={count} />
               </li>
             ))}
           </ul>
         ) : (
-          <p className="project-card-parts project-card-parts-empty">Just the root agent so far</p>
+          <p className="project-card-parts project-card-parts-empty">Just the root agent</p>
         )}
       </div>
 
       <div className="project-card-footer">
-        <span className="project-card-id">{project.id}</span>
         <span>
           {project.fileCount} {project.fileCount === 1 ? "file" : "files"}
         </span>
+        <time dateTime={new Date(project.updatedAt).toISOString()}>Updated {ago(project.updatedAt)}</time>
       </div>
-    </Link>
-    <form action={deleteProjectAction} className="project-card-delete">
-      <input type="hidden" name="id" value={project.id} />
-      <ConfirmSubmit
-        size="icon-sm"
-        className="size-[26px] rounded-[7px] border border-border bg-background"
-        title={`Delete ${project.name}?`}
-        description={`This deletes ${project.name} and its ${project.fileCount} ${project.fileCount === 1 ? "file" : "files"}. It cannot be undone.`}
-        confirmLabel="Delete project"
-      >
-        <Icon icon={IconTrash} size={14} />
-        <span className="visually-hidden">Delete {project.name}</span>
-      </ConfirmSubmit>
-    </form>
-    </div>
+    </article>
   );
 }
 

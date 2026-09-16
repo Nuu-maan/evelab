@@ -12,6 +12,7 @@ import {
   IconGlobe,
   IconLogoGithub,
   IconPointer,
+  IconRoute,
 } from "@/components/icons";
 import { BrandLogo } from "@/components/brand-logo";
 import { Icon } from "@/components/icon";
@@ -66,18 +67,58 @@ const PRINCIPLES = [
   { icon: IconLogoGithub, title: "Open source", body: "Free to use, and built in the open on GitHub." },
 ];
 
-const HERO_POINTS = ["For Eve agents", "Drawn on a canvas", "Shipped as real code"];
+const HERO_FILES = ["agent/agent.ts", "agent/channels/slack.ts", "agent/tools/search_docs.ts"];
 
 const WORKS_WITH: BrandId[] = ["slack", "discord", "teams", "github", "linear", "notion", "stripe", "vercel"];
 
 const INTEGRATIONS: BrandId[] = ["slack", "discord", "teams", "telegram", "twilio", "github", "linear", "notion"];
 
-const TOUR_POINTS = ["A canvas drawn from your files", "Monaco for every file", "Commit, push and pull with GitHub", "A zip you can run with eve dev"];
+const TOUR_POINTS = [
+  { icon: IconRoute, title: "A canvas from your files", body: "Every card on it is a file in the project." },
+  { icon: IconCodeBracket, title: "Monaco for every file", body: "Edit the code and the canvas redraws." },
+  { icon: IconGitBranch, title: "GitHub, both ways", body: "Commit, push and pull without leaving." },
+  { icon: IconDownload, title: "A zip that runs", body: "Unzip it, then npm install and eve dev." },
+];
+
+/** The hero's picture: a window onto the canvas with the agent drawn in it, and the files it writes along the bottom. */
+function HeroStage() {
+  return (
+    <figure className="lp-stage" aria-hidden="true">
+      <div className="lp-stage-bar">
+        <Mark />
+        <span className="lp-stage-crumb">support-desk</span>
+        <span className="lp-stage-muted">/</span>
+        <span className="lp-stage-muted">Canvas</span>
+        <span className="lp-stage-status">
+          <i />
+          In sync
+        </span>
+      </div>
+      <div className="lp-stage-canvas">
+        <svg className="lp-stage-dots">
+          <pattern id="lp-stage-dots" width="20" height="20" patternUnits="userSpaceOnUse">
+            <circle cx="10" cy="10" r="1" fill="currentColor" />
+          </pattern>
+          <rect width="100%" height="100%" fill="url(#lp-stage-dots)" />
+        </svg>
+        <HeroDiagram />
+      </div>
+      <ul className="lp-stage-files">
+        {HERO_FILES.map((file) => (
+          <li key={file}>
+            <Icon icon={IconCheck} size={12} />
+            {file}
+          </li>
+        ))}
+      </ul>
+    </figure>
+  );
+}
 
 /** The agent the hero is about, drawn with the canvas's own pieces: channels above, what it uses below. */
 function HeroDiagram() {
   return (
-    <div className="lp-diagram" aria-hidden="true">
+    <div className="lp-diagram">
       <div className="lp-dg-row lp-dg-channels">
         {(["slack", "discord"] as const).map((brand) => (
           <span key={brand} className="lp-dg-node">
@@ -219,6 +260,10 @@ export default async function LandingPage() {
               <br />
               Get real code.
             </h1>
+            <p className="lp-hero-lede">
+              An open source canvas for Eve agents. Every piece you drop in is written as a real file you can run with
+              eve dev.
+            </p>
             <div className="lp-actions">
               {start(account ? "Open your projects" : "Start building", account ? "/projects" : "/projects/new")}
               <Button asChild variant="outline" size="lg" className="h-11 rounded-full px-6 text-[15px]">
@@ -230,13 +275,7 @@ export default async function LandingPage() {
             </div>
           </div>
 
-          <HeroDiagram />
-
-          <ul className="lp-hero-points">
-            {HERO_POINTS.map((point) => (
-              <li key={point}>{point}</li>
-            ))}
-          </ul>
+          <HeroStage />
         </section>
 
         <section className="lp-logos" aria-label="Services an agent can connect to">
@@ -257,17 +296,19 @@ export default async function LandingPage() {
               <br />
               take shape
             </h2>
-            <div className="lp-aside">
-              <p className="lp-label">What you get</p>
-              <ul>
-                {TOUR_POINTS.map((point) => (
-                  <li key={point}>{point}</li>
-                ))}
-              </ul>
-            </div>
+            <p className="lp-section-lede">A short loop of EveLab at work: draw the agent, read the code it writes, then take it with you.</p>
           </div>
           <div className="lp-demo">
             <LandingTour />
+            <ul className="lp-points">
+              {TOUR_POINTS.map((point) => (
+                <li key={point.title}>
+                  <Icon icon={point.icon} size={16} />
+                  <h3 className="lp-point-title">{point.title}</h3>
+                  <p className="lp-point-body">{point.body}</p>
+                </li>
+              ))}
+            </ul>
           </div>
         </section>
 

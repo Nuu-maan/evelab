@@ -146,69 +146,162 @@
 
   /* ---------- Hero ---------- */
 
-  /* After vercel.com: headline and buttons left, the product drawn in the middle, three short lines right. */
+  /* After vercel.com: the pitch on the left, the product in a framed window on the right, stacked on narrow screens. */
   .lp-hero {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 0.7fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
     align-items: center;
-    gap: var(--space-12) var(--space-16);
-    min-height: min(840px, calc(100svh - 64px));
-    padding: clamp(80px, 9vw, 140px) var(--lp-gutter);
+    gap: var(--space-12) clamp(40px, 6vw, 96px);
+    padding: clamp(64px, 8vw, 120px) var(--lp-gutter) clamp(72px, 8vw, 128px);
   }
 
   .lp-hero-copy {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: var(--space-8);
+    gap: var(--space-6);
   }
 
   .lp-hero .lp-display {
-    font-size: clamp(48px, 5vw, 72px);
+    font-size: clamp(44px, 5.2vw, 76px);
   }
 
-  .lp-hero-points {
-    display: grid;
-    gap: 14px;
-    justify-self: end;
+  .lp-hero-lede {
+    max-width: 40ch;
+    color: var(--foreground-secondary);
+    font-size: 18px;
+    line-height: 28px;
+    text-wrap: pretty;
+  }
+
+  .lp-hero .lp-actions {
+    margin-top: var(--space-2);
+  }
+
+  @media (max-width: 1000px) {
+    .lp-hero {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  .lp-stage {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
     margin: 0;
-    padding: 0;
-    list-style: none;
-    font-size: 16px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--surface);
+    box-shadow: var(--shadow-large);
+  }
+
+  .lp-stage-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 44px;
+    padding-inline: 16px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
     line-height: 20px;
   }
 
-  @media (max-width: 1180px) {
-    .lp-hero {
-      grid-template-columns: minmax(0, 1fr) auto;
-    }
-
-    .lp-hero-points {
-      display: none;
-    }
+  .lp-stage-bar .topbar-mark {
+    width: 13px;
+    height: 13px;
+    margin-inline-end: 4px;
   }
 
-  @media (max-width: 860px) {
-    .lp-hero {
-      grid-template-columns: minmax(0, 1fr);
-      min-height: 0;
-    }
+  .lp-stage-crumb {
+    font-weight: 500;
+  }
 
-    .lp-diagram {
-      justify-self: center;
-    }
+  .lp-stage-muted {
+    color: var(--foreground-tertiary);
+  }
+
+  .lp-stage-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 24px;
+    margin-inline-start: auto;
+    padding-inline: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--foreground-secondary);
+    font-size: 12px;
+  }
+
+  .lp-stage-status i {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--success);
+  }
+
+  .lp-stage-canvas {
+    position: relative;
+    display: grid;
+    place-items: center;
+    padding: 56px 24px;
+    background: var(--background);
+  }
+
+  .lp-stage-dots {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    color: var(--canvas-dot);
+  }
+
+  /* One line: files that do not fit are cut at the frame, the way a status bar would be. */
+  .lp-stage-files {
+    display: flex;
+    gap: 20px;
+    overflow: hidden;
+    margin: 0;
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+    color: var(--foreground-secondary);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 16px;
+    list-style: none;
+  }
+
+  .lp-stage-files li {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+
+  .lp-stage-files svg {
+    color: var(--success);
   }
 
   /* The agent on the canvas: channels above, what it uses below, each wire flowing toward the agent's work. */
   .lp-diagram {
+    position: relative;
     display: grid;
     justify-items: center;
     width: 360px;
   }
 
-  @media (max-width: 400px) {
+  @media (max-width: 480px) {
+    .lp-stage-canvas {
+      padding: 36px 0;
+    }
+
     .lp-diagram {
-      zoom: 0.88;
+      zoom: 0.8;
+    }
+
+    .lp-stage-files li:nth-child(n + 3) {
+      display: none;
     }
   }
 
@@ -393,23 +486,6 @@
     }
   }
 
-  .lp-aside {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    min-width: 240px;
-  }
-
-  .lp-aside ul {
-    display: grid;
-    gap: 8px;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    font-size: 15px;
-    line-height: 22px;
-  }
-
   .lp-kicker {
     display: inline-flex;
     align-items: center;
@@ -435,7 +511,74 @@
   /* ---------- Demo ---------- */
 
   .lp-demo {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-10);
     min-width: 0;
+  }
+
+  /* What the tour shows, as a row of hairline cells under it. */
+  .lp-points {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid var(--border);
+    list-style: none;
+  }
+
+  .lp-points li {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: var(--space-6) var(--space-6) 0;
+    border-inline-start: 1px solid var(--border);
+  }
+
+  .lp-points li:first-child {
+    padding-inline-start: 0;
+    border-inline-start: none;
+  }
+
+  .lp-points .icon {
+    margin-bottom: var(--space-3);
+    color: var(--foreground-secondary);
+  }
+
+  .lp-point-title {
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    line-height: 22px;
+  }
+
+  .lp-point-body {
+    color: var(--foreground-secondary);
+    font-size: 14px;
+    line-height: 20px;
+    text-wrap: pretty;
+  }
+
+  @media (max-width: 900px) {
+    .lp-points {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .lp-points li:nth-child(odd) {
+      padding-inline-start: 0;
+      border-inline-start: none;
+    }
+  }
+
+  @media (max-width: 520px) {
+    .lp-points {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .lp-points li {
+      padding-inline: 0;
+      border-inline-start: none;
+    }
   }
 
   /* ---------- Sections ---------- */
