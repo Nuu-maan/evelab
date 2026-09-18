@@ -79,8 +79,13 @@ export function ConfirmSubmit({
         type="button"
         variant={variant}
         size={size}
-        // In a row a removal is a quiet red word; the dialog it opens carries the weight.
-        className={cn(variant === "ghost" && "text-destructive hover:bg-destructive/10 hover:text-destructive", className)}
+        // In a row a removal stays quiet until it is reached for, so a list of rows is not a list of
+        // red words. It turns red under the pointer or focus, and the dialog it opens carries the weight.
+        className={cn(
+          variant === "ghost" &&
+            "text-muted-foreground hover:bg-destructive/10 hover:text-destructive focus-visible:text-destructive aria-expanded:text-destructive",
+          className,
+        )}
         onClick={() => setOpen(true)}
       >
         {children}
