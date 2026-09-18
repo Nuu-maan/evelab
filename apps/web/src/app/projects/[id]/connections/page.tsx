@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { deleteEntityAction } from "@/lib/actions";
 import { brandFor } from "@/lib/brands";
+import { projectConnections } from "@/lib/connections";
 import { getProject } from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
@@ -35,23 +36,7 @@ export default async function ConnectionsPage({ params }: { params: Promise<{ id
   const { id } = await params;
   const project = await getProject(id);
   const directory = agentPath(project.root, "connections/");
-  // Every agent's own connections, nested subagents included, keyed by the folder they live in.
-  const walk = (subagents: typeof project.subagents, prefix: string): { connection: Connection; owner: string }[] =>
-    subagents.flatMap((subagent) =>
-      subagent.kind === "local"
-        ? [
-            ...subagent.connections.map((connection) => ({ connection, owner: `${prefix}${subagent.id}` })),
-            ...walk(subagent.subagents, `${prefix}${subagent.id}/`),
-          ]
-        : [],
-    );
-  const all = [...project.connections.map((connection) => ({ connection, owner: "" })), ...walk(project.subagents, "")];
-  // A shared connection is one definition in lib/, so it is listed once with everyone who uses it.
-  const owned = all.filter(({ connection }) => !connection.shared);
-  const shared = project.library.connections.map((definition) => ({
-    definition,
-    users: all.filter(({ connection }) => connection.shared === definition.id).map(({ owner }) => owner.split("/").pop() || project.agent.name),
-  }));
+  const { all, owned, shared } = projectConnections(project);
 
   return (
     <div className="page">

@@ -15,6 +15,7 @@ import { Avatar } from "@/components/project-switcher";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { projectConnections } from "@/lib/connections";
 import { readLayout } from "@/lib/layout";
 import { modelLabel, getProject, validateProject } from "@/lib/workspace";
 import "@/app/overview.css";
@@ -33,6 +34,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
   const fileHref = (path: string) => `${base}/files?path=${encodeURIComponent(path)}`;
   const instructionLines = project.agent.instructions.split("\n").filter((line) => line.trim()).length;
   const root = project.root ? `${project.root}/` : "";
+  const connections = projectConnections(project);
   const instructionsPath = project.agent.instructionsPath || agentPath(project.root, "instructions.md");
   const configPath = agentPath(project.root, "agent.ts");
 
@@ -129,12 +131,23 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
       kind: "connection" as const,
       href: `${base}/connections`,
       empty: "No connections yet. Add an MCP server or OpenAPI service.",
-      items: project.connections.map((connection) => ({
-        id: connection.id,
-        name: connection.id,
-        detail: connection.description || connection.url || connection.spec || connection.kind,
-        path: `${root}connections/${connection.file}`,
-      })),
+      // The same list as the Connections page: shared definitions once, then each agent's own.
+      items: [
+        ...connections.shared.map(({ definition }) => ({
+          id: `#${definition.id}`,
+          name: definition.id,
+          detail: definition.description || definition.url || definition.spec || definition.kind,
+          path: `${root}lib/connections/${definition.file}`,
+        })),
+        ...connections.owned.map(({ connection, owner }) => ({
+          id: owner ? `${owner}/${connection.id}` : connection.id,
+          name: connection.id,
+          detail: connection.description || connection.url || connection.spec || connection.kind,
+          path: owner
+            ? `${root}subagents/${owner.split("/").join("/subagents/")}/connections/${connection.file}`
+            : `${root}connections/${connection.file}`,
+        })),
+      ],
     },
   ];
 
@@ -173,7 +186,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
       label: "Add a connection",
       detail: `${root}connections/`,
       href: `${base}/connections`,
-      state: project.connections.length > 0 ? "done" : "todo",
+      state: connections.owned.length + connections.shared.length > 0 ? "done" : "todo",
     },
     { label: "Connect GitHub", detail: "Source control", href: `${base}/source`, state: "todo" },
     { label: "Run the agent", detail: "Coming soon", state: "unavailable" },
