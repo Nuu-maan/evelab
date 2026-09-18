@@ -387,7 +387,7 @@
     position: absolute;
     z-index: 30;
     overflow: hidden;
-    animation: picker-in 160ms var(--ease-out) both;
+    animation: picker-in 160ms var(--ease-out) backwards;
   }
 
   /* Keys 1 to 5 open it many times a day; from the keyboard it simply appears. */
@@ -777,7 +777,7 @@
     white-space: nowrap;
     transform: translateX(-50%);
     pointer-events: none;
-    animation: canvas-empty-in 320ms var(--ease-out) both;
+    animation: canvas-empty-in 320ms var(--ease-out) backwards;
   }
 
   @keyframes canvas-empty-in {
@@ -801,7 +801,7 @@
     color: var(--foreground-secondary);
     font-size: var(--text-label);
     white-space: nowrap;
-    animation: notice-in 200ms var(--ease-out) both;
+    animation: notice-in 200ms var(--ease-out) backwards;
   }
 
   .canvas-notice[data-raised] {
@@ -858,7 +858,7 @@
     border-radius: 0;
     background: var(--background);
     box-shadow: none;
-    animation: float-in-left 160ms var(--ease-out) both;
+    animation: float-in-left 160ms var(--ease-out) backwards;
   }
 
   @keyframes float-in-left {
@@ -1416,7 +1416,7 @@
   }
 
   .node[data-fresh] {
-    animation: node-in 260ms var(--ease-out) both;
+    animation: node-in 260ms var(--ease-out) backwards;
   }
 
   @keyframes node-in {
@@ -1623,7 +1623,7 @@
     font-size: 11px;
     font-weight: var(--weight-medium);
     white-space: nowrap;
-    animation: edge-label-fade 140ms ease both;
+    animation: edge-label-fade 140ms ease backwards;
     transition: border-color var(--duration-hover) ease, color var(--duration-hover) ease;
   }
 
@@ -1677,7 +1677,7 @@
     font-weight: var(--weight-medium);
     white-space: nowrap;
     cursor: pointer;
-    animation: edge-label-fade 140ms ease both;
+    animation: edge-label-fade 140ms ease backwards;
     transition: background-color var(--duration-hover) ease, border-color var(--duration-hover) ease,
       transform var(--duration-press) var(--ease-out);
   }
@@ -1858,7 +1858,7 @@
     height: 40px;
     padding: 0 6px;
     transform: translateX(-50%);
-    animation: notice-in 180ms var(--ease-out) both;
+    animation: notice-in 180ms var(--ease-out) backwards;
   }
 
   .annotation-tool {
@@ -1962,7 +1962,7 @@
     width: var(--pane-inspector, 360px);
     max-width: calc(100% - 32px);
     overflow: hidden;
-    animation: float-in-right 160ms var(--ease-out) both;
+    animation: float-in-right 160ms var(--ease-out) backwards;
   }
 
   .canvas-inspector > .resize-handle[data-edge="start"] {
@@ -1987,7 +1987,7 @@
     flex: 1;
     flex-direction: column;
     min-height: 0;
-    animation: inspector-in 120ms ease both;
+    animation: inspector-in 120ms ease backwards;
   }
 
   /* Selecting another card swaps the inspector many times a session, so it only fades. */
