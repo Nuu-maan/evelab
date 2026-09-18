@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import {
   applyNodeChanges,
@@ -13,8 +13,8 @@ import {
   useNodesInitialized,
   useNodesState,
   useReactFlow,
+  useStore,
   useUpdateNodeInternals,
-  useViewport,
   type Connection,
   type EdgeMouseHandler,
   type IsValidConnection,
@@ -49,7 +49,7 @@ import {
   type AnnotationContextValue,
   type AnnotationNode,
 } from "@/components/canvas/annotations";
-import { CanvasConnectionLine, RelationEdgePath, type EdgeBend, type RelationEdge } from "@/components/canvas/canvas-edge";
+import { CanvasConnectionLine, READABLE_ZOOM, RelationEdgePath, type EdgeBend, type RelationEdge } from "@/components/canvas/canvas-edge";
 import {
   CanvasContext,
   CanvasNodeCard,
@@ -323,21 +323,37 @@ function ToolbarButton({
   );
 }
 
+/** How long the pointer rests on a card or wire before its neighbourhood lights up, and before it lets go. */
+const HOVER_DELAY = 90;
+const UNHOVER_DELAY = 60;
+
+/** Only the zoom, so a pan never re-renders what reads it. */
+const selectZoom = (state: { transform: [number, number, number] }) => state.transform[2];
+
 /**
  * Dots that stay a steady size on screen. React Flow scales dots with zoom, so
  * zoomed out they vanish; here the dot size counters the zoom, and the spacing
  * doubles in steps so a zoomed-out board is dotted, not grey.
  */
 function DottedBackground() {
-  const { zoom } = useViewport();
+  const zoom = useStore(selectZoom);
   const step = zoom >= 0.6 ? 1 : 2 ** Math.ceil(Math.log2(0.6 / zoom));
   return <Background variant={BackgroundVariant.Dots} gap={20 * step} size={1.3 / zoom} color="var(--canvas-dot-color)" />;
 }
 
-/** Its own component so panning re-renders the zoom readout, not the canvas. */
+/** Marks a zoomed-out board on the surface, so quiet wire labels hide from CSS rather than remounting. */
+function ZoomTier({ surface }: { surface: RefObject<HTMLDivElement | null> }) {
+  const far = useStore((state) => state.transform[2] < READABLE_ZOOM);
+  useLayoutEffect(() => {
+    surface.current?.toggleAttribute("data-far", far);
+  }, [far, surface]);
+  return null;
+}
+
+/** Its own component so zooming re-renders the zoom readout, not the canvas. */
 function ZoomControls() {
   const { zoomIn, zoomOut, zoomTo, fitView } = useReactFlow();
-  const { zoom } = useViewport();
+  const zoom = useStore(selectZoom);
   return (
     <div className="canvas-float canvas-zoom" role="toolbar" aria-label="Zoom">
       <ToolbarButton label="Zoom out" tooltip="Zoom out" onClick={() => void zoomOut({ duration: 200 })}>
@@ -389,7 +405,70 @@ function CanvasInner(props: CanvasProps) {
     if ((layoutRef.current?.clientWidth ?? window.innerWidth) < 700) setPanelOpen(false);
   }, []);
   const [summaryOpen, setSummaryOpen] = useState(false);
-  const [hovered, setHovered] = useState<{ type: "node" | "edge"; id: string }>();
+  // The wire under the pointer, which shows its label; the rest of hovering never touches React state.
+  const [hoveredEdge, setHoveredEdge] = useState<string>();
+  const hoverTimer = useRef<number>(undefined);
+  // The board or a card is moving under the pointer, so nothing lights up. Two flags, since a card
+  // dragged to the edge pans the board, and that pan ending must not wake hovering mid-drag.
+  const moving = useRef({ board: false, card: false });
+  const lit = useRef<Element[]>([]);
+  const graphRef = useRef(graph);
+  graphRef.current = graph;
+
+  /**
+   * Lights up what a card or wire touches by marking those few elements in the DOM, and dims the rest from CSS.
+   * Doing it through React re-rendered every card and wire on each hover, which was most of the canvas's lag.
+   */
+  const light = useCallback((target: { type: "node" | "edge"; id: string } | undefined) => {
+    for (const element of lit.current) element.removeAttribute("data-lit");
+    lit.current = [];
+    const surface = surfaceRef.current;
+    if (!surface) return;
+    if (!target || isAnnotationId(target.id)) {
+      surface.removeAttribute("data-focus");
+      return;
+    }
+    const nodes = new Set<string>();
+    const wires: string[] = [];
+    for (const edge of graphRef.current.edges) {
+      const id = `${edge.source}->${edge.target}`;
+      const touches = target.type === "edge" ? id === target.id : edge.source === target.id || edge.target === target.id;
+      if (!touches) continue;
+      wires.push(id);
+      nodes.add(edge.source).add(edge.target);
+    }
+    if (target.type === "node") nodes.add(target.id);
+    const selectors = [
+      ...[...nodes].map((id) => `.react-flow__node[data-id="${CSS.escape(id)}"]`),
+      ...wires.map((id) => `.react-flow__edge[data-id="${CSS.escape(id)}"]`),
+    ];
+    if (selectors.length > 0) lit.current = [...surface.querySelectorAll(selectors.join(","))];
+    for (const element of lit.current) element.setAttribute("data-lit", "");
+    surface.setAttribute("data-focus", "");
+  }, []);
+
+  // It waits for the pointer to settle on something, so sweeping across the board does not flash it,
+  // and never fires while the board slides under a still cursor.
+  const hoverSoon = useCallback(
+    (next: { type: "node" | "edge"; id: string } | undefined) => {
+      window.clearTimeout(hoverTimer.current);
+      if (moving.current.board || moving.current.card) return;
+      hoverTimer.current = window.setTimeout(
+        () => {
+          light(next);
+          setHoveredEdge(next?.type === "edge" ? next.id : undefined);
+        },
+        next ? HOVER_DELAY : UNHOVER_DELAY,
+      );
+    },
+    [light],
+  );
+  const unhover = useCallback(() => {
+    window.clearTimeout(hoverTimer.current);
+    light(undefined);
+    setHoveredEdge(undefined);
+  }, [light]);
+  useEffect(() => () => window.clearTimeout(hoverTimer.current), []);
   const [attachTarget, setAttachTarget] = useState<string>();
   const [dragging, setDragging] = useState<string>();
   const [settling, setSettling] = useState(false);
@@ -1118,25 +1197,10 @@ function CanvasInner(props: CanvasProps) {
 
   const { hidden, counts } = useMemo(() => foldedNodes(graph, collapsed), [collapsed, graph]);
 
-  const related = useMemo(() => {
-    if (!hovered || dragging || isAnnotationId(hovered.id)) return undefined;
-    if (hovered.type === "edge") {
-      const edge = graph.edges.find((candidate) => `${candidate.source}->${candidate.target}` === hovered.id);
-      return new Set(edge ? [edge.source, edge.target] : []);
-    }
-    const set = new Set([hovered.id]);
-    for (const edge of graph.edges) {
-      if (edge.source === hovered.id) set.add(edge.target);
-      if (edge.target === hovered.id) set.add(edge.source);
-    }
-    return set;
-  }, [dragging, graph.edges, hovered]);
-
   const displayNodes = useMemo(
     () =>
       nodes.map((node) => {
         const classes: string[] = [];
-        if (related) classes.push(related.has(node.id) ? "is-related" : "is-dim");
         if (node.id === attachTarget) classes.push("is-attach-target");
         if (settling) classes.push("is-settling");
         const className = classes.join(" ") || undefined;
@@ -1152,7 +1216,7 @@ function CanvasInner(props: CanvasProps) {
           data: dataChanged ? { ...node.data, collapsed: isCollapsed, hiddenCount } : node.data,
         };
       }),
-    [attachTarget, collapsed, counts, hidden, nodes, related, settling],
+    [attachTarget, collapsed, counts, hidden, nodes, settling],
   );
 
   const flowNodes = useMemo<FlowNode[]>(
@@ -1168,16 +1232,15 @@ function CanvasInner(props: CanvasProps) {
     // Wires into a shared resource all end at the same point, so only one of them may carry a label there:
     // the one being looked at if there is one, otherwise the first.
     const lookedAt = new Set(
-      edges.filter((edge) => edge.selected || (hovered?.type === "edge" && hovered.id === edge.id)).map((edge) => edge.target),
+      edges.filter((edge) => edge.selected || edge.id === hoveredEdge).map((edge) => edge.target),
     );
     const labelled = new Set<string>();
     const list = edges.map((edge) => {
-      const hoveredEdge = hovered?.type === "edge" && hovered.id === edge.id;
-      const touches = hoveredEdge || (hovered?.type === "node" && (edge.source === hovered.id || edge.target === hovered.id));
+      const pointed = edge.id === hoveredEdge;
       const kind = kinds.get(edge.target) ?? "tool";
-      const className = edgeClass(kind, edge.data?.relation, related ? (touches ? "is-related" : "is-dim") : undefined);
+      const className = edgeClass(kind, edge.data?.relation);
       // A label shows strongly only for the wire being pointed at or selected.
-      const showLabel = Boolean(edge.selected || hoveredEdge);
+      const showLabel = Boolean(edge.selected || pointed);
       const labelOwner = lookedAt.has(edge.target) ? showLabel : !labelled.has(edge.target);
       if (labelOwner) labelled.add(edge.target);
       if (edge.className === className && edge.data?.showLabel === showLabel && edge.data?.labelOwner === labelOwner) return edge;
@@ -1194,7 +1257,7 @@ function CanvasInner(props: CanvasProps) {
       });
     }
     return list;
-  }, [attachTarget, dragging, edges, hovered, kinds, related]);
+  }, [attachTarget, dragging, edges, hoveredEdge, kinds]);
 
   const isValidConnection = useCallback<IsValidConnection<RelationEdge>>(
     (connection) =>
@@ -1212,8 +1275,10 @@ function CanvasInner(props: CanvasProps) {
     (_, node) => {
       dragStart.current = snapshot(getNodes());
       setDragging(node.id);
+      moving.current.card = true;
+      unhover();
     },
-    [getNodes],
+    [getNodes, unhover],
   );
 
   const onNodeDrag = useCallback<OnNodeDrag<FlowNode>>(
@@ -1228,6 +1293,7 @@ function CanvasInner(props: CanvasProps) {
   const onNodeDragStop = useCallback<OnNodeDrag<FlowNode>>(
     (_, node, dragged) => {
       setDragging(undefined);
+      moving.current.card = false;
       const target = attachTarget;
       setAttachTarget(undefined);
       if (target) {
@@ -1404,10 +1470,17 @@ function CanvasInner(props: CanvasProps) {
               edgeTypes={edgeTypes}
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
-              onNodeMouseEnter={useCallback<NodeMouseHandler<FlowNode>>((_, node) => setHovered({ type: "node", id: node.id }), [])}
-              onNodeMouseLeave={useCallback(() => setHovered(undefined), [])}
-              onEdgeMouseEnter={useCallback<EdgeMouseHandler<RelationEdge>>((_, edge) => setHovered({ type: "edge", id: edge.id }), [])}
-              onEdgeMouseLeave={useCallback(() => setHovered(undefined), [])}
+              onNodeMouseEnter={useCallback<NodeMouseHandler<FlowNode>>((_, node) => hoverSoon({ type: "node", id: node.id }), [hoverSoon])}
+              onNodeMouseLeave={useCallback(() => hoverSoon(undefined), [hoverSoon])}
+              onEdgeMouseEnter={useCallback<EdgeMouseHandler<RelationEdge>>((_, edge) => hoverSoon({ type: "edge", id: edge.id }), [hoverSoon])}
+              onEdgeMouseLeave={useCallback(() => hoverSoon(undefined), [hoverSoon])}
+              onMoveStart={useCallback(() => {
+                moving.current.board = true;
+                unhover();
+              }, [unhover])}
+              onMoveEnd={useCallback(() => {
+                moving.current.board = false;
+              }, [])}
               onNodeClick={() => {
                 setDraft(undefined);
                 setSummaryOpen(false);
@@ -1434,13 +1507,16 @@ function CanvasInner(props: CanvasProps) {
               nodesDraggable={!locked && tool === "select" && !touch}
               nodesConnectable={!locked && tool === "select"}
               elementsSelectable={tool === "select"}
-              onlyRenderVisibleElements={graph.nodes.length > 120}
               // React Flow asks open projects without a Pro plan to keep its attribution.
               attributionPosition="top-right"
               minZoom={0.15}
               maxZoom={2.5}
+              // Past a few hundred cards, mounting only what is on screen beats painting them all;
+              // below that, mounting cards as they scroll in costs more than it saves.
+              onlyRenderVisibleElements={graph.nodes.length > 400}
             >
               <DottedBackground />
+              <ZoomTier surface={surfaceRef} />
               {minimap && (
                 <MiniMap
                   pannable

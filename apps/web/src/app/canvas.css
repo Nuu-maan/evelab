@@ -387,7 +387,7 @@
     position: absolute;
     z-index: 30;
     overflow: hidden;
-    animation: picker-in 160ms var(--ease-out) both;
+    animation: picker-in 160ms var(--ease-out) backwards;
   }
 
   /* Keys 1 to 5 open it many times a day; from the keyboard it simply appears. */
@@ -777,7 +777,7 @@
     white-space: nowrap;
     transform: translateX(-50%);
     pointer-events: none;
-    animation: canvas-empty-in 320ms var(--ease-out) both;
+    animation: canvas-empty-in 320ms var(--ease-out) backwards;
   }
 
   @keyframes canvas-empty-in {
@@ -801,7 +801,7 @@
     color: var(--foreground-secondary);
     font-size: var(--text-label);
     white-space: nowrap;
-    animation: notice-in 200ms var(--ease-out) both;
+    animation: notice-in 200ms var(--ease-out) backwards;
   }
 
   .canvas-notice[data-raised] {
@@ -858,7 +858,7 @@
     border-radius: 0;
     background: var(--background);
     box-shadow: none;
-    animation: float-in-left 160ms var(--ease-out) both;
+    animation: float-in-left 160ms var(--ease-out) backwards;
   }
 
   @keyframes float-in-left {
@@ -1165,7 +1165,6 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    transition: opacity 200ms ease;
   }
 
   .node[data-tier="root"] {
@@ -1367,7 +1366,11 @@
     inset-inline-end: 8px;
   }
 
-  .react-flow__node.is-dim .node {
+  /*
+   * Pointing at a card or wire dims everything it does not touch; the canvas marks the ones it does.
+   * It dims at once: fading would repaint every card and wire on the board for each frame of the fade.
+   */
+  .canvas-surface[data-focus] .react-flow__node:not([data-lit]) .node {
     opacity: 0.35;
   }
 
@@ -1416,7 +1419,7 @@
   }
 
   .node[data-fresh] {
-    animation: node-in 260ms var(--ease-out) both;
+    animation: node-in 260ms var(--ease-out) backwards;
   }
 
   @keyframes node-in {
@@ -1531,7 +1534,6 @@
 
   .react-flow__edge {
     --kind: var(--foreground-tertiary);
-    transition: opacity 200ms ease;
   }
 
   .react-flow__edge.edge-tool {
@@ -1554,7 +1556,7 @@
     --kind: var(--kind-channel);
   }
 
-  .react-flow__edge.is-dim {
+  .canvas-surface[data-focus] .react-flow__edge:not([data-lit]) {
     opacity: 0.12;
   }
 
@@ -1577,7 +1579,7 @@
   }
 
   /* A wire being looked at brightens and thickens; it stays still, so a busy board does not shimmer. */
-  .react-flow__edge.is-related .react-flow__edge-path,
+  .canvas-surface[data-focus] .react-flow__edge[data-lit] .react-flow__edge-path,
   .react-flow__edge.selected .react-flow__edge-path {
     stroke: var(--kind);
     stroke-width: 2;
@@ -1609,6 +1611,11 @@
     pointer-events: none;
   }
 
+  /* Hidden, not unrendered: showing them again is a repaint, not a layout and a fade for every wire at once. */
+  .canvas-surface[data-far] .edge-label-anchor[data-quiet] {
+    visibility: hidden;
+  }
+
   .edge-label {
     display: flex;
     align-items: center;
@@ -1623,7 +1630,7 @@
     font-size: 11px;
     font-weight: var(--weight-medium);
     white-space: nowrap;
-    animation: edge-label-fade 140ms ease both;
+    animation: edge-label-fade 140ms ease backwards;
     transition: border-color var(--duration-hover) ease, color var(--duration-hover) ease;
   }
 
@@ -1677,7 +1684,7 @@
     font-weight: var(--weight-medium);
     white-space: nowrap;
     cursor: pointer;
-    animation: edge-label-fade 140ms ease both;
+    animation: edge-label-fade 140ms ease backwards;
     transition: background-color var(--duration-hover) ease, border-color var(--duration-hover) ease,
       transform var(--duration-press) var(--ease-out);
   }
@@ -1858,7 +1865,7 @@
     height: 40px;
     padding: 0 6px;
     transform: translateX(-50%);
-    animation: notice-in 180ms var(--ease-out) both;
+    animation: notice-in 180ms var(--ease-out) backwards;
   }
 
   .annotation-tool {
@@ -1962,7 +1969,7 @@
     width: var(--pane-inspector, 360px);
     max-width: calc(100% - 32px);
     overflow: hidden;
-    animation: float-in-right 160ms var(--ease-out) both;
+    animation: float-in-right 160ms var(--ease-out) backwards;
   }
 
   .canvas-inspector > .resize-handle[data-edge="start"] {
@@ -1987,7 +1994,7 @@
     flex: 1;
     flex-direction: column;
     min-height: 0;
-    animation: inspector-in 120ms ease both;
+    animation: inspector-in 120ms ease backwards;
   }
 
   /* Selecting another card swaps the inspector many times a session, so it only fades. */
