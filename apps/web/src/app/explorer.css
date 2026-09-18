@@ -71,6 +71,7 @@
   }
 
   .tree-row:focus-visible .tree-row-actions,
+  .tree-row-actions:focus-within,
   .tree-row[aria-selected="true"] .tree-row-actions {
     opacity: 1;
   }

@@ -1346,6 +1346,13 @@
     opacity: 1;
   }
 
+  /* Without hover there is nothing to reveal it, so on touch it is always there. */
+  @media (hover: none) {
+    .node-collapse {
+      opacity: 1;
+    }
+  }
+
   @media (hover: hover) and (pointer: fine) {
     .node-collapse:hover {
       background: var(--surface-hover);
