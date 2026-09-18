@@ -46,7 +46,12 @@ export default function TemplatesPage() {
           </a>
         </nav>
         <div className="lp-header-actions">
-          <ThemeToggle />
+          <span className="lp-header-theme">
+            <ThemeToggle />
+          </span>
+          <Button asChild size="sm">
+            <Link href="/projects">Open app</Link>
+          </Button>
           <LandingMenu
             repository={REPOSITORY_URL}
             links={[
@@ -55,10 +60,11 @@ export default function TemplatesPage() {
               { label: "Templates", href: "/templates" },
               { label: "Docs", href: "https://eve.dev/docs", external: true },
             ]}
-          />
-          <Button asChild size="sm">
-            <Link href="/projects">Open app</Link>
-          </Button>
+          >
+            <Button asChild size="lg" className="h-11 rounded-full text-[15px]">
+              <Link href="/projects">Open app</Link>
+            </Button>
+          </LandingMenu>
         </div>
       </header>
 

@@ -70,6 +70,7 @@ import {
 } from "@/components/canvas/canvas-inspector";
 import { CanvasCreatePanel, type DraftKind } from "@/components/canvas/canvas-create-panel";
 import { ResourceBrowser } from "@/components/canvas/resource-browser";
+import { PhoneSheet, useMediaQuery, usePhone } from "@/components/phone-sheet";
 import {
   CanvasPicker,
   CanvasToolbar,
@@ -1257,6 +1258,100 @@ function CanvasInner(props: CanvasProps) {
   const rootNode = byId.get("agent");
   const empty = graph.nodes.every((node) => node.kind === "agent" || node.kind === "channel");
   const showInspector = Boolean(draft || selected || summaryOpen);
+  const inspectorLabel = draft ? "Create" : selected ? `${selected.name} inspector` : "Architecture";
+
+  // On a phone both side panels are bottom sheets, and only one is up at a time.
+  const phone = usePhone();
+  // A finger on the board pans it, as on a map; cards stay put under it, so a pan never reshuffles the layout.
+  const touch = useMediaQuery("(pointer: coarse)");
+  useEffect(() => {
+    if (phone && showInspector) setPanelOpen(false);
+  }, [phone, showInspector]);
+
+  const closeInspector = () => {
+    setDraft(undefined);
+    clearSelection();
+    setSummaryOpen(false);
+  };
+
+  const resourceBrowser = (
+    <ResourceBrowser
+      title={rootNode?.name}
+      save={saveState}
+      nodes={graph.nodes}
+      selectedId={selected?.id}
+      onSelect={select}
+      onCreate={(kind) => create(kind)}
+      canDrop={(resource, point) => {
+        const target = agentAt(point);
+        const ok = Boolean(target && !uses(target, resource));
+        setAttachTarget((current) => {
+          const next = ok ? target : undefined;
+          return current === next ? current : next;
+        });
+        return ok;
+      }}
+      onDrop={(resource, point) => {
+        const target = agentAt(point);
+        setAttachTarget(undefined);
+        if (target) void attach(resource, target);
+      }}
+      onHoverDrop={(over) => {
+        if (!over) setAttachTarget(undefined);
+      }}
+      canPlace={overCanvas}
+      onAnnotate={(type, point) => addAnnotation(type, point ? screenToFlowPosition(point) : undefined)}
+    />
+  );
+
+  const inspectorBody = (
+    <>
+    {draft ? (
+      <CanvasCreatePanel
+        key={`${draft.kind}-${draft.owner ?? "root"}`}
+        projectId={projectId}
+        kind={draft.kind}
+        root={root}
+        owner={draft.owner ? byId.get(draft.owner)?.name : undefined}
+        defaultModel={props.defaultModel}
+        models={props.models}
+        existingChannels={graph.nodes.filter((node) => node.kind === "channel").map((node) => node.name)}
+        chatSdkAdapters={props.chatSdkAdapters}
+        chatSdkStates={props.chatSdkStates}
+        onClose={() => setDraft(undefined)}
+        onSubmitted={(entityId) => {
+          const owner = draft.owner;
+          const kind = draft.kind;
+          setDraft(undefined);
+          say({ text: `Created ${entityId}` });
+          if (owner && (kind === "tool" || kind === "connection")) {
+            // Created at the root first, then moved into the subagent's own folder.
+            void run(() => changeOwnershipAction({ projectId, capability: `${kind}:${entityId}`, to: owner }));
+          }
+        }}
+      />
+    ) : (
+      <CanvasInspector
+        projectId={projectId}
+        graph={graph}
+        node={selected}
+        content={selected ? (contents[selected.filePath] ?? "") : ""}
+        issues={issues}
+        onSelect={select}
+        onFocus={(id) => void fitView({ nodes: [{ id }], duration: 360, padding: fitPadding(), maxZoom: 1.1 })}
+        onClear={() => {
+          clearSelection();
+          setSummaryOpen(false);
+        }}
+        onAttach={(resource, agent) => void attach(resource, agent)}
+        onDetach={(resource, agent) => void detach(resource, agent)}
+        onCreate={create}
+        onDelete={setConfirmDelete}
+        onSourceState={setSourceState}
+      />
+    )}
+    </>
+  );
 
   return (
     <CanvasContext.Provider value={context}>
@@ -1303,8 +1398,8 @@ function CanvasInner(props: CanvasProps) {
               connectionLineComponent={CanvasConnectionLine}
               connectionRadius={40}
               // Whiteboard controls as in Excalidraw: select drags a selection, hand or Space pans, scroll pans, Ctrl or pinch zooms.
-              panOnDrag={tool === "hand" ? true : [1, 2]}
-              selectionOnDrag={tool === "select"}
+              panOnDrag={tool === "hand" || touch ? true : [1, 2]}
+              selectionOnDrag={tool === "select" && !touch}
               panOnScroll
               selectionKeyCode="Shift"
               multiSelectionKeyCode={["Meta", "Control"]}
@@ -1313,7 +1408,7 @@ function CanvasInner(props: CanvasProps) {
               deleteKeyCode={null}
               snapToGrid={snap}
               snapGrid={[24, 24]}
-              nodesDraggable={!locked && tool === "select"}
+              nodesDraggable={!locked && tool === "select" && !touch}
               nodesConnectable={!locked && tool === "select"}
               elementsSelectable={tool === "select"}
               onlyRenderVisibleElements={graph.nodes.length > 120}
@@ -1396,7 +1491,7 @@ function CanvasInner(props: CanvasProps) {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon-sm" aria-label="Wire style">
+                    <Button variant="ghost" size="icon-sm" aria-label="Wire style" className="canvas-wire-button">
                       <Icon icon={WIRE_OPTIONS.find((option) => option.value === wireStyle)!.icon} />
                     </Button>
                   </DropdownMenuTrigger>
@@ -1470,34 +1565,12 @@ function CanvasInner(props: CanvasProps) {
             </DropdownMenu>
           </div>
 
-          {panelOpen && (
-            <ResourceBrowser
-              title={rootNode?.name}
-              save={saveState}
-              nodes={graph.nodes}
-              selectedId={selected?.id}
-              onSelect={select}
-              onCreate={(kind) => create(kind)}
-              canDrop={(resource, point) => {
-                const target = agentAt(point);
-                const ok = Boolean(target && !uses(target, resource));
-                setAttachTarget((current) => {
-                  const next = ok ? target : undefined;
-                  return current === next ? current : next;
-                });
-                return ok;
-              }}
-              onDrop={(resource, point) => {
-                const target = agentAt(point);
-                setAttachTarget(undefined);
-                if (target) void attach(resource, target);
-              }}
-              onHoverDrop={(over) => {
-                if (!over) setAttachTarget(undefined);
-              }}
-              canPlace={overCanvas}
-              onAnnotate={(type, point) => addAnnotation(type, point ? screenToFlowPosition(point) : undefined)}
-            />
+          {phone ? (
+            <PhoneSheet open={panelOpen} onOpenChange={setPanelOpen} title="Resources">
+              {resourceBrowser}
+            </PhoneSheet>
+          ) : (
+            panelOpen && resourceBrowser
           )}
 
           <div className="canvas-bottom-left">
@@ -1591,53 +1664,12 @@ function CanvasInner(props: CanvasProps) {
             </div>
           )}
 
-          {showInspector && (
-            <InspectorColumn label={draft ? "Create" : selected ? `${selected.name} inspector` : "Architecture"}>
-              {draft ? (
-                <CanvasCreatePanel
-                  key={`${draft.kind}-${draft.owner ?? "root"}`}
-                  projectId={projectId}
-                  kind={draft.kind}
-                  root={root}
-                  owner={draft.owner ? byId.get(draft.owner)?.name : undefined}
-                  defaultModel={props.defaultModel}
-                  models={props.models}
-                  existingChannels={graph.nodes.filter((node) => node.kind === "channel").map((node) => node.name)}
-                  chatSdkAdapters={props.chatSdkAdapters}
-                  chatSdkStates={props.chatSdkStates}
-                  onClose={() => setDraft(undefined)}
-                  onSubmitted={(entityId) => {
-                    const owner = draft.owner;
-                    const kind = draft.kind;
-                    setDraft(undefined);
-                    say({ text: `Created ${entityId}` });
-                    if (owner && (kind === "tool" || kind === "connection")) {
-                      // Created at the root first, then moved into the subagent's own folder.
-                      void run(() => changeOwnershipAction({ projectId, capability: `${kind}:${entityId}`, to: owner }));
-                    }
-                  }}
-                />
-              ) : (
-                <CanvasInspector
-                  projectId={projectId}
-                  graph={graph}
-                  node={selected}
-                  content={selected ? (contents[selected.filePath] ?? "") : ""}
-                  issues={issues}
-                  onSelect={select}
-                  onFocus={(id) => void fitView({ nodes: [{ id }], duration: 360, padding: fitPadding(), maxZoom: 1.1 })}
-                  onClear={() => {
-                    clearSelection();
-                    setSummaryOpen(false);
-                  }}
-                  onAttach={(resource, agent) => void attach(resource, agent)}
-                  onDetach={(resource, agent) => void detach(resource, agent)}
-                  onCreate={create}
-                  onDelete={setConfirmDelete}
-                  onSourceState={setSourceState}
-                />
-              )}
-            </InspectorColumn>
+          {phone ? (
+            <PhoneSheet open={showInspector} onOpenChange={(open) => !open && closeInspector()} title={inspectorLabel}>
+              {inspectorBody}
+            </PhoneSheet>
+          ) : (
+            showInspector && <InspectorColumn label={inspectorLabel}>{inspectorBody}</InspectorColumn>
           )}
 
           <ConfirmDialog

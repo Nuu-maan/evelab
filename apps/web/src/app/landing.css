@@ -1421,14 +1421,203 @@
 
   /* ---------- Narrow screens ---------- */
 
-  /* The menu button stands in for the inline nav, and cards drop their desktop-sized picture areas. */
-  .lp-menu {
+  /* On narrow screens a menu stands in for the inline nav, and cards drop their desktop-sized picture areas. */
+  .lp-menu-button {
+    position: relative;
     display: none;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--background);
+    color: var(--foreground);
+    cursor: pointer;
+    transition: background-color var(--duration-hover) ease, scale var(--duration-press) var(--ease-out);
+  }
+
+  .lp-menu-button::before {
+    content: "";
+    position: absolute;
+    inset: -4px;
+  }
+
+  .lp-menu-button:active {
+    scale: 0.96;
+  }
+
+  .lp-menu-button:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  /* Two lines that meet as a cross when the menu opens. */
+  .lp-menu-lines {
+    position: relative;
+    width: 14px;
+    height: 8px;
+  }
+
+  .lp-menu-lines i {
+    position: absolute;
+    inset-inline: 0;
+    height: 1.5px;
+    border-radius: 1px;
+    background: currentColor;
+    transition: translate 200ms var(--ease-out), rotate 200ms var(--ease-out);
+  }
+
+  .lp-menu-lines i:first-child {
+    top: 0;
+  }
+
+  .lp-menu-lines i:last-child {
+    bottom: 0;
+  }
+
+  .lp-menu-button[aria-expanded="true"] .lp-menu-lines i:first-child {
+    translate: 0 3.25px;
+    rotate: 45deg;
+  }
+
+  .lp-menu-button[aria-expanded="true"] .lp-menu-lines i:last-child {
+    translate: 0 -3.25px;
+    rotate: -45deg;
+  }
+
+  /* The panel drops in under the header and fills the screen; links stagger in after it. */
+  .lp-menu-panel {
+    position: fixed;
+    top: 64px;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 29;
+    display: none;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: var(--space-8);
+    overflow-y: auto;
+    padding: var(--space-2) var(--lp-gutter) max(var(--space-8), env(safe-area-inset-bottom));
+    background: var(--background);
+    opacity: 0;
+    visibility: hidden;
+    translate: 0 -8px;
+    transition: opacity 180ms var(--ease-out), translate 220ms var(--ease-out), visibility 0s linear 220ms;
+  }
+
+  .lp-menu-panel[data-open] {
+    opacity: 1;
+    visibility: visible;
+    translate: 0 0;
+    transition: opacity 200ms var(--ease-out), translate 240ms var(--ease-out), visibility 0s;
+  }
+
+  .lp-menu-links {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .lp-menu-links li,
+  .lp-menu-footer {
+    opacity: 0;
+    translate: 0 6px;
+    transition: opacity 200ms var(--ease-out), translate 240ms var(--ease-out);
+  }
+
+  .lp-menu-panel[data-open] .lp-menu-links li,
+  .lp-menu-panel[data-open] .lp-menu-footer {
+    opacity: 1;
+    translate: 0 0;
+    transition-delay: calc(40ms + var(--i) * 30ms);
+  }
+
+  .lp-menu-links a {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 56px;
+    border-bottom: 1px solid var(--border);
+    color: var(--foreground);
+    font-size: 22px;
+    font-weight: 450;
+    letter-spacing: -0.03em;
+  }
+
+  .lp-menu-links a .icon {
+    color: var(--foreground-tertiary);
+    transition: translate 200ms var(--ease-out), color var(--duration-hover) ease;
+  }
+
+  .lp-menu-links a:active .icon {
+    translate: 3px 0;
+    color: var(--foreground);
+  }
+
+  .lp-menu-links a:focus-visible,
+  .lp-menu-github:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  .lp-menu-footer {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .lp-menu-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .lp-menu-github {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    color: var(--foreground-secondary);
+    font-size: 15px;
+  }
+
+  .lp-menu-actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .lp-menu-actions form,
+  .lp-menu-actions a,
+  .lp-menu-actions button {
+    width: 100%;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .lp-menu-panel,
+    .lp-menu-panel[data-open],
+    .lp-menu-links li,
+    .lp-menu-footer,
+    .lp-menu-lines i {
+      translate: none;
+      transition-property: opacity, visibility;
+    }
   }
 
   @media (max-width: 760px) {
-    .lp-menu {
-      display: inline-flex;
+    .lp-menu-button {
+      display: grid;
+    }
+
+    .lp-menu-panel {
+      display: flex;
+    }
+
+    /* The theme switch and signing in move into the menu. */
+    .lp-header-theme,
+    .lp-header-login {
+      display: none;
     }
 
     .lp-header {
