@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import {
   applyNodeChanges,
@@ -13,8 +13,8 @@ import {
   useNodesInitialized,
   useNodesState,
   useReactFlow,
+  useStore,
   useUpdateNodeInternals,
-  useViewport,
   type Connection,
   type EdgeMouseHandler,
   type IsValidConnection,
@@ -49,7 +49,7 @@ import {
   type AnnotationContextValue,
   type AnnotationNode,
 } from "@/components/canvas/annotations";
-import { CanvasConnectionLine, RelationEdgePath, type EdgeBend, type RelationEdge } from "@/components/canvas/canvas-edge";
+import { CanvasConnectionLine, READABLE_ZOOM, RelationEdgePath, type EdgeBend, type RelationEdge } from "@/components/canvas/canvas-edge";
 import {
   CanvasContext,
   CanvasNodeCard,
@@ -327,21 +327,33 @@ function ToolbarButton({
 const HOVER_DELAY = 90;
 const UNHOVER_DELAY = 60;
 
+/** Only the zoom, so a pan never re-renders what reads it. */
+const selectZoom = (state: { transform: [number, number, number] }) => state.transform[2];
+
 /**
  * Dots that stay a steady size on screen. React Flow scales dots with zoom, so
  * zoomed out they vanish; here the dot size counters the zoom, and the spacing
  * doubles in steps so a zoomed-out board is dotted, not grey.
  */
 function DottedBackground() {
-  const { zoom } = useViewport();
+  const zoom = useStore(selectZoom);
   const step = zoom >= 0.6 ? 1 : 2 ** Math.ceil(Math.log2(0.6 / zoom));
   return <Background variant={BackgroundVariant.Dots} gap={20 * step} size={1.3 / zoom} color="var(--canvas-dot-color)" />;
 }
 
-/** Its own component so panning re-renders the zoom readout, not the canvas. */
+/** Marks a zoomed-out board on the surface, so quiet wire labels hide from CSS rather than remounting. */
+function ZoomTier({ surface }: { surface: RefObject<HTMLDivElement | null> }) {
+  const far = useStore((state) => state.transform[2] < READABLE_ZOOM);
+  useLayoutEffect(() => {
+    surface.current?.toggleAttribute("data-far", far);
+  }, [far, surface]);
+  return null;
+}
+
+/** Its own component so zooming re-renders the zoom readout, not the canvas. */
 function ZoomControls() {
   const { zoomIn, zoomOut, zoomTo, fitView } = useReactFlow();
-  const { zoom } = useViewport();
+  const zoom = useStore(selectZoom);
   return (
     <div className="canvas-float canvas-zoom" role="toolbar" aria-label="Zoom">
       <ToolbarButton label="Zoom out" tooltip="Zoom out" onClick={() => void zoomOut({ duration: 200 })}>

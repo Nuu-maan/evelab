@@ -1611,6 +1611,11 @@
     pointer-events: none;
   }
 
+  /* Hidden, not unrendered: showing them again is a repaint, not a layout and a fade for every wire at once. */
+  .canvas-surface[data-far] .edge-label-anchor[data-quiet] {
+    visibility: hidden;
+  }
+
   .edge-label {
     display: flex;
     align-items: center;

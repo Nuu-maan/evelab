@@ -35,6 +35,9 @@ export type RelationEdgeData = {
 
 export type RelationEdge = Edge<RelationEdgeData, "relation">;
 
+/** The zoom at which cards are big enough to read, so every wire names itself. */
+export const READABLE_ZOOM = 0.7;
+
 const RADIUS = 10;
 /** First turn below a port, and how much further each port to the right turns, so buses never overlap. */
 const TURN = 22;
@@ -60,8 +63,6 @@ function RelationEdgeBase({
   data,
 }: EdgeProps<RelationEdge>) {
   const { mode, wireStyle, detachEdge } = useContext(CanvasContext);
-  // Once cards are big enough to read, every wire names itself; zoomed out, only the one being looked at does.
-  const readable = useStore((state) => state.transform[2] >= 0.7);
   const horizontal = mode === "horizontal";
   const port = Math.max(0, PORT_ORDER.indexOf(data?.kind as PortKind));
 
@@ -115,10 +116,13 @@ function RelationEdgeBase({
     <>
       <BaseEdge id={id} path={path} interactionWidth={18} />
       {/* Every channel says "routes to", so those labels only show on the wire being looked at. */}
-      {data?.relation && data.labelOwner !== false && (active || selected || (readable && !channel)) && (
+      {data?.relation && data.labelOwner !== false && (active || selected || !channel) && (
         <EdgeLabelRenderer>
           <div
             className="edge-label-anchor nodrag nopan"
+            // Once cards are big enough to read, every wire names itself; zoomed out, only the one being looked at does.
+            // The rest stay mounted and hide from CSS, so crossing that zoom never mounts a label per wire mid-gesture.
+            data-quiet={!(active || selected) || undefined}
             style={{
               transform: lift > 1 ? `${labelTransform} scale(${lift})` : labelTransform,
               // Grow away from the card the label points at, never into it.
