@@ -4,7 +4,6 @@ import {
   IconArrowDown,
   IconArrowUpRight,
   IconCheck,
-  IconChevronDown,
   IconChevronRight,
   IconGlobe,
   IconLogoGithub,
@@ -13,6 +12,7 @@ import {
 import { BrandLogo } from "@/components/brand-logo";
 import { Icon } from "@/components/icon";
 import { KINDS } from "@/components/kinds";
+import { Faq } from "@/components/landing/faq";
 import { HeroScene } from "@/components/landing/hero-scene";
 import { InView } from "@/components/landing/in-view";
 import { LandingMenu } from "@/components/landing/landing-menu";
@@ -503,17 +503,7 @@ export default async function LandingPage() {
             <h2 className="lp-heading" id="faq-title">
               Questions
             </h2>
-            <div className="lp-faq-list">
-              {FAQ.map((item) => (
-                <details key={item.question} className="lp-faq-item">
-                  <summary>
-                    {item.question}
-                    <Icon icon={IconChevronDown} size={16} />
-                  </summary>
-                  <p>{item.answer}</p>
-                </details>
-              ))}
-            </div>
+            <Faq items={FAQ} />
           </InView>
         </section>
 

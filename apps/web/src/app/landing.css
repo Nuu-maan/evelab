@@ -734,38 +734,63 @@
     border-bottom: 1px solid var(--border);
   }
 
-  .lp-faq-item summary {
+  .lp-faq-question {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: var(--space-4);
+    width: 100%;
     min-height: 64px;
     padding-block: var(--space-4);
+    color: var(--foreground);
     font-size: 17px;
     font-weight: 500;
     letter-spacing: -0.01em;
     line-height: 24px;
-    list-style: none;
+    text-align: start;
     cursor: pointer;
   }
 
-  .lp-faq-item summary::-webkit-details-marker {
-    display: none;
-  }
-
-  .lp-faq-item summary .icon {
+  .lp-faq-question .icon {
+    flex: none;
     color: var(--foreground-tertiary);
-    transition: rotate 200ms var(--ease-out);
+    transition: rotate 280ms var(--ease-out), color var(--duration-hover) ease;
   }
 
-  .lp-faq-item[open] summary .icon {
+  .lp-faq-item[data-open] .lp-faq-question .icon {
     rotate: 180deg;
+    color: var(--foreground);
   }
 
-  .lp-faq-item summary:focus-visible {
+  @media (hover: hover) and (pointer: fine) {
+    .lp-faq-question:hover .icon {
+      color: var(--foreground);
+    }
+  }
+
+  .lp-faq-question:focus-visible {
     outline: 2px solid var(--focus);
     outline-offset: 2px;
     border-radius: 4px;
+  }
+
+  /* The answer's row grows from nothing to its own height, so it slides open whatever its length. */
+  .lp-faq-answer {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition: grid-template-rows 300ms var(--ease-out), opacity 200ms ease;
+  }
+
+  .lp-faq-item[data-open] .lp-faq-answer {
+    grid-template-rows: 1fr;
+    opacity: 1;
+    transition: grid-template-rows 320ms var(--ease-out), opacity 260ms ease 60ms;
+  }
+
+  .lp-faq-answer > div {
+    min-height: 0;
+    overflow: hidden;
   }
 
   .lp-faq-item p {
@@ -778,7 +803,9 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .lp-faq-item summary .icon {
+    .lp-faq-question .icon,
+    .lp-faq-answer,
+    .lp-faq-item[data-open] .lp-faq-answer {
       transition: none;
     }
   }
