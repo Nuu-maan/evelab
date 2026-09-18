@@ -212,7 +212,7 @@
     position: absolute;
     top: var(--float-gap);
     inset-inline-start: calc(var(--browser-width) + var(--float-gap) * 2);
-    inset-inline-end: calc(76px + var(--float-gap) * 2);
+    inset-inline-end: calc(84px + var(--float-gap) * 2);
     z-index: 10;
     display: flex;
     flex-direction: column;
@@ -226,8 +226,9 @@
     align-items: center;
     gap: 2px;
     max-width: 100%;
-    height: 52px;
-    padding-inline: 6px;
+    height: 46px;
+    padding-inline: 4px;
+    border-radius: 14px;
     pointer-events: auto;
   }
 
@@ -238,8 +239,8 @@
   .tool-separator {
     flex: none;
     width: 1px;
-    height: 24px;
-    margin-inline: 5px;
+    height: 18px;
+    margin-inline: 4px;
     background: var(--border);
   }
 
@@ -248,16 +249,18 @@
     display: grid;
     flex: none;
     place-items: center;
-    width: 38px;
-    height: 38px;
-    border-radius: 9px;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
     color: var(--foreground-secondary);
     touch-action: none;
     transition: background-color var(--duration-hover) ease, color var(--duration-hover) ease,
       transform var(--duration-press) var(--ease-out);
   }
 
+  /* Each piece wears its kind's colour, softly, so the five read apart at a glance. */
   .tool-button[data-kind] {
+    color: color-mix(in srgb, var(--kind) 78%, var(--foreground-secondary));
     cursor: grab;
   }
 
@@ -513,24 +516,12 @@
     .canvas-layout[data-panel] .canvas-toolbar-wrap {
       top: var(--float-gap);
       inset-inline-start: var(--float-gap);
-      inset-inline-end: calc(76px + var(--float-gap) * 2);
-      align-items: stretch;
+      inset-inline-end: calc(46px + var(--float-gap) * 2);
+      align-items: flex-start;
     }
 
     .canvas-layout .canvas-toolbar {
       justify-content: flex-start;
-      height: 46px;
-      overflow-x: auto;
-      scrollbar-width: none;
-    }
-
-    .canvas-layout .canvas-toolbar::-webkit-scrollbar {
-      display: none;
-    }
-
-    .canvas-layout .tool-button {
-      width: 36px;
-      height: 36px;
     }
 
     /* On a phone the panel is a sheet over the board again, so it floats with its own frame. */
@@ -560,7 +551,20 @@
     .canvas-layout.canvas-layout[data-panel] .canvas-bottom-left {
       inset-inline-start: var(--float-gap);
     }
+
+    /* On a phone the resources live in a bottom sheet; the floating panel never shows, not even for the first paint. */
+    .canvas-layout > .canvas-browser {
+      display: none;
+    }
+
+    /* The piece picker opens over the sheets, and never runs under them. */
+    .canvas-layout .canvas-picker {
+      z-index: 60;
+      max-height: calc(100dvh - 200px);
+      overflow-y: auto;
+    }
   }
+
 
   @keyframes float-in-up {
     from {
@@ -598,13 +602,17 @@
     font-size: 10.5px;
   }
 
+  /* The view menu matches the toolbar's height, so the two read as one row. */
   .canvas-view-menu {
     position: absolute;
     top: var(--float-gap);
     inset-inline-end: var(--float-gap);
     display: flex;
-    gap: 1px;
-    padding: 3px;
+    align-items: center;
+    gap: 2px;
+    height: 46px;
+    padding-inline: 4px;
+    border-radius: 14px;
   }
 
   .canvas-bottom-right {
@@ -3015,5 +3023,39 @@
       width: 32px;
       height: 32px;
     }
+  }
+}
+
+/*
+ * Outside the layers on purpose: these buttons carry Tailwind size utilities,
+ * which beat any layered rule. They are matched as elements, since their
+ * tooltip and menu triggers replace the data-slot a class could have used. The
+ * view menu's buttons match the toolbar's 36px tools, and on touch screens
+ * every floating control grows to 40px.
+ */
+.canvas-view-menu button {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+}
+
+@media (pointer: coarse) {
+  .canvas-zoom button,
+  .canvas-history button,
+  .canvas-icon-float button {
+    min-width: 40px;
+    height: 40px;
+  }
+}
+
+/* On a phone-width canvas the wire style steps back and tools tighten a little, so the toolbar fits beside the view menu uncut. */
+@container canvas (max-width: 560px) {
+  .canvas-wire-button {
+    display: none;
+  }
+
+  .canvas-toolbar .tool-button {
+    width: 34px;
+    height: 34px;
   }
 }
