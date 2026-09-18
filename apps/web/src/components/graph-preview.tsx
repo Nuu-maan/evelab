@@ -17,12 +17,48 @@ function isAgent(node: CanvasNode): boolean {
   return node.kind === "agent" || node.kind === "subagent";
 }
 
-/** Where a node's wires leave from and arrive at, in canvas coordinates. */
+/** Where a node's wires can leave from and arrive at, in canvas coordinates. */
 function anchors(node: CanvasNode, x: number, y: number) {
   const width = NODE_SIZE[node.kind].width;
   const centre = x + width / 2;
   const height = isAgent(node) ? CARD : TILE;
-  return { top: { x: centre, y }, bottom: { x: centre, y: y + height } };
+  // Resource and channel tiles are drawn centred in their slot, narrower than it.
+  const half = isAgent(node) ? width / 2 : TILE / 2;
+  const middle = y + height / 2;
+  return {
+    top: { x: centre, y },
+    bottom: { x: centre, y: y + height },
+    left: { x: centre - half, y: middle },
+    right: { x: centre + half, y: middle },
+  };
+}
+
+type Point = { x: number; y: number };
+
+/**
+ * One wire, drawn the way the canvas draws it in the current layout. A target
+ * that sits mostly beside its source is joined side to side, as the horizontal
+ * layout does; anything else runs top to bottom. Freeform layouts get whichever
+ * reads better for each pair.
+ */
+function wire(from: ReturnType<typeof anchors>, to: ReturnType<typeof anchors>): string {
+  const dx = to.left.x - from.right.x;
+  const dy = to.top.y - from.bottom.y;
+  const across = Math.abs(from.top.x - to.top.x) > Math.abs(from.left.y - to.left.y);
+  let start: Point;
+  let end: Point;
+  if (across) {
+    const forward = dx >= 0 || to.right.x > from.right.x;
+    start = forward ? from.right : from.left;
+    end = forward ? to.left : to.right;
+    const bend = Math.max(24, Math.abs(end.x - start.x) / 2) * (forward ? 1 : -1);
+    return `M ${start.x} ${start.y} C ${start.x + bend} ${start.y}, ${end.x - bend} ${end.y}, ${end.x} ${end.y}`;
+  }
+  const down = dy >= 0 || to.bottom.y > from.bottom.y;
+  start = down ? from.bottom : from.top;
+  end = down ? to.top : to.bottom;
+  const bend = Math.max(24, Math.abs(end.y - start.y) / 2) * (down ? 1 : -1);
+  return `M ${start.x} ${start.y} C ${start.x} ${start.y + bend}, ${end.x} ${end.y - bend}, ${end.x} ${end.y}`;
 }
 
 function KindGlyph({ node, x, y, size }: { node: CanvasNode; x: number; y: number; size: number }) {
@@ -74,11 +110,6 @@ export function GraphPreview({ graph, positions, className }: { graph: CanvasGra
         if (!source || !target) return null;
         const from = anchors(source.node, source.x, source.y);
         const to = anchors(target.node, target.x, target.y);
-        // Channels sit above the root: their wires leave its top and arrive at their bottom.
-        const channel = target.node.kind === "channel";
-        const start = channel ? from.top : from.bottom;
-        const end = channel ? to.bottom : to.top;
-        const bend = Math.max(24, Math.abs(end.y - start.y) / 2) * (channel ? -1 : 1);
         const structure = edge.relation === "contains" || edge.relation === "routes to";
         return (
           <path
@@ -86,7 +117,7 @@ export function GraphPreview({ graph, positions, className }: { graph: CanvasGra
             className="graph-preview-edge"
             data-kind={target.node.kind}
             data-structure={structure || undefined}
-            d={`M ${start.x} ${start.y} C ${start.x} ${start.y + bend}, ${end.x} ${end.y - bend}, ${end.x} ${end.y}`}
+            d={wire(from, to)}
           />
         );
       })}
