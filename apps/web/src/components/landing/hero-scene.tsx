@@ -111,7 +111,8 @@ const LAB = { x: 0, y: 0, z: 3.6, w: 9, d: 8, r: 1.3, t: 0.7 };
 const EVE = { x: 12, y: 1.5, z: 1.8, w: 6, d: 5, r: 1.1, t: 0.6 };
 const SHIP = { x: 12.5, y: 10.5, z: 0, w: 6, d: 6, r: 1.2, t: 0.6 };
 
-export function HeroScene() {
+/** The drawing on its own, so the share image can render it too. */
+export function HeroIllustration() {
   const dots: ReactNode[] = [];
   for (let gx = 1; gx < LAB.w; gx++) {
     for (let gy = 1; gy < LAB.d; gy++) dots.push(<circle key={`${gx}-${gy}`} cx={gx} cy={gy} r={0.05} className="iso-dot" />);
@@ -137,7 +138,6 @@ export function HeroScene() {
   );
 
   return (
-    <figure className="iso-figure">
     <svg className="iso" viewBox="-156 -96 458 486" role="img" aria-label="Design an agent on the evelab canvas, get its code with eve, and ship it on Vercel">
       <Shadow x={LAB.x + 0.8} y={LAB.y + 0.8} z={LAB.z - LAB.t - 1.1} w={LAB.w - 1.2} d={LAB.d - 1.2} r={LAB.r} />
       <Shadow x={EVE.x + 0.6} y={EVE.y + 0.6} z={EVE.z - EVE.t - 1} w={EVE.w - 1} d={EVE.d - 1} r={EVE.r} />
@@ -231,6 +231,13 @@ export function HeroScene() {
       </g>
 
     </svg>
+  );
+}
+
+export function HeroScene() {
+  return (
+    <figure className="iso-figure">
+      <HeroIllustration />
       <ol className="iso-steps">
         <li>
           <span className="iso-step-number">1</span>

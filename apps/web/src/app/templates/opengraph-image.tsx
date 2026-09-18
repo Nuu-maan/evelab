@@ -7,6 +7,6 @@ export const contentType = "image/png";
 export default function TemplatesOpenGraphImage() {
   return renderOgImage({
     title: ["Start from a", "real Eve agent."],
-    description: "Production-ready agents you can import, explore and ship in minutes.",
+    description: "Import a production-ready agent and ship it in minutes.",
   });
 }
