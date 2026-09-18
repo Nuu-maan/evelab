@@ -1165,7 +1165,6 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    transition: opacity 200ms ease;
   }
 
   .node[data-tier="root"] {
@@ -1367,7 +1366,11 @@
     inset-inline-end: 8px;
   }
 
-  .react-flow__node.is-dim .node {
+  /*
+   * Pointing at a card or wire dims everything it does not touch; the canvas marks the ones it does.
+   * It dims at once: fading would repaint every card and wire on the board for each frame of the fade.
+   */
+  .canvas-surface[data-focus] .react-flow__node:not([data-lit]) .node {
     opacity: 0.35;
   }
 
@@ -1531,7 +1534,6 @@
 
   .react-flow__edge {
     --kind: var(--foreground-tertiary);
-    transition: opacity 200ms ease;
   }
 
   .react-flow__edge.edge-tool {
@@ -1554,7 +1556,7 @@
     --kind: var(--kind-channel);
   }
 
-  .react-flow__edge.is-dim {
+  .canvas-surface[data-focus] .react-flow__edge:not([data-lit]) {
     opacity: 0.12;
   }
 
@@ -1577,7 +1579,7 @@
   }
 
   /* A wire being looked at brightens and thickens; it stays still, so a busy board does not shimmer. */
-  .react-flow__edge.is-related .react-flow__edge-path,
+  .canvas-surface[data-focus] .react-flow__edge[data-lit] .react-flow__edge-path,
   .react-flow__edge.selected .react-flow__edge-path {
     stroke: var(--kind);
     stroke-width: 2;
