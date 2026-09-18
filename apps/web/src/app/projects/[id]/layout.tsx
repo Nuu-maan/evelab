@@ -9,12 +9,19 @@ import { ProjectHeader } from "@/components/project-header";
 import { QuickOpen } from "@/components/quick-open";
 import { Sidebar } from "@/components/sidebar";
 import { getSourceSummary, readGitState } from "@/lib/git";
+import { projectConnections } from "@/lib/connections";
 import { paneStyle } from "@/lib/panes";
 import { getAccount, requireProjectPage, visibleProjectIds } from "@/lib/session";
 import { SIDEBAR_COOKIE, parseSidebarState } from "@/lib/sidebar-state";
 import { getProject, listProjectNames, projectExists, syncProjectDocs, validateProject } from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
+
+/** Shared definitions once each, plus every agent's own: the same list the Connections page shows. */
+function connectionCount(project: Parameters<typeof projectConnections>[0]): number {
+  const { owned, shared } = projectConnections(project);
+  return owned.length + shared.length;
+}
 
 /** Tabs and history name the project; the page stays noindex from the projects layout. */
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -67,8 +74,9 @@ export default async function ProjectLayout({
           tools: project.tools.length,
           skills: project.skills.length,
           subagents: project.subagents.length,
-          connections: project.connections.length,
-          channels: project.channels.length,        }}
+          connections: connectionCount(project),
+          channels: project.channels.length,
+        }}
         account={account && { name: account.name, image: account.image }}
       />
 
