@@ -143,18 +143,9 @@ export default async function LandingPage() {
           </a>
         </nav>
         <div className="lp-header-actions">
-          <ThemeToggle />
-          <LandingMenu
-            repository={REPO}
-            links={[
-              { label: "Tour", href: "#demo" },
-              { label: "Features", href: "#features" },
-              { label: "Integrations", href: "#integrations" },
-              { label: "Questions", href: "#faq" },
-              { label: "Templates", href: "/templates" },
-              { label: "Docs", href: "https://eve.dev/docs", external: true },
-            ]}
-          />
+          <span className="lp-header-theme">
+            <ThemeToggle />
+          </span>
           <Button asChild variant="outline" size="sm" className="lp-header-link max-[760px]:hidden">
             <a href={REPO} target="_blank" rel="noreferrer">
               <Icon icon={IconLogoGithub} size={14} />
@@ -167,7 +158,7 @@ export default async function LandingPage() {
             </Button>
           ) : (
             <>
-              <form action={signInAction}>
+              <form action={signInAction} className="lp-header-login">
                 <Button type="submit" variant="outline" size="sm">
                   Log in
                 </Button>
@@ -179,6 +170,29 @@ export default async function LandingPage() {
               </form>
             </>
           )}
+          <LandingMenu
+            repository={REPO}
+            links={[
+              { label: "Tour", href: "#demo" },
+              { label: "Features", href: "#features" },
+              { label: "Integrations", href: "#integrations" },
+              { label: "Questions", href: "#faq" },
+              { label: "Templates", href: "/templates" },
+              { label: "Docs", href: "https://eve.dev/docs", external: true },
+            ]}
+          >
+            {canOpen ? (
+              <Button asChild size="lg" className="h-11 rounded-full text-[15px]">
+                <Link href={account ? "/projects" : "/projects/new"}>{account ? "Open your projects" : "Start building"}</Link>
+              </Button>
+            ) : (
+              <form action={signInAction}>
+                <Button type="submit" size="lg" className="h-11 rounded-full text-[15px]">
+                  Log in with GitHub
+                </Button>
+              </form>
+            )}
+          </LandingMenu>
         </div>
       </header>
 
