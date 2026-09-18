@@ -1507,13 +1507,16 @@ function CanvasInner(props: CanvasProps) {
               nodesDraggable={!locked && tool === "select" && !touch}
               nodesConnectable={!locked && tool === "select"}
               elementsSelectable={tool === "select"}
-              onlyRenderVisibleElements={graph.nodes.length > 120}
               // React Flow asks open projects without a Pro plan to keep its attribution.
               attributionPosition="top-right"
               minZoom={0.15}
               maxZoom={2.5}
+              // Past a few hundred cards, mounting only what is on screen beats painting them all;
+              // below that, mounting cards as they scroll in costs more than it saves.
+              onlyRenderVisibleElements={graph.nodes.length > 400}
             >
               <DottedBackground />
+              <ZoomTier surface={surfaceRef} />
               {minimap && (
                 <MiniMap
                   pannable
