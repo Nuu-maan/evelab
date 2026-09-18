@@ -223,108 +223,6 @@
     letter-spacing: -0.02em;
   }
 
-  /* The three steps the drawing acts out, each lit while its part of the loop plays. */
-  .iso-steps {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    margin: 0;
-    padding: 0;
-    border-top: 1px solid var(--border);
-    list-style: none;
-  }
-
-  .iso-steps li {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    column-gap: 10px;
-    row-gap: 2px;
-    align-content: start;
-    align-items: center;
-    padding: 14px 12px 0 0;
-    color: var(--foreground-tertiary);
-    animation: iso-step var(--iso-loop) linear infinite;
-  }
-
-  .iso-steps li:nth-child(2) {
-    animation-name: iso-step-2;
-  }
-
-  .iso-steps li:nth-child(3) {
-    animation-name: iso-step-3;
-  }
-
-  .iso-step-number {
-    display: grid;
-    place-items: center;
-    width: 20px;
-    height: 20px;
-    border: 1px solid currentColor;
-    border-radius: 50%;
-    font-family: var(--font-mono);
-    font-size: 11px;
-    line-height: 1;
-  }
-
-  .iso-step-title {
-    font-size: 14px;
-    font-weight: 500;
-    line-height: 20px;
-  }
-
-  .iso-step-body {
-    grid-column: 2;
-    font-size: 12.5px;
-    line-height: 18px;
-    text-wrap: pretty;
-  }
-
-  @keyframes iso-step {
-    0%,
-    58% {
-      color: var(--foreground);
-    }
-    61%,
-    100% {
-      color: var(--foreground-tertiary);
-    }
-  }
-
-  @keyframes iso-step-2 {
-    0%,
-    59% {
-      color: var(--foreground-tertiary);
-    }
-    62%,
-    82% {
-      color: var(--foreground);
-    }
-    85%,
-    100% {
-      color: var(--foreground-tertiary);
-    }
-  }
-
-  @keyframes iso-step-3 {
-    0%,
-    83% {
-      color: var(--foreground-tertiary);
-    }
-    86%,
-    100% {
-      color: var(--foreground);
-    }
-  }
-
-  @media (max-width: 520px) {
-    .iso-steps {
-      grid-template-columns: minmax(0, 1fr);
-    }
-
-    .iso-steps li {
-      padding-top: 12px;
-    }
-  }
-
   .iso-top,
   .iso-side,
   .iso-inner,
@@ -696,13 +594,8 @@
 
   /* With less motion: the finished scene, standing still. */
   @media (prefers-reduced-motion: reduce) {
-    .iso *,
-    .iso-steps li {
+    .iso * {
       animation: none !important;
-    }
-
-    .iso-steps li {
-      color: var(--foreground-secondary);
     }
 
     .iso-cursor,
