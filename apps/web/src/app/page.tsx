@@ -8,6 +8,7 @@ import {
   IconGlobe,
   IconLogoGithub,
   IconPointer,
+  IconStar,
 } from "@/components/icons";
 import { BrandLogo } from "@/components/brand-logo";
 import { Icon } from "@/components/icon";
@@ -22,6 +23,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { signInAction } from "@/lib/actions";
 import { BRANDS, type BrandId } from "@/lib/brands";
+import { formatStars, githubStars } from "@/lib/github-stars";
 import { getAccount, isAuthEnabled } from "@/lib/session";
 import { OPEN_GRAPH, REPOSITORY_URL, SITE_DESCRIPTION, SITE_NAME, siteUrl } from "@/lib/site";
 import "@/app/landing.css";
@@ -105,6 +107,8 @@ export default async function LandingPage() {
   const authEnabled = isAuthEnabled();
   const account = authEnabled ? await getAccount() : undefined;
   const canOpen = !authEnabled || Boolean(account);
+  // A zero reads as an empty shelf; the count appears from the first star on.
+  const stars = (await githubStars()) || undefined;
 
   const start = (label: string, href: string) => {
     const className = "h-11 rounded-full px-6 text-[15px]";
@@ -147,9 +151,15 @@ export default async function LandingPage() {
             <ThemeToggle />
           </span>
           <Button asChild variant="outline" size="sm" className="lp-header-link max-[760px]:hidden">
-            <a href={REPO} target="_blank" rel="noreferrer">
+            <a href={REPO} target="_blank" rel="noreferrer" aria-label={stars === undefined ? "evelab on GitHub" : `evelab on GitHub, ${stars} stars`}>
               <Icon icon={IconLogoGithub} size={14} />
               GitHub
+              {stars !== undefined && (
+                <span className="lp-stars" aria-hidden="true">
+                  <Icon icon={IconStar} size={12} />
+                  {formatStars(stars)}
+                </span>
+              )}
             </a>
           </Button>
           {canOpen ? (
