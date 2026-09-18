@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import {
   IconClock,
   IconDatabase,
@@ -48,6 +49,11 @@ export function Sidebar({
   account?: { name: string; image?: string | null };
 }) {
   const pathname = usePathname();
+  // The link just clicked, highlighted at once while its page is on the way. The
+  // old page stays on screen until the new one is ready, so the sidebar is the
+  // click's feedback. It lapses as soon as the address catches up.
+  const [pending, setPending] = useState<{ href: string; from: string }>();
+  const target = pending && pending.from === pathname ? pending.href : undefined;
   const base = `/projects/${project.id}`;
 
   const groups: Group[] = [
@@ -103,13 +109,19 @@ export function Sidebar({
               )}
               {items.map(({ label, segment, icon, count }) => {
                 const href = segment ? `${base}/${segment}` : base;
-                const current = segment ? pathname.startsWith(href) : pathname === base;
+                const at = target ?? pathname;
+                const current = segment ? at.startsWith(href) : at === base;
                 return (
                   <Link
                     className="sidebar-link"
                     key={label}
                     href={href}
                     aria-current={current ? "page" : undefined}
+                    onClick={(event) => {
+                      // A new tab or window leaves this page where it is.
+                      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+                      setPending({ href, from: pathname });
+                    }}
                   >
                     <Icon icon={icon} />
                     <span className="sidebar-link-label">{label}</span>
