@@ -60,6 +60,18 @@
     transition: color var(--duration-hover) ease;
   }
 
+  /* The star count sits in the GitHub button after a hairline, the way GitHub shows it. */
+  .lp-stars {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-inline-start: 4px;
+    padding-inline-start: 8px;
+    border-inline-start: 1px solid var(--border);
+    color: var(--foreground-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+
   .lp-header-actions {
     display: flex;
     align-items: center;
@@ -221,108 +233,6 @@
     font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
     font-weight: 600;
     letter-spacing: -0.02em;
-  }
-
-  /* The three steps the drawing acts out, each lit while its part of the loop plays. */
-  .iso-steps {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    margin: 0;
-    padding: 0;
-    border-top: 1px solid var(--border);
-    list-style: none;
-  }
-
-  .iso-steps li {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    column-gap: 10px;
-    row-gap: 2px;
-    align-content: start;
-    align-items: center;
-    padding: 14px 12px 0 0;
-    color: var(--foreground-tertiary);
-    animation: iso-step var(--iso-loop) linear infinite;
-  }
-
-  .iso-steps li:nth-child(2) {
-    animation-name: iso-step-2;
-  }
-
-  .iso-steps li:nth-child(3) {
-    animation-name: iso-step-3;
-  }
-
-  .iso-step-number {
-    display: grid;
-    place-items: center;
-    width: 20px;
-    height: 20px;
-    border: 1px solid currentColor;
-    border-radius: 50%;
-    font-family: var(--font-mono);
-    font-size: 11px;
-    line-height: 1;
-  }
-
-  .iso-step-title {
-    font-size: 14px;
-    font-weight: 500;
-    line-height: 20px;
-  }
-
-  .iso-step-body {
-    grid-column: 2;
-    font-size: 12.5px;
-    line-height: 18px;
-    text-wrap: pretty;
-  }
-
-  @keyframes iso-step {
-    0%,
-    58% {
-      color: var(--foreground);
-    }
-    61%,
-    100% {
-      color: var(--foreground-tertiary);
-    }
-  }
-
-  @keyframes iso-step-2 {
-    0%,
-    59% {
-      color: var(--foreground-tertiary);
-    }
-    62%,
-    82% {
-      color: var(--foreground);
-    }
-    85%,
-    100% {
-      color: var(--foreground-tertiary);
-    }
-  }
-
-  @keyframes iso-step-3 {
-    0%,
-    83% {
-      color: var(--foreground-tertiary);
-    }
-    86%,
-    100% {
-      color: var(--foreground);
-    }
-  }
-
-  @media (max-width: 520px) {
-    .iso-steps {
-      grid-template-columns: minmax(0, 1fr);
-    }
-
-    .iso-steps li {
-      padding-top: 12px;
-    }
   }
 
   .iso-top,
@@ -696,13 +606,8 @@
 
   /* With less motion: the finished scene, standing still. */
   @media (prefers-reduced-motion: reduce) {
-    .iso *,
-    .iso-steps li {
+    .iso * {
       animation: none !important;
-    }
-
-    .iso-steps li {
-      color: var(--foreground-secondary);
     }
 
     .iso-cursor,
@@ -841,38 +746,63 @@
     border-bottom: 1px solid var(--border);
   }
 
-  .lp-faq-item summary {
+  .lp-faq-question {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: var(--space-4);
+    width: 100%;
     min-height: 64px;
     padding-block: var(--space-4);
+    color: var(--foreground);
     font-size: 17px;
     font-weight: 500;
     letter-spacing: -0.01em;
     line-height: 24px;
-    list-style: none;
+    text-align: start;
     cursor: pointer;
   }
 
-  .lp-faq-item summary::-webkit-details-marker {
-    display: none;
-  }
-
-  .lp-faq-item summary .icon {
+  .lp-faq-question .icon {
+    flex: none;
     color: var(--foreground-tertiary);
-    transition: rotate 200ms var(--ease-out);
+    transition: rotate 280ms var(--ease-out), color var(--duration-hover) ease;
   }
 
-  .lp-faq-item[open] summary .icon {
+  .lp-faq-item[data-open] .lp-faq-question .icon {
     rotate: 180deg;
+    color: var(--foreground);
   }
 
-  .lp-faq-item summary:focus-visible {
+  @media (hover: hover) and (pointer: fine) {
+    .lp-faq-question:hover .icon {
+      color: var(--foreground);
+    }
+  }
+
+  .lp-faq-question:focus-visible {
     outline: 2px solid var(--focus);
     outline-offset: 2px;
     border-radius: 4px;
+  }
+
+  /* The answer's row grows from nothing to its own height, so it slides open whatever its length. */
+  .lp-faq-answer {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition: grid-template-rows 300ms var(--ease-out), opacity 200ms ease;
+  }
+
+  .lp-faq-item[data-open] .lp-faq-answer {
+    grid-template-rows: 1fr;
+    opacity: 1;
+    transition: grid-template-rows 320ms var(--ease-out), opacity 260ms ease 60ms;
+  }
+
+  .lp-faq-answer > div {
+    min-height: 0;
+    overflow: hidden;
   }
 
   .lp-faq-item p {
@@ -885,7 +815,9 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .lp-faq-item summary .icon {
+    .lp-faq-question .icon,
+    .lp-faq-answer,
+    .lp-faq-item[data-open] .lp-faq-answer {
       transition: none;
     }
   }

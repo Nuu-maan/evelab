@@ -30,6 +30,14 @@ export const metadata: Metadata = {
   category: "developer tools",
   openGraph: OPEN_GRAPH,
   twitter: { card: "summary_large_image", title: SITE_TITLE, description: SITE_DESCRIPTION },
+  // Transparent PNGs, one per tab colour: dark ink on light tabs, light ink on dark ones.
+  icons: {
+    icon: [
+      { url: "/favicon-light.png", type: "image/png", sizes: "96x96", media: "(prefers-color-scheme: light)" },
+      { url: "/favicon-dark.png", type: "image/png", sizes: "96x96", media: "(prefers-color-scheme: dark)" },
+    ],
+    apple: [{ url: "/apple-icon", type: "image/png", sizes: "180x180" }],
+  },
   other: { "github:repository": REPOSITORY_URL },
 };
 

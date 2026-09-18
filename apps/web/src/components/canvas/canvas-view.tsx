@@ -159,6 +159,12 @@ function fitPadding() {
 }
 
 
+/**
+ * What a tap may land on without closing a phone sheet: the cards (a tap there
+ * picks the card, and the inspector follows it) and the canvas's own controls.
+ */
+const SHEET_CONTROLS = ".react-flow__node, .canvas-toolbar-wrap, .canvas-view-menu, .canvas-bottom-left, .canvas-bottom-right, .canvas-picker";
+
 /** What each wire colour means: the kind of card it leads to, and how the wire is drawn. */
 const LEGEND: { kind: CanvasNodeKind; hint: string; dashed?: boolean }[] = [
   { kind: "subagent", hint: "Dashed wire: an agent contains this subagent", dashed: true },
@@ -482,6 +488,20 @@ function CanvasInner(props: CanvasProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialized]);
 
+  // An arranged layout takes new cards in once they are measured: everything
+  // moves to its place in the arrangement and the view follows.
+  const relayout = useRef(false);
+  useEffect(() => {
+    if (!initialized || !relayout.current) return;
+    relayout.current = false;
+    const mode = layoutState.current.mode;
+    if (mode === "freeform") return;
+    applyPositions(autoLayout(graph, mode, foldedNodes(graph, layoutState.current.collapsed).hidden, measuredSizes()));
+    requestAnimationFrame(() => void fitView({ duration: 360, padding: fitPadding(), maxZoom: 1 }));
+    // Runs when newly added cards finish measuring.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialized]);
+
   // Handles move with the layout mode; React Flow keeps measured handle positions until told to measure again.
   const updateNodeInternals = useUpdateNodeInternals();
   useEffect(() => {
@@ -501,6 +521,7 @@ function CanvasInner(props: CanvasProps) {
     if (renderedGraph.current === graph) return;
     renderedGraph.current = graph;
     const auto = autoLayout(graph, layoutState.current.mode === "freeform" ? "hierarchical" : layoutState.current.mode);
+    if (layoutState.current.mode !== "freeform" && graph.nodes.some((node) => !getNode(node.id))) relayout.current = true;
     setNodes((current) => {
       const existing = new Map(current.map((node) => [node.id, node]));
       const placedChildren = new Map<string, number>();
@@ -516,7 +537,9 @@ function CanvasInner(props: CanvasProps) {
           const parent = graph.edges.find((edge) => edge.target === node.id);
           const owner = parent ? existing.get(parent.source) : undefined;
           if (owner) {
-            const index = placedChildren.get(owner.id) ?? 0;
+            // Past the children it already has, so a second addition never lands on the first.
+            const siblings = graph.edges.filter((edge) => edge.source === owner.id && existing.has(edge.target)).length;
+            const index = placedChildren.get(owner.id) ?? siblings;
             placedChildren.set(owner.id, index + 1);
             const horizontal = layoutState.current.mode === "horizontal";
             position = horizontal
@@ -1566,7 +1589,7 @@ function CanvasInner(props: CanvasProps) {
           </div>
 
           {phone ? (
-            <PhoneSheet open={panelOpen} onOpenChange={setPanelOpen} title="Resources">
+            <PhoneSheet open={panelOpen} onOpenChange={setPanelOpen} title="Resources" keepOpenOn={SHEET_CONTROLS}>
               {resourceBrowser}
             </PhoneSheet>
           ) : (
@@ -1665,7 +1688,7 @@ function CanvasInner(props: CanvasProps) {
           )}
 
           {phone ? (
-            <PhoneSheet open={showInspector} onOpenChange={(open) => !open && closeInspector()} title={inspectorLabel}>
+            <PhoneSheet open={showInspector} onOpenChange={(open) => !open && closeInspector()} title={inspectorLabel} keepOpenOn={SHEET_CONTROLS}>
               {inspectorBody}
             </PhoneSheet>
           ) : (

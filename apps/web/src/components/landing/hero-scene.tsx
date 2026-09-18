@@ -238,23 +238,6 @@ export function HeroScene() {
   return (
     <figure className="iso-figure">
       <HeroIllustration />
-      <ol className="iso-steps">
-        <li>
-          <span className="iso-step-number">1</span>
-          <span className="iso-step-title">Design in evelab</span>
-          <span className="iso-step-body">Drag pieces onto it</span>
-        </li>
-        <li>
-          <span className="iso-step-number">2</span>
-          <span className="iso-step-title">Get code with eve</span>
-          <span className="iso-step-body">Every piece is a real file</span>
-        </li>
-        <li>
-          <span className="iso-step-number">3</span>
-          <span className="iso-step-title">Ship on Vercel</span>
-          <span className="iso-step-body">Deploy with eve deploy</span>
-        </li>
-      </ol>
     </figure>
   );
 }

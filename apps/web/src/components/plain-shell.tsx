@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { Mark } from "@/components/mark";
-import { Avatar } from "@/components/project-switcher";
+import { AccountMenu } from "@/components/account-menu";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { signOutAction } from "@/lib/actions";
 import { getAccount } from "@/lib/session";
 
 /**
@@ -25,22 +24,10 @@ export async function PlainShell({ children }: { children: React.ReactNode }) {
         </Link>
         <div className="topbar-actions">
           <ThemeToggle />
-          <Button asChild variant="ghost" size="sm">
+          <Button asChild variant="ghost" size="sm" className={account ? "max-[560px]:hidden" : undefined}>
             <Link href="/projects">Projects</Link>
           </Button>
-          {account && (
-            <>
-              <span className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Avatar name={account.name} image={account.image} />
-                {account.name}
-              </span>
-              <form action={signOutAction}>
-                <Button variant="ghost" size="sm" type="submit">
-                  Sign out
-                </Button>
-              </form>
-            </>
-          )}
+          {account && <AccountMenu name={account.name} image={account.image} />}
         </div>
       </header>
       {children}
