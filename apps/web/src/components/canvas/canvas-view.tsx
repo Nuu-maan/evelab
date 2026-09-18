@@ -159,6 +159,12 @@ function fitPadding() {
 }
 
 
+/**
+ * What a tap may land on without closing a phone sheet: the cards (a tap there
+ * picks the card, and the inspector follows it) and the canvas's own controls.
+ */
+const SHEET_CONTROLS = ".react-flow__node, .canvas-toolbar-wrap, .canvas-view-menu, .canvas-bottom-left, .canvas-bottom-right, .canvas-picker";
+
 /** What each wire colour means: the kind of card it leads to, and how the wire is drawn. */
 const LEGEND: { kind: CanvasNodeKind; hint: string; dashed?: boolean }[] = [
   { kind: "subagent", hint: "Dashed wire: an agent contains this subagent", dashed: true },
@@ -1566,7 +1572,7 @@ function CanvasInner(props: CanvasProps) {
           </div>
 
           {phone ? (
-            <PhoneSheet open={panelOpen} onOpenChange={setPanelOpen} title="Resources">
+            <PhoneSheet open={panelOpen} onOpenChange={setPanelOpen} title="Resources" keepOpenOn={SHEET_CONTROLS}>
               {resourceBrowser}
             </PhoneSheet>
           ) : (
@@ -1665,7 +1671,7 @@ function CanvasInner(props: CanvasProps) {
           )}
 
           {phone ? (
-            <PhoneSheet open={showInspector} onOpenChange={(open) => !open && closeInspector()} title={inspectorLabel}>
+            <PhoneSheet open={showInspector} onOpenChange={(open) => !open && closeInspector()} title={inspectorLabel} keepOpenOn={SHEET_CONTROLS}>
               {inspectorBody}
             </PhoneSheet>
           ) : (
