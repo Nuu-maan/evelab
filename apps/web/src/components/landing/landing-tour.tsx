@@ -16,8 +16,8 @@ const CHAPTER_NOTES = [
 
 /* Where each chapter starts in the recordings, in seconds. The two themes were filmed separately. */
 const STARTS: Record<Theme, readonly number[]> = {
-  dark: [0, 19.4, 50.2, 62.9],
-  light: [0, 19.5, 51.6, 64.4],
+  dark: [0, 13.9, 38.6, 48],
+  light: [0, 13.9, 38.9, 49.6],
 };
 
 /** The theme the page is showing, following the toggle as it changes. */
